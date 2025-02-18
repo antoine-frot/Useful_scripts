@@ -194,9 +194,6 @@ for xyz_file in "${xyz_files[@]}"; do
         unset use_gbw
     fi
     
-    # Log the job submission
-    echo "$job_basename" >> "${root_dir}/Submited.txt"
-    
     # Return to the xyz directory and then to the root directory
     popd > /dev/null  # Exit job directory
     popd > /dev/null  # Exit xyz_dir
