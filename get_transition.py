@@ -4,6 +4,8 @@ import os
 import re
 import fnmatch
 
+threshhold_contribution_transition = 0.25 # Variable that choose which pourcentage of contribution in the total transition the transition between two orbitals is shown 
+
 def parse_transitions(transitions_arg):
     """Parse transitions argument into a sorted list of integers"""
     transitions = set()
@@ -105,7 +107,7 @@ def process_file(file_path, transitions, HOMO):
                     elif Orbital2 > HOMO + 1 :
                         Orbital2 = f"LUMO{Orbital2 - HOMO - 1:+d}"
 
-                    if value_float > 0.3:
+                    if value_float > threshhold_contribution_transition:
                         contributions.append(f"| {Orbital1} -> {Orbital2} : {value_float:.6f}")
         
         # Print combined output with all contributions on same line
