@@ -32,6 +32,7 @@ do
     cp  *.gbw *.hess *.xyz *.interp *.nbo ${HOMEDIR}/ 2>/dev/null
     sleep 30
 done
+echo "${input%.inp}" > /home/afrot/Stage2025Tangui/Submited.txt
 rm -rf "${SCRATCHDIR}"
 
 
