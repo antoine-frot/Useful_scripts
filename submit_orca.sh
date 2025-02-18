@@ -95,68 +95,68 @@ ask=0       # Flag to stop prompting the user repeatedly
 
 # --- Process Each .xyz File ---
 for xyz_file in "${xyz_files[@]}"; do
-    # Create a subdirectory named after the .xyz file (without its extension)
-    xyz_dir="${root_dir}/${xyz_file%.*}"
-    mkdir -p "$xyz_dir"
+  # Create a subdirectory named after the .xyz file (without its extension)
+  xyz_dir="${root_dir}/${xyz_file%.*}"
+  mkdir -p "$xyz_dir"
+  
+  # Enter the xyz_dir directory
+  pushd "$xyz_dir" > /dev/null
+  
+  # Construct job basename combining the .xyz filename and the input file name (both without extensions)
+  job_basename="${xyz_file%.*}-${input%.*}"
+  job_directory="${PWD}/${job_basename}"
+  job_input="${job_basename}.inp"
+  
+  # If the job directory already exists, handle parameter reuse or prompt the user.
+  if [ -d "$job_directory" ]; then
+    if [ "$two_existing_dir" -eq 0 ] && [ "$ask" -eq 0 ]; then
+      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
+          same_parameter=0
+      fi
+    ask=1
+    fi
+    two_existing_dir=0
+    echo -e "${R}Directory $(basename "$job_directory") already exists.${NC}"
     
-    # Enter the xyz_dir directory
-    pushd "$xyz_dir" > /dev/null
-    
-    # Construct job basename combining the .xyz filename and the input file name (both without extensions)
-    job_basename="${xyz_file%.*}-${input%.*}"
-    job_directory="${PWD}/${job_basename}"
-    job_input="${job_basename}.inp"
-    
-    # If the job directory already exists, handle parameter reuse or prompt the user.
-    if [ -d "$job_directory" ]; then
-	if [ "$two_existing_dir" -eq 0 ] && [ "$ask" -eq 0 ]; then
-            if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
-                same_parameter=0
-            fi
-	    ask=1
+    if (( same_parameter == 1 )); then
+        if ! prompt_yes_no "Do you want to overwrite the directory"; then
+            echo -e "${R}Aborting.${NC}"
+            popd > /dev/null
+            exit 1
         fi
-        two_existing_dir=0
-        echo -e "${R}Directory $(basename "$job_directory") already exists.${NC}"
-        
+    fi
+
+    pushd "$job_directory" > /dev/null
+    cp "${root_dir}/${input}" "$job_input"
+    
+    # --- Optionally Add Previously Calculated Molecular Orbitals ---
+    if [ -f "${job_directory}.gbw" ]; then
         if (( same_parameter == 1 )); then
-            if ! prompt_yes_no "Do you want to overwrite the directory"; then
-                echo -e "${R}Aborting.${NC}"
-                popd > /dev/null
-                exit 1
-            fi
+            use_orbs=$(prompt_yes_no "Use previously calculated molecular orbitals")
         fi
 
-        pushd "$job_directory" > /dev/null
-        cp "${root_dir}/${input}" "$job_input"
-        
-        # --- Optionally Add Previously Calculated Molecular Orbitals ---
-        if [ -f "${job_directory}.gbw.bz2" ]; then
-            if (( same_parameter == 1 )); then
-                use_orbs=$(prompt_yes_no "Use previously calculated molecular orbitals")
-            fi
-
-            if [ $use_orbs ]; then
-                use_gbw="${job_basename}_use.gbw"
-                bunzip2 -kc "${job_directory}.gbw.bz2" > "$use_gbw"
-                {
-                    echo "!MOREAD"
-                    echo "%moinp ${use_gbw}"
-                } > temp_insert.txt
-                # Insert the molecular orbital directives after the first line of the input file.
-                sed -i '2r temp_insert.txt' "$job_input"
-                rm -f temp_insert.txt
-                echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
-            else
-                echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
-            fi
+        if [ $use_orbs ]; then
+            use_gbw="${job_basename}_use.gbw"
+            cp "${job_directory}.gbw" "$use_gbw"
+            {
+                echo "!MOREAD"
+                echo "%moinp ${use_gbw}"
+            } > temp_insert.txt
+            # Insert the molecular orbital directives after the first line of the input file.
+            sed -i '2r temp_insert.txt' "$job_input"
+            rm -f temp_insert.txt
+            echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
         else
-            echo -e "${G}No previous calculated molecular orbitals found.${NC}"
+            echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
         fi
     else
-        mkdir -p "$job_directory"
-        pushd "$job_directory" > /dev/null
-        cp "${root_dir}/${input}" "$job_input"
-    fi 
+        echo -e "${G}No previous calculated molecular orbitals found.${NC}"
+    fi
+  else
+      mkdir -p "$job_directory"
+      pushd "$job_directory" > /dev/null
+      cp "${root_dir}/${input}" "$job_input"
+  fi 
 
     # --- Update the Input File with the Current .xyz File ---
     # Find the first line starting with "* xyzfile" in the input file.
@@ -203,7 +203,11 @@ for xyz_file in "${xyz_files[@]}"; do
 done
 
 # Move the original *.inp file into an "Input_Orca" directory
-mkdir -p "${root_dir}/Input_Orca"
-mv "${root_dir}/${input}" "${root_dir}/Input_Orca/${input}"
+if prompt_yes_no "Do you want to keep the input file?"; then
+  Input_directory='Input_Orca'
+  mkdir -p "${root_dir}/$Input_directory"
+  mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
+  echo "Input stored in $Input_directory."
+fi
 
-echo -e "${G}All jobs submitted successfully.${NC}"
+echo -e "${G}${#xyz_files[@]} submitted successfully.${NC}"
