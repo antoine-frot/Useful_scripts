@@ -207,7 +207,7 @@ if prompt_yes_no "Do you want to keep the input file?"; then
   Input_directory='Input_Orca'
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
-  echo "Input stored in $Input_directory."
+  echo "${root_dir}/${input} stored in $Input_directory."
 else
   rm "${root_dir}/${input}"
 fi
