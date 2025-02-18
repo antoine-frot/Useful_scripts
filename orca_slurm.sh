@@ -23,10 +23,10 @@ SCRATCHDIR=`mktemp -d`
 HOMEDIR="$SLURM_SUBMIT_DIR"
  
 cd ${HOMEDIR} || { echo "cannot cd to ${HOMEDIR}"; exit 1; }
-cp "${input}" *.xyz *.bas *.pc "${SCRATCHDIR}"
+cp "${input}" *.xyz *.bas *.pc "${SCRATCHDIR}" 2>/dev/null
 cd  "${SCRATCHDIR}" || { echo "cannot cd to ${SCRATCHDIR}"; exit 1; }
 /Xnfs/chimie/debian11/orca/orca_6_0_1/orca "${input}" > "${HOMEDIR}/${output}"
-cp  *.gbw *.hess *.xyz *.interp ${HOMEDIR}/
+cp  *.gbw *.hess *.xyz *.interp *.nbo ${HOMEDIR}/ 2>/dev/null
 rm -rf "${SCRATCHDIR}"
 
 
