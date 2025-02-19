@@ -184,8 +184,13 @@ for xyz_file in "${xyz_files[@]}"; do
         exit 1
     fi
     
+    # Get the number of processor and the total memory from the input file
+    output=$(python3 "$script_dir/get_slurm_procs_mem.py" "$job_input")
+    nprocs=$(echo "$output" | awk '{print $1}')
+    memory=$(echo "$output" | awk '{print $2}')
+
     # Submit the job via SLURM
-    sbatch --job-name="$job_basename" "$submission_script" "$job_input" > /dev/null
+    sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" > /dev/null
     echo "$job_basename has been submitted"
     
     # Remove the temporary .gbw file if it was used
