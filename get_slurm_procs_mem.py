@@ -32,9 +32,9 @@ def find_values(filename):
         return (1, 4000)  # Both defaults if no sections
     
     max_nprocs = max(np for mc, np in all_pairs)
-    max_product = max(mc * np for mc, np in all_pairs)
+    max_memory = max(mc * np for mc, np in all_pairs)
     
-    return (max_nprocs, max_product)
+    return (max_nprocs, max_memory)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -42,9 +42,8 @@ if __name__ == "__main__":
         sys.exit(1)
     
     try:
-        max_nprocs, max_product = find_values(sys.argv[1])
-        print(f"Maximum nprocs: {max_nprocs}")
-        print(f"Maximum product: {max_product}")
+        max_nprocs, max_memory = find_values(sys.argv[1])
+        print(max_nprocs, max_memory)
     except FileNotFoundError:
         print(f"Error: File '{sys.argv[1]}' not found.")
         sys.exit(1)

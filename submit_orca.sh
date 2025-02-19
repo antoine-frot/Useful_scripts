@@ -33,6 +33,9 @@ G='\033[0;32m'       # Green
 Y='\033[0;33m'       # Yellow
 M='\033[0;35m'       # Magenta
 
+# --- Set the Script Directory ---
+script_dir="/home/afrot/script"
+
 # --- Set the Working Directory ---
 root_dir="/home/afrot/Stage2025Tangui"
 if [ "$root_dir" != "$(pwd)" ]; then
@@ -176,7 +179,7 @@ for xyz_file in "${xyz_files[@]}"; do
     mv "${root_dir}/${xyz_file}" "$job_directory/"
     
     # --- Prepare and Submit the Job ---
-    submission_script="/home/afrot/script/orca_slurm.sh"
+    submission_script="$script_dir/orca_slurm.sh"
     if [ ! -f "$submission_script" ]; then
         echo -e "${R}Submission script not found at $submission_script.${NC}"
         popd > /dev/null
