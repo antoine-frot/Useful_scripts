@@ -14,7 +14,7 @@ Description:
       - Copy and modify the input file: if the first "* xyzfile" line contains a .xyz file,
         it removes the old coordinate reference and appends the current .xyz filename.
       - Optionally insert directives to reuse previously calculated molecular orbitals if a
-        corresponding *.gbw.bz2 file is found.
+        corresponding *.gbw file is found.
       - Move the geometry file into the job directory.
       - Copy a SLURM submission script and submit the job.
       - Log the job submission in a designated log file.
@@ -133,14 +133,14 @@ for xyz_file in "${xyz_files[@]}"; do
     cp "${root_dir}/${input}" "$job_input"
     
     # --- Optionally Add Previously Calculated Molecular Orbitals ---
-    if [ -f "${job_directory}.gbw" ]; then
+    if [ -f "${job_directory}/${job_basename}.gbw" ]; then
         if (( same_parameter == 1 )); then
             use_orbs=$(prompt_yes_no "Use previously calculated molecular orbitals")
         fi
 
         if [ $use_orbs ]; then
             use_gbw="${job_basename}_use.gbw"
-            cp "${job_directory}.gbw" "$use_gbw"
+            cp "${job_directory}/${job_basename}.gbw" "$use_gbw"
             {
                 echo "!MOREAD"
                 echo "%moinp ${use_gbw}"
@@ -153,7 +153,7 @@ for xyz_file in "${xyz_files[@]}"; do
             echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
         fi
     else
-        echo -e "${G}No previous calculated molecular orbitals found.${NC}"
+        echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
     fi
   else
       mkdir -p "$job_directory"
