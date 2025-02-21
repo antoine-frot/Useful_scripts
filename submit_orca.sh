@@ -33,8 +33,10 @@ G='\033[0;32m'       # Green
 Y='\033[0;33m'       # Yellow
 M='\033[0;35m'       # Magenta
 
-# --- Set the Script Directory ---
+# --- Set Variables ---
 script_dir="/home/afrot/script"
+submission_script="$script_dir/orca_slurm.sh"
+Input_directory='Input_Orca'
 
 # --- Set the Working Directory ---
 root_dir="/home/afrot/Stage2025Tangui"
@@ -132,32 +134,33 @@ for xyz_file in "${xyz_files[@]}"; do
     pushd "$job_directory" > /dev/null
     cp "${root_dir}/${input}" "$job_input"
     
+    # Doesn't work yet.
     # --- Optionally Add Previously Calculated Molecular Orbitals ---
-    if [ -f "${job_directory}/${job_basename}.gbw" ]; then
-      if (( same_parameter == 1 )); then
-        if prompt_yes_no "Use previously calculated molecular orbitals"; then
-          use_orbs=1
-        else
-          use_orbs=0
-        fi
-      fi
-      if [ $use_orbs ]; then
-          use_gbw="${job_basename}_use.gbw"
-          cp "${job_directory}/${job_basename}.gbw" "$use_gbw"
-          {
-              echo "!MOREAD"
-              echo "%moinp ${use_gbw}"
-          } > temp_insert.txt
-          # Insert the molecular orbital directives after the first line of the input file.
-          sed -i '1r temp_insert.txt' "$job_input"
-          rm -f temp_insert.txt
-          echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
-      else
-          echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
-      fi
-    else
-      echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
-    fi
+#    if [ -f "${job_directory}/${job_basename}.gbw" ]; then
+#      if (( same_parameter == 1 )); then
+#        if prompt_yes_no "Use previously calculated molecular orbitals"; then
+#          use_orbs=1
+#        else
+#          use_orbs=0
+#        fi
+#      fi
+#      if [ $use_orbs ]; then
+#          use_gbw="${job_basename}_use.gbw"
+#          cp "${job_directory}/${job_basename}.gbw" "${job_directory}/$use_gbw"
+#          {
+#              echo "!MOREAD"
+#              echo "%moinp \"${use_gbw}\""
+#          } > temp_insert.txt
+#          # Insert the molecular orbital directives after the first line of the input file.
+#          sed -i '1r temp_insert.txt' "$job_input"
+#          rm -f temp_insert.txt
+#          echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
+#      else
+#          echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
+#      fi
+#    else
+#      echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
+#    fi
   else
       mkdir -p "$job_directory"
       pushd "$job_directory" > /dev/null
@@ -175,14 +178,13 @@ for xyz_file in "${xyz_files[@]}"; do
         sed -i "0,/^\* xyzfile/ {/^\* xyzfile/ s/$/ ${xyz_file}/;}" "$job_input"
     else
         echo -e "${R}Warning: No line starting with \"* xyzfile\" was found in $job_input.${NC}"
-	exit 1
+        exit 1
     fi
 
     # Move the current .xyz file into the job directory
     mv "${root_dir}/${xyz_file}" "$job_directory/"
     
     # --- Prepare and Submit the Job ---
-    submission_script="$script_dir/orca_slurm.sh"
     if [ ! -f "$submission_script" ]; then
         echo -e "${R}Submission script not found at $submission_script.${NC}"
         popd > /dev/null
@@ -200,10 +202,10 @@ for xyz_file in "${xyz_files[@]}"; do
     echo "$job_basename has been submitted"
     
     # Remove the temporary .gbw file if it was used
-    if [ -n "${use_gbw:-}" ] && [ -f "$use_gbw" ]; then
-        rm "$use_gbw"
-        unset use_gbw
-    fi
+    #if [ -n "${use_gbw:-}" ] && [ -f "$use_gbw" ]; then
+    #    rm "$use_gbw"
+    #    unset use_gbw
+    #fi
     
     # Return to the xyz directory and then to the root directory
     popd > /dev/null  # Exit job directory
@@ -212,7 +214,6 @@ done
 
 # Move the original *.inp file into an "Input_Orca" directory
 if prompt_yes_no "Do you want to keep the input file?"; then
-  Input_directory='Input_Orca'
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
   echo "${root_dir}/${input} stored in $Input_directory."
