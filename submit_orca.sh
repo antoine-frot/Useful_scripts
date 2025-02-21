@@ -141,7 +141,6 @@ for xyz_file in "${xyz_files[@]}"; do
           use_orbs=0
         fi
       fi
-      echo "$use_orbs"
       if [ $use_orbs ]; then
           use_gbw="${job_basename}_use.gbw"
           cp "${job_directory}/${job_basename}.gbw" "$use_gbw"
