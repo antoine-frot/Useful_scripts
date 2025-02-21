@@ -216,7 +216,7 @@ done
 if prompt_yes_no "Do you want to keep the input file?"; then
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
-  echo "${root_dir}/${input} stored in $Input_directory."
+  echo "${input} stored in $Input_directory."
 else
   rm "${root_dir}/${input}"
 fi
