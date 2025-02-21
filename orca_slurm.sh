@@ -20,22 +20,38 @@ output=$(basename "${input}" .inp).out
 SCRATCHDIR=$(mktemp -d)
 HOMEDIR="$SLURM_SUBMIT_DIR"
 
+# Copy input files to scratch directory
 cd "${HOMEDIR}" || { echo "cannot cd to ${HOMEDIR}"; exit 1; }
-cp "${input}" *.xyz *.bas *.pc "${SCRATCHDIR}" 2>/dev/null
+cp "${input}" *.xyz *.bas *.pc *_use.gbw "${SCRATCHDIR}" 2>/dev/null
 cd "${SCRATCHDIR}" || { echo "cannot cd to ${SCRATCHDIR}"; exit 1; }
 
+# Initialize ORCA completion flag
+orca_calc_done=0
+orca_isdone="${SCRATCHDIR}/${SLURM_JOB_ID}.isdone"
+echo "$orca_calc_done" > "$orca_isdone"
+
+echo " "
+echo "### Calling ORCA command ..."
+echo " "
+
 # Run ORCA in the background
-/Xnfs/chimie/debian11/orca/orca_6_0_1/orca "${input}" > "${HOMEDIR}/${output}" &
+(/Xnfs/chimie/debian11/orca/orca_6_0_1/orca "${input}" > "${HOMEDIR}/${output}" 2>&1; orca_calc_done=1; echo "$orca_calc_done" > "$orca_isdone"; echo "all done") &
 
-# Get the SLURM job ID of this script
-slurm_job_id=$SLURM_JOB_ID
-
-# Check if the SLURM job is still running
-while squeue -j "$slurm_job_id" | grep -q "$slurm_job_id"; do
-    cp *.gbw *.hess *.xyz *.interp *.nbo "${HOMEDIR}/" 2>/dev/null
-    sleep 60
+# Periodically copy output files from scratch to home directory
+while [ "$orca_calc_done" -eq 0 ]
+do
+  sleep 60
+  orca_calc_done=$(<"$orca_isdone")
+  cp *.gbw *.hess *.xyz *.interp *.nbo "${HOMEDIR}/" 2>/dev/null
 done
 
-# After the SLURM job finishes, append to Submited.txt
+# Ensure all files are copied after the job finishes
+cp *.gbw *.hess *.xyz *.interp *.nbo "${HOMEDIR}/" 2>/dev/null
+
+# Append to Submited.txt
 echo "${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
+
+# Clean up scratch directory
 rm -rf "${SCRATCHDIR}"
+
+echo "ORCA calculation completed successfully."
