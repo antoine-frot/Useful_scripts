@@ -65,7 +65,7 @@ prompt_yes_no() {
 # Require exactly one *.inp file in the current directory
 inp_files=( *.inp )
 if (( ${#inp_files[@]} != 1 )); then
-    echo -e "${R}Error: Exactly one input file (*.inp) is expected in the current directory.${NC}"
+    echo -e "${R}Error: Exactly one input file (*.inp) is expected in the current directory (currently ${inp_files[@]} is given).${NC}"
     exit 1
 fi
 input="${inp_files[0]}"
@@ -134,26 +134,30 @@ for xyz_file in "${xyz_files[@]}"; do
     
     # --- Optionally Add Previously Calculated Molecular Orbitals ---
     if [ -f "${job_directory}/${job_basename}.gbw" ]; then
-        if (( same_parameter == 1 )); then
-            use_orbs=$(prompt_yes_no "Use previously calculated molecular orbitals")
-        fi
-
-        if [ $use_orbs ]; then
-            use_gbw="${job_basename}_use.gbw"
-            cp "${job_directory}/${job_basename}.gbw" "$use_gbw"
-            {
-                echo "!MOREAD"
-                echo "%moinp ${use_gbw}"
-            } > temp_insert.txt
-            # Insert the molecular orbital directives after the first line of the input file.
-            sed -i '2r temp_insert.txt' "$job_input"
-            rm -f temp_insert.txt
-            echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
+      if (( same_parameter == 1 )); then
+        if prompt_yes_no "Use previously calculated molecular orbitals"; then
+          use_orbs=1
         else
-            echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
+          use_orbs=0
         fi
+      fi
+      echo "$use_orbs"
+      if [ $use_orbs ]; then
+          use_gbw="${job_basename}_use.gbw"
+          cp "${job_directory}/${job_basename}.gbw" "$use_gbw"
+          {
+              echo "!MOREAD"
+              echo "%moinp ${use_gbw}"
+          } > temp_insert.txt
+          # Insert the molecular orbital directives after the first line of the input file.
+          sed -i '1r temp_insert.txt' "$job_input"
+          rm -f temp_insert.txt
+          echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
+      else
+          echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
+      fi
     else
-        echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
+      echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
     fi
   else
       mkdir -p "$job_directory"
