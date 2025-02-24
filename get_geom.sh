@@ -45,6 +45,3 @@ for molecule in ${@:-Boranil*}; do
         echo "Error: Failed to copy $source_path"
     fi
 done
-
- 
-echo "Operation completed."
