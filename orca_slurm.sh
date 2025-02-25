@@ -9,6 +9,9 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --time=7-23:00:00
 
+start=$(date +%s)
+echo "START_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
+
 module purge
 module use /applis/PSMN/debian11/Lake/modules/all/
 module use /Xnfs/chimie/debian11/modules/
@@ -42,11 +45,11 @@ while [ "$orca_calc_done" -eq 0 ]
 do
   sleep 60
   orca_calc_done=$(<"$orca_isdone")
-  cp *.gbw *.hess *.xyz *.interp *.nbo "${HOMEDIR}/" 2>/dev/null
+  cp *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc "${HOMEDIR}/" 2>/dev/null
 done
 
 # Ensure all files are copied after the job finishes
-cp *.gbw *.hess *.xyz *.interp *.nbo "${HOMEDIR}/" 2>/dev/null
+cp *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc "${HOMEDIR}/" 2>/dev/null
 
 # Append to Submited.txt
 echo "${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
@@ -54,4 +57,25 @@ echo "${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
 # Clean up scratch directory
 rm -rf "${SCRATCHDIR}"
 
-echo "ORCA calculation completed successfully."
+end=$(date +%s)
+echo "END_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
+echo " "
+echo "### Calculate duration ..."
+echo " "
+diff=$[end-start]
+if [ $diff -lt 60 ]; then
+    echo "Runtime (approx.): $diff secs"
+elif [ $diff -lt 3600 ]; then
+    echo "Runtime (approx.): $(($diff / 60)) min(s) $(($diff % 60)) secs"
+elif [ $diff -lt 86400 ]; then
+    hours=$(($diff / 3600))
+    minutes=$((($diff % 3600) / 60))
+    seconds=$(($diff % 60))
+    echo "Runtime (approx.): $hours hour(s) $minutes min(s) $seconds secs"
+else
+    days=$(($diff / 86400))
+    hours=$((($diff % 86400) / 3600))
+    minutes=$((($diff % 3600) / 60))
+    seconds=$(($diff % 60))
+    echo "Runtime (approx.): $days day(s) $hours hour(s) $minutes min(s) $seconds secs"
+fi
