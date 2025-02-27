@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
 import argparse
 import glob
 import os
 import re
 import fnmatch
+from get_nroots import get_nroots
+from get_HOMO import get_HOMO
 
 threshhold_contribution_transition = 0.25 # Variable that choose which pourcentage of contribution in the total transition the transition between two orbitals is shown 
 
@@ -20,38 +23,6 @@ def parse_transitions(transitions_arg):
             if part:  # ignore empty strings
                 transitions.add(int(part))
     return sorted(transitions)
-
-def get_nroots(file_path):
-    """Extract nroots value from file containing '> nroots' pattern"""
-    try:
-        with open(file_path, 'r') as f:
-            for line in f:
-                if '> nroots' in line:
-                    parts = line.strip().split()
-                    try:
-                        idx = parts.index('nroots')
-                        return int(parts[idx + 1])
-                    except (ValueError, IndexError):
-                        pass
-        return None
-    except IOError:
-        return None
-
-def get_HOMO(file_path):
-    """Extract HOMO orbital number from the number of electrons."""
-    try:
-        with open(file_path, 'r') as f:
-            for line in f:
-                electron_match = re.match(r' Number of Electrons\s+NEL\s+\.\.\.\.\s+(\d+)', line)
-                if electron_match:
-                    try:
-                        HOMO = int(int(electron_match.group(1))/2)
-                        return HOMO - 1 # Starting index is zero
-                    except (ValueError, IndexError):
-                        pass
-        return None
-    except IOError:
-        return None
 
 def process_file(file_path, transitions, HOMO):
     """Process a single file for given transitions"""
