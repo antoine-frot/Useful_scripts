@@ -9,7 +9,7 @@ cd "/home/afrot/Stage2025Tangui"
 for molecule in ${@:-Boranil*}; do
   if [ -d "$molecule" ]; then
     for source_path in "${molecule}/${molecule}-"*; do
-      grep -H "ORCA finished by error termination" "$source_path"/"${molecule}"*.out | awk -F"/" '{print $NF}'
+      grep -H "ORCA finished by error termination" "$source_path"/"${molecule}"*.out 2>/dev/null | awk -F"/" '{print $NF}'
     done
   fi
 done
