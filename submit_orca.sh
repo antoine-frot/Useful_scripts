@@ -81,9 +81,9 @@ fi
 
 # Inform the user about the number of .xyz files found
 if (( ${#xyz_files[@]} == 1 )); then
-    echo -e "${G}Found 1 xyz file.${NC}"
+  echo -e "${G}Found 1 xyz file (${xyz_files[@]}).${NC}"
 else
-    echo -e "${G}Found ${M}${#xyz_files[@]}${G} xyz files.${NC}"
+  echo -e "${G}Found ${M}${#xyz_files[@]}${G} xyz files.${NC}"
 fi
 
 # --- Confirm Continuation ---
