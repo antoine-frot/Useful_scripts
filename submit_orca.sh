@@ -182,7 +182,7 @@ for xyz_file in "${xyz_files[@]}"; do
     fi
 
     # Move the current .xyz file into the job directory
-    mv "${root_dir}/${xyz_file}" "$job_directory/"
+    cp "${root_dir}/${xyz_file}" "$job_directory/"
     
     # --- Prepare and Submit the Job ---
     if [ ! -f "$submission_script" ]; then
@@ -198,7 +198,11 @@ for xyz_file in "${xyz_files[@]}"; do
     memory=$(echo "$output" | awk '{print $2}')
 
     # Submit the job via SLURM
-    sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" > /dev/null
+    sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input"
+    if [ $? != 0 ]; then
+      echo -e "${R}Submitting the job failed. Exiting.${NC}"
+      exit 1
+    fi
     echo "$job_basename has been submitted"
     
     # Remove the temporary .gbw file if it was used
@@ -207,6 +211,7 @@ for xyz_file in "${xyz_files[@]}"; do
     #    unset use_gbw
     #fi
     
+    rm "${root_dir}/${xyz_file}"
     # Return to the xyz directory and then to the root directory
     popd > /dev/null  # Exit job directory
     popd > /dev/null  # Exit xyz_dir
