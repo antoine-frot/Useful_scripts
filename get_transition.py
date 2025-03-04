@@ -169,7 +169,7 @@ def main():
                 if nroots:
                     file_transitions = range(1, nroots + 1)
 
-            print(f"\nFound in {mol_name}-{method}:")
+            print(f"\nFound in {os.path.basename(out_dir)}:")
             HOMO = get_HOMO(out_file)
             process_file(out_file, file_transitions, HOMO)
 
