@@ -12,6 +12,21 @@
 start=$(date +%s)
 echo "START_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
 
+echo " "
+echo "===== SLURM JOB INFORMATION ====="
+echo "Job ID: $SLURM_JOB_ID"
+echo "Job Name: $SLURM_JOB_NAME"
+echo "Node List: $SLURM_JOB_NODELIST"
+echo "Number of Nodes: $SLURM_JOB_NUM_NODES"
+echo "Number of Tasks: $SLURM_NTASKS"
+echo "Number of CPUs per Task: $SLURM_CPUS_PER_TASK"
+echo "Memory Requested per Node: $SLURM_MEM_PER_NODE"
+echo "Memory Requested per CPU: $SLURM_MEM_PER_CPU"
+echo "Partition: $SLURM_JOB_PARTITION"
+echo "Submit Directory: $SLURM_SUBMIT_DIR"
+echo "Submit Host: $SLURM_SUBMIT_HOST"
+#echo "Allocated GPUs: $SLURM_GPUS"
+echo "================================="
 module purge
 module use /applis/PSMN/debian11/Lake/modules/all/
 module use /Xnfs/chimie/debian11/modules/
