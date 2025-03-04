@@ -406,7 +406,7 @@ def generate_comparison_plots():
             plt.ylabel("Computed Energy (eV)")
             plt.legend()
             plt.tight_layout()
-            plt.savefig(f"{method}_comparison.pdf")
+            plt.savefig(f"plot_comparison/{method}_comparison.pdf")
             plt.close()
         else:
             print(f"No valid data for {method}, skipping plot")
