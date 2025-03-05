@@ -24,11 +24,11 @@ def parse_transitions(transitions_arg):
                 transitions.add(int(part))
     return sorted(transitions)
 
-def process_file(file_path, transitions, HOMO):
+def process_file(file_path, transitions, HOMO, threshold_contribution_transition):
     """Process a single file for given transitions"""
     with open(file_path, 'r') as f:
         content = f.readlines()
-    
+
     for tr in transitions:
         output = ""
         # Find main transition line
@@ -36,23 +36,24 @@ def process_file(file_path, transitions, HOMO):
             if f"0-1A  ->  {tr}-1A" in line:
                 output = line.strip()
                 break
-                
+
         if not output:  # Skip if no main transition line found
             continue
-            
-        # Find all contributions above threshold
+
+        # Find all contributions and track the highest value contribution
         current_state = None
         contributions = []
-        
+        max_contribution = None  # Track the contribution with the highest value
+
         for line in content:
             state_match = re.match(r'STATE\s+(\d+):', line)
             if state_match:
                 current_state = int(state_match.group(1))
                 continue
-                
+
             if current_state and current_state == tr:
                 trans_match = re.match(
-                    r'\s*(\d+)a -> (\d+)a\s*:\s*([0-9.]+)\s*\(c=.*\)',
+                    r'\s*(\d+)a ->\s+(\d+)a\s*:\s*([0-9.]+)\s*\(c=.*\)',
                     line
                 )
                 if trans_match:
@@ -61,31 +62,42 @@ def process_file(file_path, transitions, HOMO):
                     Orbital2 = int(Orbital2)
                     value_float = float(value)
 
+                    # Convert Orbital1 to HOMO/LUMO notation
                     if Orbital1 == HOMO:
                         Orbital1 = "HOMO"
-                    elif Orbital1 == HOMO + 1 :
+                    elif Orbital1 == HOMO + 1:
                         Orbital1 = "LUMO"
                     elif Orbital1 < HOMO:
                         Orbital1 = f"HOMO{Orbital1 - HOMO:+d}"
-                    elif Orbital1 > HOMO + 1 :
+                    else:
                         Orbital1 = f"LUMO{Orbital1 - HOMO - 1:+d}"
+
+                    # Convert Orbital2 similarly
                     if Orbital2 == HOMO:
                         Orbital2 = "HOMO"
-                    elif Orbital2 == HOMO + 1 :
+                    elif Orbital2 == HOMO + 1:
                         Orbital2 = "LUMO"
                     elif Orbital2 < HOMO:
                         Orbital2 = f"HOMO{Orbital2 - HOMO:+d}"
-                    elif Orbital2 > HOMO + 1 :
+                    else:
                         Orbital2 = f"LUMO{Orbital2 - HOMO - 1:+d}"
 
-                    if value_float > threshhold_contribution_transition:
+                    # Track the contribution with the highest value
+                    if max_contribution is None or value_float > max_contribution[2]:
+                        max_contribution = (Orbital1, Orbital2, value_float)
+
+                    # Add to contributions if above threshold
+                    if value_float > threshold_contribution_transition:
                         contributions.append(f"| {Orbital1} -> {Orbital2} : {value_float:.6f}")
-        
-        # Print combined output with all contributions on same line
+
+        # If no contributions meet the threshold, include the highest value contribution
+        if not contributions and max_contribution is not None:
+            Orbital1, Orbital2, value_float = max_contribution
+            contributions.append(f"| {Orbital1} -> {Orbital2} : {value_float:.6f}")
+
+        # Print the output with contributions
         if contributions:
             print(f"{output} {' '.join(contributions)}")
-        else:
-            print(output)
 
 def main():
     parser = argparse.ArgumentParser(description='Search transition patterns in computational chemistry outputs')
