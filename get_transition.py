@@ -7,7 +7,7 @@ import fnmatch
 from get_nroots import get_nroots
 from get_HOMO import get_HOMO
 
-threshhold_contribution_transition = 0.25 # Variable that choose which pourcentage of contribution in the total transition the transition between two orbitals is shown 
+threshold_contribution_transition = 0.4 # Variable that choose which pourcentage of contribution in the total transition the transition between two orbitals is shown 
 
 def parse_transitions(transitions_arg):
     """Parse transitions argument into a sorted list of integers"""
@@ -24,7 +24,7 @@ def parse_transitions(transitions_arg):
                 transitions.add(int(part))
     return sorted(transitions)
 
-def process_file(file_path, transitions, HOMO, threshold_contribution_transition):
+def process_file(file_path, transitions, HOMO):
     """Process a single file for given transitions"""
     with open(file_path, 'r') as f:
         content = f.readlines()
@@ -53,7 +53,7 @@ def process_file(file_path, transitions, HOMO, threshold_contribution_transition
 
             if current_state and current_state == tr:
                 trans_match = re.match(
-                    r'\s*(\d+)a ->\s+(\d+)a\s*:\s*([0-9.]+)\s*\(c=.*\)',
+                    r'\s*(\d+)a\s+->\s+(\d+)a\s*:\s*([0-9.]+)\s*\(c=.*\)',
                     line
                 )
                 if trans_match:
@@ -172,6 +172,7 @@ def main():
             out_file = os.path.join(out_dir, f"{mol_name}-{method}.out")
             
             if not os.path.isfile(out_file):
+                print(f"{out_file} not found.")
                 continue
 
             # Determine transitions to search for this file
@@ -181,7 +182,9 @@ def main():
                 if nroots:
                     file_transitions = range(1, nroots + 1)
 
-            print(f"\nFound in {os.path.basename(out_dir)}:")
+            if len(molecules) * len(selected_methods) > 1:
+                print(f"\nFound in {os.path.basename(out_dir)}:")
+
             HOMO = get_HOMO(out_file)
             process_file(out_file, file_transitions, HOMO)
 
