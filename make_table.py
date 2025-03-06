@@ -122,7 +122,7 @@ for data in MOLECULES_DATA:
         }
     }
 
-METHODS = ["B3LYP", "PBE0", "MO62X", "CAM-B3LYP", "wB97", "wB97X-D3", "B2PLYP", "CIS", "CISD"]
+METHODS = ["B3LYP", "PBE0", "MO62X", "CAM-B3LYP", "wB97", "wB97X-D3", "B2PLYP", "wB2PLYP", "CIS", "CISD"]
 
 # Set working directory
 working_dir = "/home/afrot/Stage2025Tangui"
