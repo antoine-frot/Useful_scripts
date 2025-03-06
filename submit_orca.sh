@@ -198,7 +198,7 @@ for xyz_file in "${xyz_files[@]}"; do
     memory=$(echo "$output" | awk '{print $2}')
 
     # Submit the job via SLURM
-    sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input"
+    sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" >/dev/null
     if [ $? != 0 ]; then
       echo -e "${R}Submitting the job failed. Exiting.${NC}"
       exit 1
