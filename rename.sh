@@ -36,6 +36,5 @@ find "$NEW_DIR" -depth -name "*$OLD_DIR*" | while IFS= read -r path; do
     
     # Rename the file or directory.
     mv "$path" "$new_path"
-    echo "Renamed: '$path' -> '$new_path'"
 done
 
