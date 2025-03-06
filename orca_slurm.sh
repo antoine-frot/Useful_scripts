@@ -60,11 +60,11 @@ while [ "$orca_calc_done" -eq 0 ]
 do
   sleep 60
   orca_calc_done=$(<"$orca_isdone")
-  cp *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
+  cp *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
 done
 
 # Ensure all files are copied after the job finishes
-cp *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
+cp *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
 
 # Append to Submited.txt
 echo "${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
