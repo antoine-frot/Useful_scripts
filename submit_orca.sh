@@ -2,7 +2,7 @@
 shopt -s nullglob
 
 : '
-Module: submit_orca_jobs.sh
+Module: submit_orca.sh
 Description:
     This script automates the preparation and submission of ORCA quantum chemical calculation jobs
     via SLURM. It expects exactly one input file (*.inp) and one or more geometry files (*.xyz) in
@@ -22,7 +22,7 @@ Description:
     
 Usage:
     Place one *.inp file and one or more *.xyz files in the working directory, then execute:
-        path/submit_orca_jobs.sh
+        path/submit_orca.sh
     (The coordinates in the input file should be specified as "* xyzfile", and multiple-step jobs are supported.)
 '
 
@@ -39,11 +39,8 @@ submission_script="$script_dir/orca_slurm.sh"
 Input_directory='Input_Orca'
 
 # --- Set the Working Directory ---
-root_dir="/home/afrot/Stage2025Tangui"
-if [ "$root_dir" != "$(pwd)" ]; then
-    echo -e "${R}Error: You are in the wrong directory. Please go to ${root_dir}.${NC}"
-    exit 1
-fi
+root_dir=$(pwd)
+echo -e "${Y}You are in the directory ${root_dir}.${NC}"
 
 # --- Helper Function: Prompt for Yes/No ---
 prompt_yes_no() {
@@ -67,7 +64,7 @@ prompt_yes_no() {
 # Require exactly one *.inp file in the current directory
 inp_files=( *.inp )
 if (( ${#inp_files[@]} != 1 )); then
-    echo -e "${R}Error: Exactly one input file (*.inp) is expected in the current directory (currently ${inp_files[@]} is given).${NC}"
+    echo -e "${R}Error: Exactly one input file (*.inp) is expected in the current directory (currently ${inp_files[@]} are given).${NC}"
     exit 1
 fi
 input="${inp_files[0]}"
@@ -130,10 +127,6 @@ for xyz_file in "${xyz_files[@]}"; do
             exit 1
         fi
     fi
-
-    pushd "$job_directory" > /dev/null
-    cp "${root_dir}/${input}" "$job_input"
-    
     # Doesn't work yet.
     # --- Optionally Add Previously Calculated Molecular Orbitals ---
 #    if [ -f "${job_directory}/${job_basename}.gbw" ]; then
@@ -163,59 +156,62 @@ for xyz_file in "${xyz_files[@]}"; do
 #    fi
   else
       mkdir -p "$job_directory"
-      pushd "$job_directory" > /dev/null
-      cp "${root_dir}/${input}" "$job_input"
   fi 
 
-    # --- Update the Input File with the Current .xyz File ---
-    # Find the first line starting with "* xyzfile" in the input file.
-    # If that line already contains a .xyz reference, remove it first.
-    # Then add the .xyz file of the starting geometry.
-    if xyz_line=$(grep -m1 "^\* xyzfile" "$job_input" || true); then
-        if echo "$xyz_line" | grep -q "\.xyz"; then
-            sed -i '/^\* xyzfile/ s/ \([^ ]*\.xyz\)$//' "$job_input"
-        fi
-        sed -i "0,/^\* xyzfile/ {/^\* xyzfile/ s/$/ ${xyz_file}/;}" "$job_input"
-    else
-        echo -e "${R}Warning: No line starting with \"* xyzfile\" was found in $job_input.${NC}"
-        exit 1
-    fi
+  pushd "$job_directory" > /dev/null
+  cp "${root_dir}/${input}" "$job_input"
 
-    # Move the current .xyz file into the job directory
-    cp "${root_dir}/${xyz_file}" "$job_directory/"
-    
-    # --- Prepare and Submit the Job ---
-    if [ ! -f "$submission_script" ]; then
-        echo -e "${R}Submission script not found at $submission_script.${NC}"
-        popd > /dev/null
-        popd > /dev/null
-        exit 1
-    fi
-    
-    # Get the number of processor and the total memory from the input file
-    output=$(python3 "$script_dir/get_slurm_procs_mem.py" "$job_input")
-    nprocs=$(echo "$output" | awk '{print $1}')
-    memory=$(echo "$output" | awk '{print $2}')
-
-    # Submit the job via SLURM
-    sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" >/dev/null
-    if [ $? != 0 ]; then
-      echo -e "${R}Submitting the job failed. Exiting.${NC}"
+  # --- Update the Input File with the Current .xyz File ---
+  # Find the first line starting with "* xyzfile" in the input file.
+  # If that line already contains a .xyz reference, remove it first.
+  # Then add the .xyz file of the starting geometry.
+  if xyz_line=$(grep -m1 "^\* xyzfile" "$job_input" || true); then
+      if echo "$xyz_line" | grep -q "\.xyz"; then
+          sed -i '/^\* xyzfile/ s/ \([^ ]*\.xyz\)$//' "$job_input"
+      fi
+      sed -i "0,/^\* xyzfile/ {/^\* xyzfile/ s/$/ ${xyz_file}/;}" "$job_input"
+  else
+      echo -e "${R}Warning: No line starting with \"* xyzfile\" was found in $job_input.${NC}"
       exit 1
-    fi
-    echo "$job_basename has been submitted"
-    
-    # Remove the temporary .gbw file if it was used
-    #if [ -n "${use_gbw:-}" ] && [ -f "$use_gbw" ]; then
-    #    rm "$use_gbw"
-    #    unset use_gbw
-    #fi
-    
-    rm "${root_dir}/${xyz_file}"
-    # Return to the xyz directory and then to the root directory
-    popd > /dev/null  # Exit job directory
-    popd > /dev/null  # Exit xyz_dir
+  fi
+
+  # Move the current .xyz file into the job directory
+  cp "${root_dir}/${xyz_file}" "$job_directory/"
+  
+  # --- Prepare and Submit the Job ---
+  if [ ! -f "$submission_script" ]; then
+      echo -e "${R}Submission script not found at $submission_script.${NC}"
+      popd > /dev/null
+      popd > /dev/null
+      exit 1
+  fi
+  
+  # Get the number of processor and the total memory from the input file
+  output=$(python3 "$script_dir/get_slurm_procs_mem.py" "$job_input")
+  nprocs=$(echo "$output" | awk '{print $1}')
+  memory=$(echo "$output" | awk '{print $2}')
+
+  # Submit the job via SLURM
+  sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" >/dev/null
+  if [ $? != 0 ]; then
+    echo -e "${R}Submitting the job failed. Exiting.${NC}"
+    exit 1
+  fi
+  echo "$job_basename has been submitted"
+  
+  # Remove the temporary .gbw file if it was used
+  #if [ -n "${use_gbw:-}" ] && [ -f "$use_gbw" ]; then
+  #    rm "$use_gbw"
+  #    unset use_gbw
+  #fi
+  
+  rm "${root_dir}/${xyz_file}"
+  # Return to the xyz directory and then to the root directory
+  popd > /dev/null  # Exit job directory
+  popd > /dev/null  # Exit xyz_dir
 done
+
+echo -e "${G}${#xyz_files[@]} submitted successfully.${NC}"
 
 # Move the original *.inp file into an "Input_Orca" directory
 if prompt_yes_no "Do you want to keep the input file?"; then
@@ -225,5 +221,3 @@ if prompt_yes_no "Do you want to keep the input file?"; then
 else
   rm "${root_dir}/${input}"
 fi
-
-echo -e "${G}${#xyz_files[@]} submitted successfully.${NC}"
