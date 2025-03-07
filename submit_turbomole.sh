@@ -107,8 +107,9 @@ echo -e "${G}Let's go!${NC}"
 
 # --- Initialize Flags ---
 two_existing_dir=1  # Indicates that at least one job directory already existed
-same_parameter=1    # Flag to reuse the same parameters for existing directories
+overwrite_dirs=1    # Flag to reuse the same parameters for existing directories
 ask=0       # Flag to stop prompting the user repeatedly
+submitted=0
 
 # --- Process Each .xyz File ---
 for xyz_file in "${xyz_files[@]}"; do
@@ -125,21 +126,27 @@ for xyz_file in "${xyz_files[@]}"; do
   
   # If the job directory already exists, handle parameter reuse or prompt the user.
   if [ -d "$job_directory" ]; then
-    if [ "$two_existing_dir" -eq 0 ] && [ "$ask" -eq 0 ]; then
-      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
-          same_parameter=0
-      fi
-    ask=1
-    fi
-    two_existing_dir=0
     echo -e "${R}Directory $(basename "$job_directory") already exists.${NC}"
     
-    if (( same_parameter == 1 )); then
-        if ! prompt_yes_no "Do you want to overwrite the directory"; then
-            echo -e "${R}Aborting.${NC}"
-            popd > /dev/null
-            exit 1
-        fi
+    if (( ask == 0 )); then
+      two_existing_dir=0
+      if prompt_yes_no "Do you want to overwrite the directory"; then
+        overwrite_dirs=0
+      else
+        overwrite_dirs=1
+      fi
+    fi
+
+    if [ "$overwrite_dirs" -eq 1 ]; then
+      echo -e "${Y}Skipping $xyz_file.${NC}"
+      popd > /dev/null
+      continue
+    fi
+
+    if [ "$two_existing_dir" -eq 0 ]; then
+      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
+        ask=1
+      fi
     fi
   else
     mkdir -p "$job_directory"
@@ -158,7 +165,7 @@ for xyz_file in "${xyz_files[@]}"; do
   fi
 
   # Run define
-  define < "${input}"
+  define < "${input}" > /dev/null
 
   # Insert custom directives
   if (( ${#insert_files[@]} > 0 )); then
@@ -171,10 +178,12 @@ for xyz_file in "${xyz_files[@]}"; do
   
   # Submit the job via SLURM
   if ! sbatch --job-name="$job_basename" "${submission_script}" >/dev/null; then
-      echo -e "${R}Submission failed for $job_name${NC}"
+      echo -e "${R}Submission failed for $job_name.${NC}"
       exit 1
   fi
-  echo "$job_basename has been submitted"
+  (( submitted += 1 ))
+  echo -e "${G}$job_basename has been submitted.${NC}"
+  sleep 1
   
   rm "${root_dir}/${xyz_file}"
   # Return to the xyz directory and then to the root directory
@@ -182,7 +191,12 @@ for xyz_file in "${xyz_files[@]}"; do
   popd > /dev/null  # Exit xyz_dir
 done
 
-echo -e "${G}${#xyz_files[@]} submitted successfully.${NC}"
+if [ $submitted == 0 ]; then
+  echo -e "${R}No file submitted.${NC}"
+  exit 1
+else
+  echo -e "${G}$submitted submitted successfully.${NC}"
+fi
 
 # Keep the input files in Input_directory
 if prompt_yes_no "Do you want to keep the input file ($input)?"; then
