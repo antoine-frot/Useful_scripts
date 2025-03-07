@@ -128,6 +128,7 @@ for xyz_file in "${xyz_files[@]}"; do
   if [ -d "$job_directory" ]; then
     echo -e "${R}Directory $(basename "$job_directory") already exists.${NC}"
     
+    # Ask before overwritting
     if (( ask == 0 )); then
       two_existing_dir=0
       if prompt_yes_no "Do you want to overwrite the directory"; then
@@ -137,17 +138,21 @@ for xyz_file in "${xyz_files[@]}"; do
       fi
     fi
 
+    # Ask the user if it want keep the same response as just asked
+    if [ "$two_existing_dir" -eq 0 ]; then
+      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
+        ask=1
+      fi
+      two_existing_dir=1
+    fi
+
+    # Don't overwrite if asked
     if [ "$overwrite_dirs" -eq 1 ]; then
       echo -e "${Y}Skipping $xyz_file.${NC}"
       popd > /dev/null
       continue
     fi
 
-    if [ "$two_existing_dir" -eq 0 ]; then
-      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
-        ask=1
-      fi
-    fi
   else
     mkdir -p "$job_directory"
   fi 
@@ -174,7 +179,6 @@ for xyz_file in "${xyz_files[@]}"; do
       cat temp_head "$root_dir/${insert_files[@]}" temp_tail > control
       rm temp_head temp_tail
   fi
-  # ------
   
   # Submit the job via SLURM
   if ! sbatch --job-name="$job_basename" "${submission_script}" >/dev/null; then
