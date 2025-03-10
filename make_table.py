@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Data Extraction Script for Computational Chemistry Outputs
 
