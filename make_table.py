@@ -8,6 +8,7 @@ It then prints two LaTeX tables:
  - A metrics summary table comparing computed energies to experimental values
 """
 
+import re
 import os
 import warnings
 import numpy as np
@@ -20,11 +21,12 @@ import matplotlib.pyplot as plt
 MOLECULES_DATA = [
     {
         "name": "Boranil_CH3+RBINOL_H",
-        "absorption_wavelength": 396,
-        "fluorescence_wavelength": 473,
-        "exp_abs_osc": 42,
-        "exp_fluo_osc": "<1\%",
-        "exp_gabs": 5.5
+        "absorption_wavelength": 396,   # in nm
+        "fluorescence_wavelength": 473, # in nm
+        "exp_abs_osc": 42,              # 10^3 M-1 cm-1
+        "exp_fluo_osc": "<1\%",        
+        "exp_gabs": 5.5,                # 10-4
+        "exp_glum": np.nan              # 10-4
     },
     {
         "name": "Boranil_I+RBINOL_H",
@@ -86,10 +88,43 @@ MOLECULES_DATA = [
         "name": "Boranil_NO2+RBINOL_CN",
         "absorption_wavelength": 426,
         "fluorescence_wavelength": 479,
-        "exp_abs_osc": 50,
+        "exp_abs_osc": 50.0,
         "exp_fluo_osc": 0.23,
         "exp_gabs": 3.2
-    }
+    },
+    {
+        "name": "BODIPY+RBinol_H",
+        "absorption_wavelength": 525, # not clearly said on the article
+        "fluorescence_wavelength": 570, 
+        "exp_abs_osc": 6.0,
+        "exp_fluo_osc": 0.47,
+        "exp_gabs": 8.4,
+        "exp_glum": 7.0
+    },
+    {
+        "name": "Boranil_NH2+F2",
+        "absorption_wavelength": 405,
+        "fluorescence_wavelength": 528,
+        "exp_abs_osc": 48,
+        "exp_fluo_osc": 0.02,
+        "exp_gabs": 0 
+    },
+    {
+        "name": "Boranil_NO2+F2",
+        "absorption_wavelength": 427,
+        "fluorescence_wavelength": 474,
+        "exp_abs_osc": 66,
+        "exp_fluo_osc": 0.60,
+        "exp_gabs": 0 
+    },
+#    {
+#        "name": "",
+#        "absorption_wavelength":,
+#        "fluorescence_wavelength":,
+#        "exp_abs_osc":,
+#        "exp_fluo_osc":,
+#        "exp_gabs": 
+#    },
 ]
 
 # Mapping of original names to display names
@@ -102,7 +137,10 @@ MOLECULE_NAME_MAPPING = {
     "Boranil_NO2+RBINOL_H": "NO2+H",
     "Boranil_NH2+RBINOL_CN": "NH2+CN",
     "Boranil_CN+RBINOL_CN": "CN+CN",
-    "Boranil_NO2+RBINOL_CN": "NO2+CN"
+    "Boranil_NO2+RBINOL_CN": "NO2+CN",
+    "BODIPY+RBinol_H": "BODIPY+H",
+    "Boranil_NH2+F2": "NH2+F2",
+    "Boranil_NO2+F2": "NO2+F2"
 }
 
 # Build experimental data dictionary for each molecule
@@ -123,7 +161,7 @@ for data in MOLECULES_DATA:
         }
     }
 
-METHODS = ["B3LYP", "PBE0", "MO62X", "CAM-B3LYP", "wB97", "wB97X-D3", "B2PLYP", "wB2PLYP", "CIS", "CISD"]
+METHODS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft", "CAM-B3LYP", "wB97", "wB97X-D3", "wB97X-D3tddft", "B2PLYP", "CIS", "CISD", "CC2"]
 
 # Set working directory
 working_dir = "/home/afrot/Stage2025Tangui"
@@ -131,11 +169,11 @@ working_dir = "/home/afrot/Stage2025Tangui"
 # Data storage structure: molecule -> method -> calculation type -> {energy, wavelength, oscillator}
 dic = {data["name"]: {meth: {'ABS': {}, 'FLUO': {}} for meth in METHODS} for data in MOLECULES_DATA}
 
-def parse_file(molecule: str, method: str, calc_type: str) -> dict or None:
+def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict or None:
     """
-    Parse quantum chemistry output files for specific data values.
+    Parse ORCA output files for electronic transition data values.
     
-    Returns a dictionary with formatted values for energy, wavelength, and oscillator strength.
+    Returns a dictionary with formatted values for energy (eV), wavelength (nm), and oscillator strength.
     """
     filename = f"{working_dir}/{molecule}/{molecule}-{calc_type}@{method}/{molecule}-{calc_type}@{method}.out"
     
@@ -167,62 +205,69 @@ def parse_file(molecule: str, method: str, calc_type: str) -> dict or None:
         warnings.warn(f"⚠️ Error reading {filename}: {str(e)}", UserWarning)
         return None
 
-#def generate_latex_table(exp_data: dict) -> None:
-#    """Print LaTeX code for the main comparison table with computed and experimental values."""
-#    print("\\begin{table}[htbp]")
-#    print("  \\centering")
-#    print("  \\scriptsize")
-#    print("  \\begin{tabular}{llcccccccc}")
-#    print("    \\toprule")
-#    print("    Molecule & Method & $\\lambda_{\\text{Abs}}$ (nm)& E$_{\\text{Abs}}$ (eV) & fosc$_{\\text{Abs}}$/$\\epsilon$ & $\\lambda_{\\text{Fluo}}$ (nm)& E$_{\\text{Fluo}}$ (eV) & fosc$_{\\text{Fluo}}$/$\\Phi_\\text{f}$\\\\")
-#    print("    \\midrule")
-#    
-#    for data in MOLECULES_DATA:
-#        molecule = data["name"]
-#        # --- Experimental row ---
-#        exp_abs = exp_data[molecule]['ABS']
-#        exp_fluo = exp_data[molecule]['FLUO']
-#        exp_row = (
-#            "Exp",
-#            f"{exp_abs['wavelength']:.0f}",
-#            f"{exp_abs['energy']:.2f}",
-#            f"{exp_abs['oscillator']}",
-#            f"{exp_fluo['wavelength']:.0f}",
-#            f"{exp_fluo['energy']:.2f}",
-#            f"{exp_fluo['oscillator']}"
-#        )
-#        
-#        print(f"    \\multirow{{{len(METHODS) + 2}}}{{*}}{{{molecule}}}" + " & " + " & ".join(exp_row) + " \\\\\\\\")
-#
-#        # --- Computed rows for each method ---
-#        for method in METHODS:
-#            abs_data = dic[molecule][method]['ABS']
-#            fluo_data = dic[molecule][method]['FLUO']
-#            
-#            abs_values = [abs_data.get('wavelength', 'N/A'),
-#                          abs_data.get('energy', 'N/A'),
-#                          abs_data.get('oscillator', 'N/A')] if abs_data else ['N/A'] * 3
-#            fluo_values = [fluo_data.get('wavelength', 'N/A'),
-#                           fluo_data.get('energy', 'N/A'),
-#                           fluo_data.get('oscillator', 'N/A')] if fluo_data else ['N/A'] * 3
-#            
-#            abs_lam_str = f"{abs_values[0]:.0f}" if isinstance(abs_values[0], float) else f"{abs_values[0]}"
-#            abs_en_str  = f"{abs_values[1]:.2f}" if isinstance(abs_values[1], float) else f"{abs_values[1]}"
-#            abs_osc_str = f"{abs_values[2]:.2f}" if isinstance(abs_values[2], float) else f"{abs_values[2]}"
-#            
-#            fluo_lam_str = f"{fluo_values[0]:.0f}" if isinstance(fluo_values[0], float) else f"{fluo_values[0]}"
-#            fluo_en_str  = f"{fluo_values[1]:.2f}" if isinstance(fluo_values[1], float) else f"{fluo_values[1]}"
-#            fluo_osc_str = f"{fluo_values[2]:.2f}" if isinstance(fluo_values[2], float) else f"{fluo_values[2]}"
-#            
-#            print(f"     & {method} & {abs_lam_str} & {abs_en_str} & {abs_osc_str} & {fluo_lam_str} & {fluo_en_str} & {fluo_osc_str} \\\\")
-#
-#        print("    \\midrule")
-#    print("    \\bottomrule")
-#    print("  \\end{tabular}")
-#    print("  \\caption{Benshmark of several TD-DFT functionnals.}")
-#    print("  \\label{tab:comparison}")
-#    print("\\end{table}")
-#
+def parse_file_turbomole(molecule: str, method: str, calc_type: str) -> dict or None:
+    """
+    Parse TURBOMOLE output files for electronic transition data values.
+
+    Returns a dictionary with formatted values for energy (eV), wavelength (nm), and oscillator strength.
+    """
+    filename = f"{working_dir}/{molecule}/{molecule}-{calc_type}@{method}/ricc2.out"
+
+    if not os.path.exists(filename):
+        warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
+        return None
+
+    try:
+        with open(filename, 'r') as f:
+            energy_ev = None
+            oscillator = None
+            for line in f:
+                # Parse energy from the first relevant frequency line
+                pattern = r"\s*\|\s+frequency\s*:\s*[\d.]+\s*a\.u\.\s*([\d.]+)\s*e\.V\.\s*[\d.]+\s*rcm\s+\|\s*"
+                match = re.search(pattern, line)
+                if match:
+                    try:
+                        energy_ev = float(match.group(1))
+                    except (ValueError, IndexError):
+                        pass  # Parsing error handled after loop
+
+                # Parse oscillator strength from the first relevant line
+                pattern = r"oscillator strength \(mixed gauge\)\s+:\s+([\d.]+)"
+                match = re.search(pattern, line)
+                if match:
+                    try:
+                        oscillator = float(match.group(1))
+                    except (ValueError, IndexError):
+                        pass  # Parsing error handled after loop
+
+                # Early exit if both values are found
+                if energy_ev is not None and oscillator is not None:
+                    break
+
+            # Check if both values were successfully parsed
+            if energy_ev is None:
+                warnings.warn(f"⚠️ Energy not found in {filename}", UserWarning)
+                return None
+            if oscillator is None:
+                warnings.warn(f"⚠️ Oscillator strength not found in {filename}", UserWarning)
+                return None
+            if energy_ev <= 0:
+                warnings.warn(f"⚠️ Non-positive energy value {energy_ev} in {filename}", UserWarning)
+                return None
+
+            # Calculate wavelength in nanometers
+            wavelength = 1239.84193 / energy_ev
+
+            return {
+                'energy': energy_ev,
+                'wavelength': wavelength,
+                'oscillator': oscillator
+            }
+
+    except Exception as e:
+        warnings.warn(f"⚠️ Error reading {filename}: {str(e)}", UserWarning)
+        return None
+
 def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
     """Print LaTeX code for the metrics summary table."""
     print("\\begin{table}[htbp]")
@@ -263,30 +308,11 @@ def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
     print("  \\caption{\\centering Metrics Summary Comparing Computational Methods to Experimental Data.}")
     print("  \\label{tab:metrics}")
     print("\\end{table}")
-#
-#def generate_comparison_plots():
-#    """Generate comparison plots with experimental data and metrics"""
-#    plt.figure(figsize=(12, 8))
-#
-#    for method_idx, method in enumerate(METHODS, 1):
-#        # Collect computed data
-#        comp_abs = [dic[data["name"]][method]['ABS'].get('energy', np.nan) for data in MOLECULES_DATA]
-#        comp_fluo = [dic[data["name"]][method]['FLUO'].get('energy', np.nan) for data in MOLECULES_DATA]
-#        experimental_abs_energies = [exp_data[data["name"]][method]['ABS'].get('energy', np.nan) for data in MOLECULES_DATA]
-#        experimental_fluo_energies= [exp_data[data["name"]][method]['FLUO'].get('energy', np.nan) for data in MOLECULES_DATA]
-#
-#        # Create subplots
-#        plt.scatter(experimental_abs_energies, comp_abs, c='blue', label='Absorption')
-#        plt.scatter(experimental_fluo_energies, comp_fluo, c='red', label='Fluorescence')
-#        plt.title(f"{method}")
-#        plt.xlabel("Experimental Energy (eV)")
-#        plt.ylabel("Computed Energy (eV)")
-#
-#        plt.savefig(f"{method}.pdf")
 
 def generate_latex_tables():
-    """Generate LaTeX tables split into chunks of max 6 molecules"""
-    chunks = [MOLECULES_DATA[i:i+6] for i in range(0, len(MOLECULES_DATA), 6)]
+    """Generate LaTeX tables split into chunks of max {max_molecule_per_table} molecules"""
+    max_molecule_per_table = 4
+    chunks = [MOLECULES_DATA[i:i+max_molecule_per_table] for i in range(0, len(MOLECULES_DATA), max_molecule_per_table)]
 
     for table_num, chunk in enumerate(chunks, 1):
         print(f"\\begin{{table}}[htbp]")
@@ -418,10 +444,15 @@ def main():
     for data in MOLECULES_DATA:
         molecule = data["name"]
         for method in METHODS:
-            abs_result = parse_file(molecule, method, 'ABS')
+            if method != "CC2":
+                abs_result = parse_file_orca(molecule, method, 'ABS')
+                fluo_result = parse_file_orca(molecule, method, 'FLUO')
+            else:
+                abs_result = parse_file_turbomole(molecule, method, 'ABS')
+                fluo_result = parse_file_turbomole(molecule, method, 'FLUO')
+
             if abs_result:
                 dic[molecule][method]['ABS'] = abs_result
-            fluo_result = parse_file(molecule, method, 'FLUO')
             if fluo_result:
                 dic[molecule][method]['FLUO'] = fluo_result
     
@@ -430,6 +461,8 @@ def main():
     print("\n\n")  # Separate the two tables with some newlines
     generate_latex_metrics_table(exp_data, dic)
     generate_comparison_plots()
+    print("")
+    print(f"Plots done")
 
 if __name__ == "__main__":
     main()
