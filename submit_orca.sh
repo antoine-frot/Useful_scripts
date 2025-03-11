@@ -209,7 +209,8 @@ for xyz_file in "${xyz_files[@]}"; do
     echo -e "${R}Submitting the job failed. Exiting.${NC}"
     exit 1
   fi
-  echo "$job_basename has been submitted"
+  (( submitted += 1 ))
+  echo -e "${G}$job_basename has been submitted.${NC}"
   
   # Remove the temporary .gbw file if it was used
   #if [ -n "${use_gbw:-}" ] && [ -f "$use_gbw" ]; then
@@ -234,7 +235,7 @@ fi
 if prompt_yes_no "Do you want to keep the input file?"; then
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
-  echo "${input} stored in $Input_directory."
+  echo "${G}${input} stored in $Input_directory.${NC}"
 else
   rm "${root_dir}/${input}"
 fi
