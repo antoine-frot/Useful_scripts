@@ -53,7 +53,7 @@ def process_file(file_path, transitions, HOMO):
 
             if current_state and current_state == tr:
                 trans_match = re.match(
-                    r'\s*(\d+)a\s+->\s+(\d+)a\s*:\s*([0-9.]+)\s*\(c=.*\)',
+                    r'\s*(\d+)a\s+->\s+(\d+)a\s*:\s*([0-9.]+)',
                     line
                 )
                 if trans_match:
@@ -98,6 +98,8 @@ def process_file(file_path, transitions, HOMO):
         # Print the output with contributions
         if contributions:
             print(f"{output} {' '.join(contributions)}")
+        else:
+            print(output)
 
 def main():
     parser = argparse.ArgumentParser(description='Search transition patterns in computational chemistry outputs')
