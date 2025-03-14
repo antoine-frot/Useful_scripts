@@ -331,7 +331,11 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_cor
 def get_solvatation_correction(molecule: str, method: str, calc_type: str):
     solv = parse_file_orca(molecule, method, calc_type)
     no_solv = parse_file_orca(molecule, f"{method}_nosolv", calc_type)
-    return solv['energy'] - no_solv['energy']
+    if solv['energy'] and no_solv['energy']:
+        return solv['energy'] - no_solv['energy']
+    else:
+        warnings.append(f"Warning: No solvatation correction for {molecule}")
+        return 0
     
 def generate_latex_tables():
     """Generate LaTeX tables split into chunks of max {max_molecule_per_table} molecules"""
@@ -393,7 +397,7 @@ def generate_latex_tables():
         print(f"  \\label{{tab:comparison{table_num}}}")
         print("\\end{table}\n\n")
 
-def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
+def generate_latex_metrics_table(exp_data: dict, dic: dict, warnings: list) -> None:
     """Print LaTeX code for the metrics summary table."""
     print("\\begin{table}[htbp]")
     print("  \\centering")
@@ -402,7 +406,6 @@ def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
     print("    Method & Type & MSE & MAE & SD & R$^2$ \\\\")
     print("    \\midrule")
     
-    warnings = [] # Store the warning messages
     for method in METHODS:
         for calc_type in ['ABS', 'FLUO']:
             calculated = []
@@ -437,9 +440,6 @@ def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
     print("  \\caption{\\centering Metrics Summary Comparing Computational Methods to Experimental Data.}")
     print("  \\label{tab:metrics}")
     print("\\end{table}")
-
-    for warning in warnings:
-        print(warning)
 
 def generate_comparison_plots():
     """Generate comparison plots with regression analysis"""
@@ -512,11 +512,12 @@ def generate_comparison_plots():
 
 def main():
     """Main function to coordinate data collection and LaTeX table generation."""
+    warnings = [] # Store the warning messages
     # Collect computational data
     for data in MOLECULES_DATA:
         molecule = data["name"]
-        abs_solvant_correction = get_solvatation_correction(molecule, "MO62Xtddft", 'ABS')
-        fluo_solvant_correction = get_solvatation_correction(molecule, "MO62Xtddft", 'FLUO')
+        abs_solvant_correction = get_solvatation_correction(molecule, "MO62Xtddft", 'ABS', warnings)
+        fluo_solvant_correction = get_solvatation_correction(molecule, "MO62Xtddft", 'FLUO', warnings)
         for method in METHODS:
             if method != "CC2":
                 abs_result = parse_file_orca(molecule, method, 'ABS')
@@ -534,8 +535,10 @@ def main():
     # Print LaTeX tables
     generate_latex_tables()
     print("\n\n")  # Separate the two tables with some newlines
-    generate_latex_metrics_table(exp_data, dic)
+    generate_latex_metrics_table(exp_data, dic, warnings)
     generate_comparison_plots()
+    for warning in warnings:
+        print(warning)
     print("")
     print(f"Plots done")
 
