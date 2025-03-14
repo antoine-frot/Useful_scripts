@@ -11,6 +11,8 @@ It then prints two LaTeX tables:
 import re
 import os
 import warnings
+warnings.simplefilter("always")
+warnings.formatwarning = lambda msg, cat, fname, lno, line: f"{msg}\n"
 import numpy as np
 from scipy.stats import pearsonr
 import matplotlib
@@ -169,47 +171,97 @@ working_dir = "/home/afrot/Stage2025Tangui"
 # Data storage structure: molecule -> method -> calculation type -> {energy, wavelength, oscillator}
 dic = {data["name"]: {meth: {'ABS': {}, 'FLUO': {}} for meth in METHODS} for data in MOLECULES_DATA}
 
-def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict or None:
+import os
+import re
+import warnings
+
+def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict:
     """
     Parse ORCA output files for electronic transition data values.
-    
-    Returns a dictionary with formatted values for energy (eV), wavelength (nm), and oscillator strength.
+
+    Returns a dictionary with formatted values for energy (eV), wavelength (nm), oscillator strength,
+    and transition dipole moments.
     """
     filename = f"{working_dir}/{molecule}/{molecule}-{calc_type}@{method}/{molecule}-{calc_type}@{method}.out"
-    
+
     if not os.path.exists(filename):
-        warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
-        return None
-        
+        warnings.warn(f"⚠️ Missing file: {molecule}-{calc_type}@{method}", UserWarning)
+        return {}
+
+    data = {
+        'energy': None,
+        'wavelength': None,
+        'oscillator_length': None,
+        'D2': None,
+        'DX': None,
+        'DY': None,
+        'DZ': None,
+        'oscillator_velocity': None,
+        'P2': None,
+        'PX': None,
+        'PY': None,
+        'PZ': None,
+        'rotator_length': None,
+        'MX': None,
+        'MY': None,
+        'MZ': None,
+        'rotator_velocity': None,
+    }
+
     try:
         with open(filename, 'r') as f:
+            pattern = (
+                r'0-1A\s+->\s+1-1A'
+                r'\s+(?P<energy_eV>[-+]?\d+\.\d+)'
+                r'\s+(?P<energy_rcm>[-+]?\d+\.\d+)'
+                r'\s+(?P<wavelength>[-+]?\d+\.\d+)'
+                r'\s+(?P<strength>[-+]?\d+\.\d+)'
+                r'\s+(?P<transition_dipole1>[-+]?\d+\.\d+)'
+                r'\s+(?P<transition_dipole2>[-+]?\d+\.\d+)'
+                r'\s+(?P<transition_dipole3>[-+]?\d+\.\d+)'
+                r'\s+(?P<transition_dipole4>[-+]?\d+\.\d+)?'
+            )
+            counter = 0
             for line in f:
-                if line.startswith('  0-1A  ->  1-1A'):
-                    parts = line.split()
-                    if len(parts) < 7:
-                        warnings.warn(f"⚠️ Insufficient data in {filename}", UserWarning)
-                        return None
+                match = re.search(pattern, line)
+                if match:
                     try:
-                        return {
-                            'energy': float(parts[3]),
-                            'wavelength': float(parts[5]),
-                            'oscillator': float(parts[6]),
-                        }
+                        if counter == 0:
+                            data['energy'] = float(match.group('energy_eV'))
+                            data['wavelength'] = float(match.group('wavelength'))
+                            data['oscillator_length'] = float(match.group('strength'))
+                            data['D2'] = float(match.group('transition_dipole1'))
+                            data['DX'] = float(match.group('transition_dipole2'))
+                            data['DY'] = float(match.group('transition_dipole3'))
+                            data['DZ'] = float(match.group('transition_dipole4'))
+                        elif counter == 1:
+                            data['oscillator_velocity'] = float(match.group('strength'))
+                            data['P2'] = float(match.group('transition_dipole1'))
+                            data['PX'] = float(match.group('transition_dipole2'))
+                            data['PY'] = float(match.group('transition_dipole3'))
+                            data['PZ'] = float(match.group('transition_dipole4'))
+                        elif counter == 2:
+                            data['rotator_length'] = float(match.group('strength'))
+                            data['MX'] = float(match.group('transition_dipole1'))
+                            data['MY'] = float(match.group('transition_dipole2'))
+                            data['MZ'] = float(match.group('transition_dipole3'))
+                        elif counter == 3:
+                            data['rotator_velocity'] = float(match.group('strength'))
+                        counter += 1
                     except (ValueError, IndexError) as e:
                         warnings.warn(f"⚠️ Parsing error in {filename}: {str(e)}", UserWarning)
-                        return None
-        warnings.warn(f"⚠️ Data line not found in {filename}", UserWarning)
-        return None
-        
+                        return {}
+        return data
     except Exception as e:
-        warnings.warn(f"⚠️ Error reading {filename}: {str(e)}", UserWarning)
-        return None
+        warnings.warn(f"⚠️ Error reading file {filename}: {str(e)}", UserWarning)
+        return {}
 
 def parse_file_turbomole(molecule: str, method: str, calc_type: str) -> dict or None:
     """
     Parse TURBOMOLE output files for electronic transition data values.
 
-    Returns a dictionary with formatted values for energy (eV), wavelength (nm), and oscillator strength.
+    Returns a dictionary with formatted values for energy (eV), wavelength (nm), oscillator strength,
+    and transition dipole moments.
     """
     filename = f"{working_dir}/{molecule}/{molecule}-{calc_type}@{method}/ricc2.out"
 
@@ -217,97 +269,64 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str) -> dict or 
         warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
         return None
 
+    data = {
+        'energy': None,
+        'wavelength': None,
+        'oscillator_length': None,
+        'DX': None,
+        'DY': None,
+        'DZ': None,
+        'oscillator_velocity': None,
+        'PX': None,
+        'PY': None,
+        'PZ': None,
+        'rotator_length': None,
+        'MX': None,
+        'MY': None,
+        'MZ': None,
+        'rotator_velocity': None,
+    }
+
+    patterns = {
+        'energy': r'(\d+\.\d+)\s+e\.V\.',
+        'DX': r'xdiplen\s+\|\s+\S+\s+\|\s+(\S+)',
+        'DY': r'ydiplen\s+\|\s+\S+\s+\|\s+(\S+)',
+        'DZ': r'zdiplen\s+\|\s+\S+\s+\|\s+(\S+)',
+        'PX': r'xdipvel\s+\|\s+\S+\s+\|\s+(\S+)',
+        'PY': r'ydipvel\s+\|\s+\S+\s+\|\s+(\S+)',
+        'PZ': r'zdipvel\s+\|\s+\S+\s+\|\s+(\S+)',
+        'MX': r'xangmom\s+\|\s+\S+\s+\|\s+(\S+)',
+        'MY': r'yangmom\s+\|\s+\S+\s+\|\s+(\S+)',
+        'MZ': r'zangmom\s+\|\s+\S+\s+\|\s+(\S+)',
+        'oscillator_length': r'oscillator strength \(length gauge\)\s+:\s+(\S+)',
+        'oscillator_velocity': r'oscillator strength \(velocity gauge\)\s+:\s+(\S+)',
+        'rotator_length': r'Rotator strength \(length gauge\)\s+:\s+(\S+)\s+10\^\(-40\)\*erg\*cm\^3',
+        'rotator_velocity': r'Rotator strength \(velocity gauge\)\s+:\s+(\S+)\s+10\^\(-40\)\*erg\*cm\^3',
+    }
+
     try:
         with open(filename, 'r') as f:
-            energy_ev = None
-            oscillator = None
             for line in f:
-                # Parse energy from the first relevant frequency line
-                pattern = r"\s*\|\s+frequency\s*:\s*[\d.]+\s*a\.u\.\s*([\d.]+)\s*e\.V\.\s*[\d.]+\s*rcm\s+\|\s*"
-                match = re.search(pattern, line)
-                if match:
-                    try:
-                        energy_ev = float(match.group(1))
-                    except (ValueError, IndexError):
-                        pass  # Parsing error handled after loop
+                for key, pattern in patterns.items():
+                    match = re.search(pattern, line)
+                    if match:
+                        try:
+                            data[key] = float(match.group(1))
+                            if key == 'energy':
+                                data['wavelength'] = 1239.84193 / float(match.group(1))
 
-                # Parse oscillator strength from the first relevant line
-                pattern = r"oscillator strength \(mixed gauge\)\s+:\s+([\d.]+)"
-                match = re.search(pattern, line)
-                if match:
-                    try:
-                        oscillator = float(match.group(1))
-                    except (ValueError, IndexError):
-                        pass  # Parsing error handled after loop
+                        except (ValueError, IndexError) as e:
+                            warnings.warn(f"⚠️ Parsing error in {filename}: {str(e)}", UserWarning)
+                            return {}
 
-                # Early exit if both values are found
-                if energy_ev is not None and oscillator is not None:
-                    break
-
-            # Check if both values were successfully parsed
-            if energy_ev is None:
-                warnings.warn(f"⚠️ Energy not found in {filename}", UserWarning)
-                return None
-            if oscillator is None:
-                warnings.warn(f"⚠️ Oscillator strength not found in {filename}", UserWarning)
-                return None
-            if energy_ev <= 0:
-                warnings.warn(f"⚠️ Non-positive energy value {energy_ev} in {filename}", UserWarning)
-                return None
-
-            # Calculate wavelength in nanometers
-            wavelength = 1239.84193 / energy_ev
-
-            return {
-                'energy': energy_ev,
-                'wavelength': wavelength,
-                'oscillator': oscillator
-            }
+                if all(value is not None for value in data.values()):
+                    return data
 
     except Exception as e:
-        warnings.warn(f"⚠️ Error reading {filename}: {str(e)}", UserWarning)
-        return None
+        warnings.warn(f"⚠️ Error reading file {filename}: {str(e)}", UserWarning)
+        return {}
 
-def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
-    """Print LaTeX code for the metrics summary table."""
-    print("\\begin{table}[htbp]")
-    print("  \\centering")
-    print("  \\begin{tabular}{llrrrr}")
-    print("    \\toprule")
-    print("    Method & Type & MSE & MAE & SD & R$^2$ \\\\")
-    print("    \\midrule")
-    
-    for method in METHODS:
-        for calc_type in ['ABS', 'FLUO']:
-            calculated = []
-            experimental = []
-            for data in MOLECULES_DATA:
-                molecule = data["name"]
-                calc_data = dic[molecule][method][calc_type]
-                if calc_data and 'energy' in calc_data:
-                    calculated.append(calc_data['energy'])
-                    experimental.append(exp_data[molecule][calc_type]['energy'])
-            if len(calculated) == 0:
-                mse_str = mae_str = r_sq_str = sd_str = 'N/A'
-            else:
-                errors = [c - e for c, e in zip(calculated, experimental)]
-                mse = np.mean(errors) if errors else np.nan
-                mae = np.mean(np.abs(errors)) if errors else np.nan
-                sd = np.std(errors) if len(errors) > 1 else np.nan
-                r_sq = np.nan
-                if len(calculated) >= 2:
-                    r, _ = pearsonr(experimental, calculated)
-                    r_sq = r**2
-                mse_str = f"{mse:.2f}" if not np.isnan(mse) else 'N/A'
-                mae_str = f"{mae:.2f}" if not np.isnan(mae) else 'N/A'
-                sd_str = f"{sd:.2f}" if not np.isnan(sd) else 'N/A'
-                r_sq_str = f"{r_sq:.2f}" if not np.isnan(r_sq) else 'N/A'
-            print(f"    {method} & {calc_type} & {mse_str} & {mae_str} & {sd_str} & {r_sq_str} \\\\")
-    print("    \\bottomrule")
-    print("  \\end{tabular}")
-    print("  \\caption{\\centering Metrics Summary Comparing Computational Methods to Experimental Data.}")
-    print("  \\label{tab:metrics}")
-    print("\\end{table}")
+    return data
 
 def generate_latex_tables():
     """Generate LaTeX tables split into chunks of max {max_molecule_per_table} molecules"""
@@ -350,13 +369,13 @@ def generate_latex_tables():
                 abs_values = [
                     f"{abs_data.get('wavelength', 'N/A'):.0f}" if isinstance(abs_data.get('wavelength'), float) else 'N/A',
                     f"{abs_data.get('energy', 'N/A'):.2f}" if isinstance(abs_data.get('energy'), float) else 'N/A',
-                    f"{abs_data.get('oscillator', 'N/A'):.2f}" if isinstance(abs_data.get('oscillator'), float) else 'N/A'
+                    f"{abs_data.get('oscillator_length', 'N/A'):.2f}" if isinstance(abs_data.get('oscillator_length'), float) else 'N/A'
                 ]
 
                 fluo_values = [
                     f"{fluo_data.get('wavelength', 'N/A'):.0f}" if isinstance(fluo_data.get('wavelength'), float) else 'N/A',
                     f"{fluo_data.get('energy', 'N/A'):.2f}" if isinstance(fluo_data.get('energy'), float) else 'N/A',
-                    f"{fluo_data.get('oscillator', 'N/A'):.2f}" if isinstance(fluo_data.get('oscillator'), float) else 'N/A'
+                    f"{fluo_data.get('oscillator_length', 'N/A'):.2f}" if isinstance(fluo_data.get('oscillator_length'), float) else 'N/A'
                 ]
 
                 print(f"     & {method} & {' & '.join(abs_values)} & {' & '.join(fluo_values)} \\\\")
@@ -368,6 +387,54 @@ def generate_latex_tables():
         print(f"  \\caption{{Benchmark of TD-DFT functionals (Part {table_num})}}")
         print(f"  \\label{{tab:comparison{table_num}}}")
         print("\\end{table}\n\n")
+
+def generate_latex_metrics_table(exp_data: dict, dic: dict) -> None:
+    """Print LaTeX code for the metrics summary table."""
+    print("\\begin{table}[htbp]")
+    print("  \\centering")
+    print("  \\begin{tabular}{llrrrr}")
+    print("    \\toprule")
+    print("    Method & Type & MSE & MAE & SD & R$^2$ \\\\")
+    print("    \\midrule")
+    
+    warnings = [] # Store the warning messages
+    for method in METHODS:
+        for calc_type in ['ABS', 'FLUO']:
+            calculated = []
+            experimental = []
+            for data in MOLECULES_DATA:
+                molecule = data["name"]
+                calc_data = dic[molecule][method][calc_type]
+                if calc_data and 'energy' in calc_data:
+                    if calc_data['energy'] is None:
+                        warnings.append(f"Warning: 'energy' value is None for molecule {molecule}, method {method}, type {calc_type}. Skipping this value.")
+                        continue
+                    calculated.append(calc_data['energy'])
+                    experimental.append(exp_data[molecule][calc_type]['energy'])
+            if len(calculated) == 0:
+                mse_str = mae_str = r_sq_str = sd_str = 'N/A'
+            else:
+                errors = [c - e for c, e in zip(calculated, experimental)]
+                mse = np.mean(errors) if errors else np.nan
+                mae = np.mean(np.abs(errors)) if errors else np.nan
+                sd = np.std(errors) if len(errors) > 1 else np.nan
+                r_sq = np.nan
+                if len(calculated) >= 2:
+                    r, _ = pearsonr(experimental, calculated)
+                    r_sq = r**2
+                mse_str = f"{mse:.2f}" if not np.isnan(mse) else 'N/A'
+                mae_str = f"{mae:.2f}" if not np.isnan(mae) else 'N/A'
+                sd_str = f"{sd:.2f}" if not np.isnan(sd) else 'N/A'
+                r_sq_str = f"{r_sq:.2f}" if not np.isnan(r_sq) else 'N/A'
+            print(f"    {method} & {calc_type} & {mse_str} & {mae_str} & {sd_str} & {r_sq_str} \\\\")
+    print("    \\bottomrule")
+    print("  \\end{tabular}")
+    print("  \\caption{\\centering Metrics Summary Comparing Computational Methods to Experimental Data.}")
+    print("  \\label{tab:metrics}")
+    print("\\end{table}")
+
+    for warning in warnings:
+        print(warning)
 
 def generate_comparison_plots():
     """Generate comparison plots with regression analysis"""
@@ -447,6 +514,7 @@ def main():
             if method != "CC2":
                 abs_result = parse_file_orca(molecule, method, 'ABS')
                 fluo_result = parse_file_orca(molecule, method, 'FLUO')
+
             else:
                 abs_result = parse_file_turbomole(molecule, method, 'ABS')
                 fluo_result = parse_file_turbomole(molecule, method, 'FLUO')
