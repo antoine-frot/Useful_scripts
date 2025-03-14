@@ -256,7 +256,7 @@ def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict:
         warnings.warn(f"⚠️ Error reading file {filename}: {str(e)}", UserWarning)
         return {}
 
-def parse_file_turbomole(molecule: str, method: str, calc_type: str) -> dict or None:
+def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_correction: dict) -> dict or None:
     """
     Parse TURBOMOLE output files for electronic transition data values.
 
@@ -311,9 +311,9 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str) -> dict or 
                     match = re.search(pattern, line)
                     if match:
                         try:
-                            data[key] = float(match.group(1))
                             if key == 'energy':
-                                data['wavelength'] = 1239.84193 / float(match.group(1))
+                                data[key] = float(match.group(1)) - solvant_correction[molecule]
+                                data['wavelength'] = 1239.84193 / data[key]
 
                         except (ValueError, IndexError) as e:
                             warnings.warn(f"⚠️ Parsing error in {filename}: {str(e)}", UserWarning)
@@ -327,6 +327,8 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str) -> dict or 
         return {}
 
     return data
+
+def get_solvatation_energy(molecule: str, method: str, calc_type: str):
 
 def generate_latex_tables():
     """Generate LaTeX tables split into chunks of max {max_molecule_per_table} molecules"""
@@ -510,14 +512,16 @@ def main():
     # Collect computational data
     for data in MOLECULES_DATA:
         molecule = data["name"]
+        abs_solvant_correction = get_solvatation_correction(molecule, MO62Xtddft, 'ABS')
+        fluo_solvant_correction = get_solvatation_correction(molecule, MO62Xtddft, 'FLUO')
         for method in METHODS:
             if method != "CC2":
                 abs_result = parse_file_orca(molecule, method, 'ABS')
                 fluo_result = parse_file_orca(molecule, method, 'FLUO')
 
             else:
-                abs_result = parse_file_turbomole(molecule, method, 'ABS')
-                fluo_result = parse_file_turbomole(molecule, method, 'FLUO')
+                abs_result = parse_file_turbomole(molecule, method, 'ABS', abs_solvatat_correction)
+                fluo_result = parse_file_turbomole(molecule, method, 'FLUO', fluo_solvant_correction)
 
             if abs_result:
                 dic[molecule][method]['ABS'] = abs_result
