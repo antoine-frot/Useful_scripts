@@ -328,7 +328,7 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_cor
 
     return data
 
-def get_solvatation_correction(molecule: str, method: str, calc_type: str):
+def get_solvatation_correction(molecule: str, method: str, calc_type: str, warnings):
     solv = parse_file_orca(molecule, method, calc_type)
     no_solv = parse_file_orca(molecule, f"{method}_nosolv", calc_type)
     if solv['energy'] and no_solv['energy']:
