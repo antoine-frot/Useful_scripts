@@ -116,7 +116,6 @@ for xyz_file in "${xyz_files[@]}"; do
     
     # Ask before overwritting
     if (( ask == 0 )); then
-      two_existing_dir=0
       if prompt_yes_no "Do you want to overwrite the directory"; then
         overwrite_dirs=0
       else
@@ -235,7 +234,7 @@ fi
 if prompt_yes_no "Do you want to keep the input file?"; then
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
-  echo "${G}${input} stored in $Input_directory.${NC}"
+  echo -e "${G}${input} stored in $Input_directory.${NC}"
 else
   rm "${root_dir}/${input}"
 fi
