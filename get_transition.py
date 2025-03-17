@@ -7,10 +7,18 @@ import fnmatch
 from get_nroots import get_nroots
 from get_HOMO import get_HOMO
 
-threshold_contribution_transition = 0.4 # Variable that choose which pourcentage of contribution in the total transition the transition between two orbitals is shown 
+threshold_contribution_transition = 0.4  # Variable that chooses which percentage of contribution in the total transition the transition between two orbitals is shown
 
 def parse_transitions(transitions_arg):
-    """Parse transitions argument into a sorted list of integers"""
+    """
+    Parse transitions argument into a sorted list of integers.
+
+    Args:
+        transitions_arg (str): A string representing transition numbers or ranges (e.g., "1-3,5").
+
+    Returns:
+        list: A sorted list of integers representing the transitions.
+    """
     transitions = set()
     if not transitions_arg:
         return None
@@ -25,7 +33,14 @@ def parse_transitions(transitions_arg):
     return sorted(transitions)
 
 def process_file(file_path, transitions, HOMO):
-    """Process a single file for given transitions"""
+    """
+    Process a single file for given transitions.
+
+    Args:
+        file_path (str): Path to the file to be processed.
+        transitions (list): List of transitions to search for in the file.
+        HOMO (int): The HOMO orbital number.
+    """
     with open(file_path, 'r') as f:
         content = f.readlines()
 
@@ -102,21 +117,35 @@ def process_file(file_path, transitions, HOMO):
             print(output)
 
 def main():
+    """
+    Main function to search transition patterns in computational chemistry outputs.
+
+    This script processes computational chemistry output files to find and display
+    transition patterns based on specified methods and molecule patterns.
+
+    Usage:
+        python script.py [transitions] --methods METHODS --molecule MOLECULE
+
+    Args:
+        transitions (str, optional): Transition numbers/ranges (e.g., "1-3,5").
+        --methods, -m (str, required): Comma-separated list of methods (ABS/FLUO base or specific ABS@*/FLUO@*).
+        --molecule, -M (str, optional): Molecule name pattern (default: Boranil*).
+    """
     parser = argparse.ArgumentParser(description='Search transition patterns in computational chemistry outputs')
     parser.add_argument('transitions', nargs='?', default=None,
-                      help='Transition numbers/ranges (e.g., "1-3,5")')
-    parser.add_argument('methods', type=str,
-                      help='Comma-separated list of methods (ABS/FLUO base or specific ABS@*/FLUO@*)')
-    parser.add_argument('molecule', type=str, nargs='?', default='Boranil*',
-                      help='Molecule name pattern (default: Boranil*)')
-    
+                        help='Transition numbers/ranges (e.g., "1-3,5")')
+    parser.add_argument('--methods', '-m', nargs='?', type=str, required=True,
+                        help='Comma-separated list of methods (ABS/FLUO base or specific ABS@*/FLUO@*)')
+    parser.add_argument('--molecule', '-M', type=str, default='Boranil*',
+                        help='Molecule name pattern (default: Boranil*)')
+
     args = parser.parse_args()
 
     # Validate methods
     methods = [m.strip() for m in args.methods.split(',')]
     for method in methods:
-        if not (method in ['ABS', 'FLUO'] or 
-                method.startswith('ABS@') or 
+        if not (method in ['ABS', 'FLUO'] or
+                method.startswith('ABS@') or
                 method.startswith('FLUO@')):
             raise ValueError(f"Invalid method '{method}': Must be ABS/FLUO or start with ABS@/FLUO@")
 
@@ -134,15 +163,15 @@ def main():
     # Search through files
     print("""
 --------------------------------------------------------------------------------------------------
-                   ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS    
+                   ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS
 --------------------------------------------------------------------------------------------------
-   Transition      Energy     Energy  Wavelength fosc(D2)      D2        DX        DY        DZ   
-                    (eV)      (cm-1)    (nm)                 (au**2)    (au)      (au)      (au)                                                                       
+   Transition      Energy     Energy  Wavelength fosc(D2)      D2        DX        DY        DZ
+                    (eV)      (cm-1)    (nm)                 (au**2)    (au)      (au)      (au)
 --------------------------------------------------------------------------------------------------
 """)
     for mol_path in molecules:
         mol_name = os.path.basename(mol_path)
-        
+
         # Find available methods for this molecule
         method_dirs = glob.glob(os.path.join(mol_path, f"{mol_name}-*"))
         existing_methods = []
@@ -167,12 +196,12 @@ def main():
             for em in existing_methods:
                 if fnmatch.fnmatch(em, pattern):
                     selected_methods.add(em)
-
+        
         # Process matching methods
         for method in selected_methods:
             out_dir = os.path.join(mol_path, f"{mol_name}-{method}")
             out_file = os.path.join(out_dir, f"{mol_name}-{method}.out")
-            
+
             if not os.path.isfile(out_file):
                 print(f"{out_file} not found.")
                 continue
@@ -192,3 +221,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
