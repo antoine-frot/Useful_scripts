@@ -93,7 +93,8 @@ echo -e "${G}Let's go!${NC}"
 # --- Initialize Flags ---
 two_existing_dir=1  # Indicates that at least one job directory already existed
 same_parameter=1    # Flag to reuse the same parameters for existing directories
-ask=0       # Flag to stop prompting the user repeatedly
+ask_overwrite=0       # Flag to stop prompting the user repeatedly
+ask_sameparameter=0       # Flag to stop prompting the user repeatedly
 submitted=0
 
 # --- Process Each .xyz File ---
@@ -114,21 +115,22 @@ for xyz_file in "${xyz_files[@]}"; do
   if [ -d "$job_directory" ]; then
     echo -e "${R}Directory $(basename "$job_directory") already exists.${NC}"
     
+    # Ask the user if it want keep the same response as just asked
+    if [ "$two_existing_dir" -eq 0 ] && [ "$ask_sameparameter" -eq 0 ]; then
+      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
+        ask_overwrite=1
+      fi
+      ask_sameparameter=1
+    fi
+    two_existing_dir=0
+
     # Ask before overwritting
-    if (( ask == 0 )); then
+    if (( ask_overwrite == 0 )); then
       if prompt_yes_no "Do you want to overwrite the directory"; then
         overwrite_dirs=0
       else
         overwrite_dirs=1
       fi
-    fi
-
-    # Ask the user if it want keep the same response as just asked
-    if [ "$two_existing_dir" -eq 1 ] && [ "$ask" -eq 0 ]; then
-      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
-        ask=1
-      fi
-      two_existing_dir=0
     fi
 
     # Don't overwrite if asked
