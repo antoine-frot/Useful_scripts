@@ -175,7 +175,7 @@ import os
 import re
 import warnings
 
-def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict:
+def parse_file_orca(molecule: str, method: str, calc_type: str, solvant_correction: float) -> dict:
     """
     Parse ORCA output files for electronic transition data values.
 
@@ -227,8 +227,12 @@ def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict:
                 if match:
                     try:
                         if counter == 0:
-                            data['energy'] = float(match.group('energy_eV'))
-                            data['wavelength'] = float(match.group('wavelength'))
+                            if method in ("CISD", "CIS"):
+                                data['energy'] = float(match.group('energy_eV')) + solvant_correction
+                                data['wavelength'] = 1239.84193 / data['energy']
+                            else:
+                                data['energy'] = float(match.group('energy_eV'))
+                                data['wavelength'] = float(match.group('wavelength'))
                             data['oscillator_length'] = float(match.group('strength'))
                             data['D2'] = float(match.group('transition_dipole1'))
                             data['DX'] = float(match.group('transition_dipole2'))
@@ -256,7 +260,7 @@ def parse_file_orca(molecule: str, method: str, calc_type: str) -> dict:
         warnings.warn(f"⚠️ Error reading file {filename}: {str(e)}", UserWarning)
         return {}
 
-def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_correction: float) -> dict or None:
+def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_correction: float) -> dict:
     """
     Parse TURBOMOLE output files for electronic transition data values.
 
@@ -312,8 +316,10 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_cor
                     if match:
                         try:
                             if key == 'energy':
-                                data[key] = float(match.group(1)) - solvant_correction
+                                data[key] = float(match.group(1)) + solvant_correction
                                 data['wavelength'] = 1239.84193 / data[key]
+                            else:
+                                data[key] = float(match.group(1))
 
                         except (ValueError, IndexError) as e:
                             warnings.warn(f"⚠️ Parsing error in {filename}: {str(e)}", UserWarning)
@@ -329,12 +335,12 @@ def parse_file_turbomole(molecule: str, method: str, calc_type: str, solvant_cor
     return data
 
 def get_solvatation_correction(molecule: str, method: str, calc_type: str, warnings):
-    solv = parse_file_orca(molecule, method, calc_type)
-    no_solv = parse_file_orca(molecule, f"{method}_nosolv", calc_type)
+    solv = parse_file_orca(molecule, method, calc_type, 0)
+    no_solv = parse_file_orca(molecule, f"{method}_nosolv", calc_type, 0)
     if solv['energy'] and no_solv['energy']:
         return solv['energy'] - no_solv['energy']
     else:
-        warnings.append(f"Warning: No solvatation correction for {molecule}")
+        warnings.append(f"Warning: No solvatation correction for {molecule} in {calc_type}")
         return 0
     
 def generate_latex_tables():
@@ -441,6 +447,46 @@ def generate_latex_metrics_table(exp_data: dict, dic: dict, warnings: list) -> N
     print("  \\label{tab:metrics}")
     print("\\end{table}")
 
+def generate_latex_metrics_table_molecules(exp_data: dict, dic: dict, warnings: list) -> None:
+    """Print LaTeX code for the metrics summary table."""
+    print("\\begin{table}[htbp]")
+    print("  \\centering")
+    print("  \\begin{tabular}{llrrr}")
+    print("    \\toprule")
+    print("    Method & Type & MSE & MAE & SD \\\\")
+    print("    \\midrule")
+    
+    for data in MOLECULES_DATA:
+        molecule = data["name"]
+        for calc_type in ['ABS', 'FLUO']:
+            calculated = []
+            experimental = []
+            for method in METHODS:
+                calc_data = dic[molecule][method][calc_type]
+                if calc_data and 'energy' in calc_data:
+                    if calc_data['energy'] is None:
+                        warnings.append(f"Warning: 'energy' value is None for molecule {molecule}, method {method}, type {calc_type}. Skipping this value.")
+                        continue
+                    calculated.append(calc_data['energy'])
+                    experimental.append(exp_data[molecule][calc_type]['energy'])
+            if len(calculated) == 0:
+                mse_str = mae_str = sd_str = 'N/A'
+            else:
+                errors = [c - e for c, e in zip(calculated, experimental)]
+                mse = np.mean(errors) if errors else np.nan
+                mae = np.mean(np.abs(errors)) if errors else np.nan
+                sd = np.std(errors) if len(errors) > 1 else np.nan
+                mse_str = f"{mse:.2f}" if not np.isnan(mse) else 'N/A'
+                mae_str = f"{mae:.2f}" if not np.isnan(mae) else 'N/A'
+                sd_str = f"{sd:.2f}" if not np.isnan(sd) else 'N/A'
+            print(f"    {molecule} & {calc_type} & {mse_str} & {mae_str} & {sd_str}\\\\")
+    print("    \\bottomrule")
+    print("  \\end{tabular}")
+    print("  \\caption{\\centering Metrics Summary Comparing Computational Methods to Experimental Data for Molecules.}")
+    print("  \\label{tab:metrics_molecules}")
+    print("\\end{table}")
+    
+    
 def generate_comparison_plots():
     """Generate comparison plots with regression analysis"""
     for method in METHODS:
@@ -520,8 +566,8 @@ def main():
         fluo_solvant_correction = get_solvatation_correction(molecule, "MO62Xtddft", 'FLUO', warnings)
         for method in METHODS:
             if method != "CC2":
-                abs_result = parse_file_orca(molecule, method, 'ABS')
-                fluo_result = parse_file_orca(molecule, method, 'FLUO')
+                abs_result = parse_file_orca(molecule, method, 'ABS', abs_solvant_correction)
+                fluo_result = parse_file_orca(molecule, method, 'FLUO', fluo_solvant_correction)
 
             else:
                 abs_result = parse_file_turbomole(molecule, method, 'ABS', abs_solvant_correction)
@@ -536,9 +582,10 @@ def main():
     generate_latex_tables()
     print("\n\n")  # Separate the two tables with some newlines
     generate_latex_metrics_table(exp_data, dic, warnings)
-    generate_comparison_plots()
+    generate_latex_metrics_table_molecules(exp_data, dic, warnings)
     for warning in warnings:
-        print(warning)
+        print(warning)    
+    generate_comparison_plots()
     print("")
     print(f"Plots done")
 
