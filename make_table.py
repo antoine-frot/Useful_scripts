@@ -225,7 +225,7 @@ def parse_file_orca(molecule: str, method: str, calc_type: str, solvant_correcti
     try:
         with open(filename, 'r') as f:
             pattern = (
-                r'0-1A\s+->\s+1-1A'
+                r'0-1\S+\s+->\s+1-1\S+\s+'
                 r'\s+(?P<energy_eV>[-+]?\d+\.\d+)'
                 r'\s+(?P<energy_rcm>[-+]?\d+\.\d+)'
                 r'\s+(?P<wavelength>[-+]?\d+\.\d+)'
@@ -417,6 +417,218 @@ def generate_latex_tables():
         print(f"  \\label{{tab:comparison{table_num}}}")
         print("\\end{table}\n\n")
 
+def generate_CD():
+    """
+    Calculate CD parameters for all molecules and methods:
+    - gabs/glum (both length and velocity gauge) using two different methods
+    - Vector norms for magnetic and electric dipole moments
+    - Angles between magnetic and electric dipole moments
+    """
+    for data in MOLECULES_DATA:
+        molecule = data["name"]
+        for method in METHODS:
+            # Process absorption data
+            abs_data = dic[molecule][method]['ABS']
+            if abs_data and 'rotator_length' in abs_data and 'oscillator_length' in abs_data:
+                # Calculate g-factors (both gauges) - method 1: 4R/D
+                if abs_data.get('oscillator_length') and abs_data.get('oscillator_length', 0) != 0:
+                    abs_data['gabs_length'] = 4 * abs_data.get('rotator_length', 0) / abs_data.get('oscillator_length') * 1e4
+                else:
+                    abs_data['gabs_length'] = np.nan
+                    
+                if abs_data.get('oscillator_velocity') and abs_data.get('oscillator_velocity', 0) != 0:
+                    abs_data['gabs_velocity'] = 4 * abs_data.get('rotator_velocity', 0) / abs_data.get('oscillator_velocity') * 1e4
+                else:
+                    abs_data['gabs_velocity'] = np.nan
+                
+                # Calculate vector norms - check for None values before computing
+                if all(abs_data.get(key) is not None for key in ['MX', 'MY', 'MZ']):
+                    abs_data['M_norm'] = np.sqrt(abs_data['MX']**2 + abs_data['MY']**2 + abs_data['MZ']**2)
+                else:
+                    abs_data['M_norm'] = np.nan
+                    
+                if all(abs_data.get(key) is not None for key in ['DX', 'DY', 'DZ']):
+                    abs_data['D_norm'] = np.sqrt(abs_data['DX']**2 + abs_data['DY']**2 + abs_data['DZ']**2)
+                else:
+                    abs_data['D_norm'] = np.nan
+                    
+                if all(abs_data.get(key) is not None for key in ['PX', 'PY', 'PZ']):
+                    abs_data['P_norm'] = np.sqrt(abs_data['PX']**2 + abs_data['PY']**2 + abs_data['PZ']**2)
+                else:
+                    abs_data['P_norm'] = np.nan
+                
+                # Calculate angles (in degrees) - check all values exist and norms are positive
+                if (all(abs_data.get(key) is not None for key in ['MX', 'MY', 'MZ', 'DX', 'DY', 'DZ']) 
+                        and abs_data.get('M_norm', 0) > 0 and abs_data.get('D_norm', 0) > 0):
+                    dot_product = abs_data['MX']*abs_data['DX'] + abs_data['MY']*abs_data['DY'] + abs_data['MZ']*abs_data['DZ']
+                    cos_angle = dot_product / (abs_data['M_norm'] * abs_data['D_norm'])
+                    # Ensure cos_angle is in valid range [-1, 1] due to potential floating point errors
+                    cos_angle = max(min(cos_angle, 1.0), -1.0)
+                    abs_data['angle_MD'] = np.degrees(np.arccos(cos_angle))
+                    abs_data['cos_MD'] = cos_angle
+                    
+                    # Calculate g-factor using method 2: 4 × |m| cos θ / |μ|
+                    abs_data['gabs_length_alt'] = 4 * abs_data['M_norm'] * cos_angle / abs_data['D_norm'] * 1e4
+                else:
+                    abs_data['angle_MD'] = np.nan
+                    abs_data['cos_MD'] = np.nan
+                    abs_data['gabs_length_alt'] = np.nan
+                    
+                if (all(abs_data.get(key) is not None for key in ['MX', 'MY', 'MZ', 'PX', 'PY', 'PZ'])
+                        and abs_data.get('M_norm', 0) > 0 and abs_data.get('P_norm', 0) > 0):
+                    dot_product = abs_data['MX']*abs_data['PX'] + abs_data['MY']*abs_data['PY'] + abs_data['MZ']*abs_data['PZ']
+                    cos_angle = dot_product / (abs_data['M_norm'] * abs_data['P_norm'])
+                    cos_angle = max(min(cos_angle, 1.0), -1.0)
+                    abs_data['angle_MP'] = np.degrees(np.arccos(cos_angle))
+                    abs_data['cos_MP'] = cos_angle
+                    
+                    # Calculate g-factor using method 2: 4 × |m| cos θ / |μ|
+                    abs_data['gabs_velocity_alt'] = 4 * abs_data['M_norm'] * cos_angle / abs_data['P_norm'] * 1e4
+                else:
+                    abs_data['angle_MP'] = np.nan
+                    abs_data['cos_MP'] = np.nan
+                    abs_data['gabs_velocity_alt'] = np.nan
+            
+            # Process fluorescence data
+            fluo_data = dic[molecule][method]['FLUO']
+            if fluo_data and 'rotator_length' in fluo_data and 'oscillator_length' in fluo_data:
+                # Calculate g-factors (both gauges) - method 1: 4R/D
+                if fluo_data.get('oscillator_length') and fluo_data.get('oscillator_length', 0) != 0:
+                    fluo_data['glum_length'] = 4 * fluo_data.get('rotator_length', 0) / fluo_data.get('oscillator_length') * 1e4
+                else:
+                    fluo_data['glum_length'] = np.nan
+                    
+                if fluo_data.get('oscillator_velocity') and fluo_data.get('oscillator_velocity', 0) != 0:
+                    fluo_data['glum_velocity'] = 4 * fluo_data.get('rotator_velocity', 0) / fluo_data.get('oscillator_velocity') * 1e4
+                else:
+                    fluo_data['glum_velocity'] = np.nan
+                
+                # Calculate vector norms - check for None values before computing
+                if all(fluo_data.get(key) is not None for key in ['MX', 'MY', 'MZ']):
+                    fluo_data['M_norm'] = np.sqrt(fluo_data['MX']**2 + fluo_data['MY']**2 + fluo_data['MZ']**2)
+                else:
+                    fluo_data['M_norm'] = np.nan
+                    
+                if all(fluo_data.get(key) is not None for key in ['DX', 'DY', 'DZ']):
+                    fluo_data['D_norm'] = np.sqrt(fluo_data['DX']**2 + fluo_data['DY']**2 + fluo_data['DZ']**2)
+                else:
+                    fluo_data['D_norm'] = np.nan
+                    
+                if all(fluo_data.get(key) is not None for key in ['PX', 'PY', 'PZ']):
+                    fluo_data['P_norm'] = np.sqrt(fluo_data['PX']**2 + fluo_data['PY']**2 + fluo_data['PZ']**2)
+                else:
+                    fluo_data['P_norm'] = np.nan
+                
+                # Calculate angles (in degrees) - check all values exist and norms are positive
+                if (all(fluo_data.get(key) is not None for key in ['MX', 'MY', 'MZ', 'DX', 'DY', 'DZ']) 
+                        and fluo_data.get('M_norm', 0) > 0 and fluo_data.get('D_norm', 0) > 0):
+                    dot_product = fluo_data['MX']*fluo_data['DX'] + fluo_data['MY']*fluo_data['DY'] + fluo_data['MZ']*fluo_data['DZ']
+                    cos_angle = dot_product / (fluo_data['M_norm'] * fluo_data['D_norm'])
+                    cos_angle = max(min(cos_angle, 1.0), -1.0)
+                    fluo_data['angle_MD'] = np.degrees(np.arccos(cos_angle))
+                    fluo_data['cos_MD'] = cos_angle
+                    
+                    # Calculate g-factor using method 2: 4 × |m| cos θ / |μ|
+                    fluo_data['glum_length_alt'] = 4 * fluo_data['M_norm'] * cos_angle / fluo_data['D_norm'] * 1e4
+                else:
+                    fluo_data['angle_MD'] = np.nan
+                    fluo_data['cos_MD'] = np.nan
+                    fluo_data['glum_length_alt'] = np.nan
+                    
+                if (all(fluo_data.get(key) is not None for key in ['MX', 'MY', 'MZ', 'PX', 'PY', 'PZ'])
+                        and fluo_data.get('M_norm', 0) > 0 and fluo_data.get('P_norm', 0) > 0):
+                    dot_product = fluo_data['MX']*fluo_data['PX'] + fluo_data['MY']*fluo_data['PY'] + fluo_data['MZ']*fluo_data['PZ']
+                    cos_angle = dot_product / (fluo_data['M_norm'] * fluo_data['P_norm'])
+                    cos_angle = max(min(cos_angle, 1.0), -1.0)
+                    fluo_data['angle_MP'] = np.degrees(np.arccos(cos_angle))
+                    fluo_data['cos_MP'] = cos_angle
+                    
+                    # Calculate g-factor using method 2: 4 × |m| cos θ / |μ|
+                    fluo_data['glum_velocity_alt'] = 4 * fluo_data['M_norm'] * cos_angle / fluo_data['P_norm'] * 1e4
+                else:
+                    fluo_data['angle_MP'] = np.nan
+                    fluo_data['cos_MP'] = np.nan
+                    fluo_data['glum_velocity_alt'] = np.nan
+
+
+def generate_latex_tables_CD():
+    """Generate LaTeX tables with CD data split into chunks of max {max_molecule_per_table} molecules"""
+    max_molecule_per_table = 4
+    chunks = [MOLECULES_DATA[i:i+max_molecule_per_table] for i in range(0, len(MOLECULES_DATA), max_molecule_per_table)]
+
+    for table_num, chunk in enumerate(chunks, 1):
+        print(f"\\begin{{table}}[htbp]")
+        print("  \\centering")
+        print("  \\scriptsize")
+        print("  \\begin{tabular}{llcccccccc}")
+        print("    \\toprule")
+        print("    Molecule & Method & $g_{\\text{abs}}$ ($10^{-4}$)& $g_{\\text{abs}}^{\\text{vel}}$ ($10^{-4}$) & $\\theta_{\\text{MD}}$ ($^\\circ$) & $\\theta_{\\text{MP}}$ ($^\\circ$) & $g_{\\text{lum}}$ ($10^{-4}$)& $g_{\\text{lum}}^{\\text{vel}}$ ($10^{-4}$) & $\\theta_{\\text{MD}}$ ($^\\circ$) & $\\theta_{\\text{MP}}$ ($^\\circ$)\\\\")
+        print("    \\midrule")
+
+        for data in chunk:
+            molecule = data["name"]
+            if not molecule in exp_data or not exp_data[molecule]['display']:
+                continue
+                
+            display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+            exp_gabs = exp_data[molecule]['ABS'].get('gabs', np.nan)
+            exp_glum = data.get("exp_glum", np.nan)  # Try to get exp_glum from original data
+
+            # Experimental row
+            exp_row = [
+                "Exp",
+                f"{exp_gabs:.1f}" if not np.isnan(exp_gabs) else "N/A",
+                "N/A",  # No velocity gauge for experimental
+                "N/A",  # No angle data for experimental
+                "N/A",
+                f"{exp_glum:.1f}" if not np.isnan(exp_glum) else "N/A",
+                "N/A",  # No velocity gauge for experimental
+                "N/A",  # No angle data for experimental
+                "N/A"
+            ]
+            print(f"    \\multirow{{{len(METHODS)+1}}}{{*}}{{{display_name}}} & " + " & ".join(exp_row) + " \\\\\\\\")
+
+            # Computed rows
+            for method in METHODS:
+                abs_data = dic[molecule][method]['ABS']
+                fluo_data = dic[molecule][method]['FLUO']
+
+                # Format absorption data
+                gabs_length = abs_data.get('gabs_length', np.nan)
+                gabs_velocity = abs_data.get('gabs_velocity', np.nan)
+                angle_md_abs = abs_data.get('angle_MD', np.nan)
+                angle_mp_abs = abs_data.get('angle_MP', np.nan)
+                
+                abs_values = [
+                    f"{gabs_length:.1f}" if not np.isnan(gabs_length) else "N/A",
+                    f"{gabs_velocity:.1f}" if not np.isnan(gabs_velocity) else "N/A",
+                    f"{angle_md_abs:.1f}" if not np.isnan(angle_md_abs) else "N/A",
+                    f"{angle_mp_abs:.1f}" if not np.isnan(angle_mp_abs) else "N/A"
+                ]
+
+                # Format fluorescence data
+                glum_length = fluo_data.get('glum_length', np.nan)
+                glum_velocity = fluo_data.get('glum_velocity', np.nan)
+                angle_md_fluo = fluo_data.get('angle_MD', np.nan)
+                angle_mp_fluo = fluo_data.get('angle_MP', np.nan)
+                
+                fluo_values = [
+                    f"{glum_length:.1f}" if not np.isnan(glum_length) else "N/A",
+                    f"{glum_velocity:.1f}" if not np.isnan(glum_velocity) else "N/A",
+                    f"{angle_md_fluo:.1f}" if not np.isnan(angle_md_fluo) else "N/A",
+                    f"{angle_mp_fluo:.1f}" if not np.isnan(angle_mp_fluo) else "N/A"
+                ]
+
+                print(f"     & {method} & {' & '.join(abs_values)} & {' & '.join(fluo_values)} \\\\")
+
+            print("    \\midrule")
+
+        print("    \\bottomrule")
+        print("  \\end{tabular}")
+        print(f"  \\caption{{Circular Dichroism Analysis (Part {table_num})}}")
+        print(f"  \\label{{tab:cd_comparison{table_num}}}")
+        print("\\end{table}\n\n")
+
 def generate_latex_metrics_table(exp_data: dict, dic: dict, warnings: list) -> None:
     """Print LaTeX code for the metrics summary table."""
     print("\\begin{table}[htbp]")
@@ -503,7 +715,7 @@ def generate_latex_metrics_table_molecules(exp_data: dict, dic: dict, warnings: 
     print("  \\label{tab:metrics_molecules}")
     print("\\end{table}")
     
-    
+   
 def generate_comparison_plots():
     """Generate comparison plots with regression analysis"""
     for method in METHODS:
@@ -575,6 +787,155 @@ def generate_comparison_plots():
         else:
             print(f"No valid data for {method}, skipping plot")
 
+def test_CD_properties():
+    """Generate test LaTeX tables comparing both g-factor calculation methods"""
+    max_molecule_per_table = 2  # Smaller chunks since we have more columns
+    chunks = [MOLECULES_DATA[i:i+max_molecule_per_table] for i in range(0, len(MOLECULES_DATA), max_molecule_per_table)]
+
+    for table_num, chunk in enumerate(chunks, 1):
+        print(f"\\begin{{table}}[htbp]")
+        print("  \\centering")
+        print("  \\tiny")  # Using tiny font due to many columns
+        print("  \\begin{tabular}{llccccccc}")
+        print("    \\toprule")
+        print("    \\multirow{2}{*}{Molecule} & \\multirow{2}{*}{Method} & \\multicolumn{4}{c}{Absorption (Length Gauge)} & \\multicolumn{3}{c}{Emission (Length Gauge)} \\\\")
+        print("    \\cmidrule(lr){3-6} \\cmidrule(lr){7-9}")
+        print("    & & $g_{abs}$ (4R/D) & $g_{abs}$ (4|m|cos$\\theta$/|$\\mu$|) & $|\\vec{D}|$ & $|\\vec{M}|$ & $g_{lum}$ (4R/D) & $g_{lum}$ (4|m|cos$\\theta$/|$\\mu$|) & $\\theta_{MD}$ \\\\")
+        print("    \\midrule")
+
+        for data in chunk:
+            molecule = data["name"]
+            if molecule not in exp_data:
+                continue
+                
+            display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+            exp_gabs = exp_data[molecule]['ABS'].get('gabs', np.nan)
+            exp_glum = data.get("exp_glum", np.nan)
+
+            # Experimental row
+            exp_row = [
+                "Exp",
+                f"{exp_gabs:.1f}" if not np.isnan(exp_gabs) else "N/A",
+                "N/A",  # No alternative calculation for experimental
+                "N/A",  # No vector norms for experimental
+                "N/A",
+                f"{exp_glum:.1f}" if not np.isnan(exp_glum) else "N/A",
+                "N/A",  # No alternative calculation for experimental
+                "N/A"   # No angle data for experimental
+            ]
+            print(f"    \\multirow{{{len(METHODS)+1}}}{{*}}{{{display_name}}} & " + " & ".join(exp_row) + " \\\\\\\\")
+
+            # Computational rows with both calculation methods
+            for method in METHODS:
+                abs_data = dic[molecule][method]['ABS']
+                fluo_data = dic[molecule][method]['FLUO']
+
+                # Format absorption data with both calculation methods
+                gabs_length = abs_data.get('gabs_length', np.nan)
+                gabs_length_alt = abs_data.get('gabs_length_alt', np.nan)
+                d_norm = abs_data.get('D_norm', np.nan)
+                m_norm = abs_data.get('M_norm', np.nan)
+                
+                abs_values = [
+                    f"{gabs_length:.1f}" if not np.isnan(gabs_length) else "N/A",
+                    f"{gabs_length_alt:.1f}" if not np.isnan(gabs_length_alt) else "N/A",
+                    f"{d_norm:.3f}" if not np.isnan(d_norm) else "N/A",
+                    f"{m_norm:.3f}" if not np.isnan(m_norm) else "N/A"
+                ]
+
+                # Format fluorescence data with both calculation methods
+                glum_length = fluo_data.get('glum_length', np.nan)
+                glum_length_alt = fluo_data.get('glum_length_alt', np.nan)
+                angle_md_fluo = fluo_data.get('angle_MD', np.nan)
+                
+                fluo_values = [
+                    f"{glum_length:.1f}" if not np.isnan(glum_length) else "N/A",
+                    f"{glum_length_alt:.1f}" if not np.isnan(glum_length_alt) else "N/A",
+                    f"{angle_md_fluo:.1f}" if not np.isnan(angle_md_fluo) else "N/A"
+                ]
+
+                print(f"     & {method} & {' & '.join(abs_values)} & {' & '.join(fluo_values)} \\\\")
+
+            print("    \\midrule")
+
+        print("    \\bottomrule")
+        print("  \\end{tabular}")
+        print(f"  \\caption{{Comparison of CD Calculation Methods - Length Gauge (Part {table_num})}}")
+        print(f"  \\label{{tab:cd_comparison_methods{table_num}}}")
+        print("\\end{table}\n\n")
+
+    # Second table for velocity gauge properties with both calculation methods
+    for table_num, chunk in enumerate(chunks, 1):
+        print(f"\\begin{{table}}[htbp]")
+        print("  \\centering")
+        print("  \\tiny")
+        print("  \\begin{tabular}{llccccccc}")
+        print("    \\toprule")
+        print("    \\multirow{2}{*}{Molecule} & \\multirow{2}{*}{Method} & \\multicolumn{4}{c}{Absorption (Velocity Gauge)} & \\multicolumn{3}{c}{Emission (Velocity Gauge)} \\\\")
+        print("    \\cmidrule(lr){3-6} \\cmidrule(lr){7-9}")
+        print("    & & $g_{abs}^{vel}$ (4R/D) & $g_{abs}^{vel}$ (4|m|cos$\\theta$/|$\\mu$|) & $|\\vec{P}|$ & $|\\vec{M}|$ & $g_{lum}^{vel}$ (4R/D) & $g_{lum}^{vel}$ (4|m|cos$\\theta$/|$\\mu$|) & $\\theta_{MP}$ \\\\")
+        print("    \\midrule")
+
+        for data in chunk:
+            molecule = data["name"]
+            if molecule not in exp_data:
+                continue
+                
+            display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+            exp_gabs = exp_data[molecule]['ABS'].get('gabs', np.nan)
+            exp_glum = data.get("exp_glum", np.nan)
+
+            # Experimental row - no velocity gauge data for experimental
+            exp_row = [
+                "Exp",
+                f"{exp_gabs:.1f}" if not np.isnan(exp_gabs) else "N/A",
+                "N/A",  # No alternative calculation for experimental
+                "N/A",  # No vector norms for experimental
+                "N/A",
+                f"{exp_glum:.1f}" if not np.isnan(exp_glum) else "N/A",
+                "N/A",  # No alternative calculation for experimental
+                "N/A"   # No angle data for experimental
+            ]
+            print(f"    \\multirow{{{len(METHODS)+1}}}{{*}}{{{display_name}}} & " + " & ".join(exp_row) + " \\\\\\\\")
+
+            # Computational rows with both calculation methods
+            for method in METHODS:
+                abs_data = dic[molecule][method]['ABS']
+                fluo_data = dic[molecule][method]['FLUO']
+
+                # Format velocity gauge absorption data with both calculation methods
+                gabs_velocity = abs_data.get('gabs_velocity', np.nan)
+                gabs_velocity_alt = abs_data.get('gabs_velocity_alt', np.nan)
+                p_norm = abs_data.get('P_norm', np.nan)
+                m_norm = abs_data.get('M_norm', np.nan)
+                
+                abs_vel_values = [
+                    f"{gabs_velocity:.1f}" if not np.isnan(gabs_velocity) else "N/A",
+                    f"{gabs_velocity_alt:.1f}" if not np.isnan(gabs_velocity_alt) else "N/A",
+                    f"{p_norm:.3f}" if not np.isnan(p_norm) else "N/A",
+                    f"{m_norm:.3f}" if not np.isnan(m_norm) else "N/A"
+                ]
+
+                # Format velocity gauge fluorescence data with both calculation methods
+                glum_velocity = fluo_data.get('glum_velocity', np.nan)
+                glum_velocity_alt = fluo_data.get('glum_velocity_alt', np.nan)
+                angle_mp_fluo = fluo_data.get('angle_MP', np.nan)
+                
+                fluo_vel_values = [
+                    f"{glum_velocity:.1f}" if not np.isnan(glum_velocity) else "N/A",
+                    f"{glum_velocity_alt:.1f}" if not np.isnan(glum_velocity_alt) else "N/A",
+                    f"{angle_mp_fluo:.1f}" if not np.isnan(angle_mp_fluo) else "N/A"
+                ]
+
+                print(f"     & {method} & {' & '.join(abs_vel_values)} & {' & '.join(fluo_vel_values)} \\\\")
+
+            print("    \\midrule")
+
+        print("    \\bottomrule")
+        print("  \\end{tabular}")
+        print(f"  \\caption{{Comparison of CD Calculation Methods - Velocity Gauge (Part {table_num})}}")
+        print(f"  \\label{{tab:cd_comparison_methods_vel{table_num}}}")
+        print("\\end{table}\n\n")
 def main():
     """Main function to coordinate data collection and LaTeX table generation."""
     warnings = [] # Store the warning messages
@@ -599,12 +960,17 @@ def main():
     
     # Print LaTeX tables
     generate_latex_tables()
-    print("\n\n")  # Separate the two tables with some newlines
+    print("\n\n")  # Separate the tables with some newlines
     generate_latex_metrics_table(exp_data, dic, warnings)
+    print("\n\n")  # Separate the tables with some newlines
     generate_latex_metrics_table_molecules(exp_data, dic, warnings)
+    print("\n\n")  # Separate the tables with some newlines
+    generate_CD()
+    generate_latex_tables_CD()
     for warning in warnings:
         print(warning)    
     generate_comparison_plots()
+    test_CD_properties()
     print("")
     print(f"Plots done")
 
