@@ -27,7 +27,7 @@ echo "Renamed directory '$OLD_DIR' to '$NEW_DIR'."
 
 # Recursively process files and directories within the newly renamed directory.
 # The -depth option ensures that files are renamed before their parent directories.
-find "$NEW_DIR" -depth -name "*$OLD_DIR*" | while IFS= read -r path; do
+find "$NEW_DIR" -depth -name "*$OLD_DIR*" ! -path "$NEW_DIR" | while IFS= read -r path; do
     parent_dir=$(dirname "$path")
     base_name=$(basename "$path")
     # Replace all occurrences of OLD_DIR in the basename with NEW_DIR.
