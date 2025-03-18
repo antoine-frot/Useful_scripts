@@ -28,7 +28,8 @@ MOLECULES_DATA = [
         "exp_abs_osc": 42,              # 10^3 M-1 cm-1
         "exp_fluo_osc": "<1\%",        
         "exp_gabs": 5.5,                # 10-4
-        "exp_glum": np.nan              # 10-4
+        "exp_glum": np.nan,              # 10-4
+        "display": True
     },
     {
         "name": "Boranil_I+RBINOL_H",
@@ -36,7 +37,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 464,
         "exp_abs_osc": 45,
         "exp_fluo_osc": "<1\%",
-        "exp_gabs": 4.0
+        "exp_gabs": 4.0,
+        "display": True
     },
     {
         "name": "Boranil_CF3+RBINOL_H",
@@ -44,7 +46,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 467,
         "exp_abs_osc": 43,
         "exp_fluo_osc": "<1\%",
-        "exp_gabs": 4.5
+        "exp_gabs": 4.5,
+        "display": True
     },
     {
         "name": "Boranil_SMe+RBINOL_H",
@@ -52,7 +55,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 487,
         "exp_abs_osc": 49,
         "exp_fluo_osc": "<1\%",
-        "exp_gabs": 2.5
+        "exp_gabs": 2.5,
+        "display": True
     },
     {
         "name": "Boranil_CN+RBINOL_H",
@@ -60,7 +64,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 467,
         "exp_abs_osc": 46,
         "exp_fluo_osc": "<1\%",
-        "exp_gabs": 3.5
+        "exp_gabs": 3.5,
+        "display": True
     },
     {
         "name": "Boranil_NO2+RBINOL_H",
@@ -68,7 +73,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 472,
         "exp_abs_osc": 34,
         "exp_fluo_osc": "<1\%",
-        "exp_gabs": 2.0
+        "exp_gabs": 2.0,
+        "display": True
     },
     {
         "name": "Boranil_NH2+RBINOL_CN",
@@ -76,7 +82,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 520,
         "exp_abs_osc": 44,
         "exp_fluo_osc": 0.03,
-        "exp_gabs": -7.5
+        "exp_gabs": -7.5,
+        "display": True
     },
     {
         "name": "Boranil_CN+RBINOL_CN",
@@ -84,7 +91,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 466,
         "exp_abs_osc": 60,
         "exp_fluo_osc": 0.12,
-        "exp_gabs": 5.3
+        "exp_gabs": 5.3,
+        "display": True
     },
     {
         "name": "Boranil_NO2+RBINOL_CN",
@@ -92,7 +100,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 479,
         "exp_abs_osc": 50.0,
         "exp_fluo_osc": 0.23,
-        "exp_gabs": 3.2
+        "exp_gabs": 3.2,
+        "display": True
     },
     {
         "name": "BODIPY+RBinol_H",
@@ -101,7 +110,8 @@ MOLECULES_DATA = [
         "exp_abs_osc": 6.0,
         "exp_fluo_osc": 0.47,
         "exp_gabs": 8.4,
-        "exp_glum": 7.0
+        "exp_glum": 7.0,
+        "display": False
     },
     {
         "name": "Boranil_NH2+F2",
@@ -109,7 +119,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 528,
         "exp_abs_osc": 48,
         "exp_fluo_osc": 0.02,
-        "exp_gabs": 0 
+        "exp_gabs": 0,
+        "display": False
     },
     {
         "name": "Boranil_NO2+F2",
@@ -117,7 +128,8 @@ MOLECULES_DATA = [
         "fluorescence_wavelength": 474,
         "exp_abs_osc": 66,
         "exp_fluo_osc": 0.60,
-        "exp_gabs": 0 
+        "exp_gabs": 0, 
+        "display": False
     },
 #    {
 #        "name": "",
@@ -125,7 +137,8 @@ MOLECULES_DATA = [
 #        "fluorescence_wavelength":,
 #        "exp_abs_osc":,
 #        "exp_fluo_osc":,
-#        "exp_gabs": 
+#        "exp_gabs":, 
+#        "display": False
 #    },
 ]
 
@@ -160,10 +173,11 @@ for data in MOLECULES_DATA:
             'wavelength': data["fluorescence_wavelength"],
             'energy': 1240.0 / data["fluorescence_wavelength"],
             'oscillator': data["exp_fluo_osc"]
-        }
+        },
+        'display': data["display"],
     }
 
-METHODS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft", "CAM-B3LYP", "wB97", "wB97X-D3", "wB97X-D3tddft", "B2PLYP", "CIS", "CISD", "CC2"]
+METHODS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft", "CAM-B3LYP", "wB97", "wB97X-D3", "wB97X-D3tddft", "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "CC2"]
 
 # Set working directory
 working_dir = "/home/afrot/Stage2025Tangui"
@@ -418,6 +432,8 @@ def generate_latex_metrics_table(exp_data: dict, dic: dict, warnings: list) -> N
             experimental = []
             for data in MOLECULES_DATA:
                 molecule = data["name"]
+                if exp_data[molecule]['display'] == False:
+                    continue
                 calc_data = dic[molecule][method][calc_type]
                 if calc_data and 'energy' in calc_data:
                     if calc_data['energy'] is None:
@@ -458,6 +474,7 @@ def generate_latex_metrics_table_molecules(exp_data: dict, dic: dict, warnings: 
     
     for data in MOLECULES_DATA:
         molecule = data["name"]
+        display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
         for calc_type in ['ABS', 'FLUO']:
             calculated = []
             experimental = []
@@ -479,7 +496,7 @@ def generate_latex_metrics_table_molecules(exp_data: dict, dic: dict, warnings: 
                 mse_str = f"{mse:.2f}" if not np.isnan(mse) else 'N/A'
                 mae_str = f"{mae:.2f}" if not np.isnan(mae) else 'N/A'
                 sd_str = f"{sd:.2f}" if not np.isnan(sd) else 'N/A'
-            print(f"    {molecule} & {calc_type} & {mse_str} & {mae_str} & {sd_str}\\\\")
+            print(f"    {display_name} & {calc_type} & {mse_str} & {mae_str} & {sd_str}\\\\")
     print("    \\bottomrule")
     print("  \\end{tabular}")
     print("  \\caption{\\centering Metrics Summary Comparing Computational Methods to Experimental Data for Molecules.}")
@@ -496,6 +513,8 @@ def generate_comparison_plots():
         
         for molecule in exp_data:
             display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+            if exp_data[molecule]['display'] == False:
+                continue
 
             # Absorption data
             comp_abs = dic[molecule][method]['ABS'].get('energy')
@@ -518,18 +537,18 @@ def generate_comparison_plots():
             # Create plots
             if abs_x:
                 plt.scatter(abs_x, abs_y, c='blue', label='Absorption')
-#                for i, label in enumerate(abs_labels):
-#                    plt.text(abs_x[i], abs_y[i], label,
-#                             fontsize=8, color='blue',
-#                             #ha='right', va='bottom', alpha=0.7
-#                             )
+                for i, label in enumerate(abs_labels):
+                    plt.text(abs_x[i], abs_y[i], label,
+                             fontsize=8, color='blue',
+                             ha='right', va='bottom', alpha=0.7
+                             )
             if fluo_x:
                 plt.scatter(fluo_x, fluo_y, c='red', label='Fluorescence')
-#                for i, label in enumerate(fluo_labels):
-#                    plt.text(fluo_x[i], fluo_y[i], label,
-#                             fontsize=8, color='red',
-#                             #ha='left', va='top', alpha=0.7
-#                             )
+                for i, label in enumerate(fluo_labels):
+                    plt.text(fluo_x[i], fluo_y[i], label,
+                             fontsize=8, color='red',
+                             ha='left', va='top', alpha=0.7
+                             )
 
             # Set equal axis limits
             all_x = abs_x + fluo_x
