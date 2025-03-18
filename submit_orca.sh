@@ -100,7 +100,8 @@ submitted=0
 # --- Process Each .xyz File ---
 for xyz_file in "${xyz_files[@]}"; do
   # Create a subdirectory named after the .xyz file (without its extension)
-  xyz_dir="${root_dir}/${xyz_file%.*}"
+  molecule_no_ext="${xyz_file%.*}"
+  xyz_dir="${root_dir}/${molecule_no_ext%%-*}"
   mkdir -p "$xyz_dir"
   
   # Enter the xyz_dir directory

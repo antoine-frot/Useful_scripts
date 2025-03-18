@@ -10,13 +10,13 @@ Description:
  
 # Check for minimum arguments
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 GS|ES [molecule1 molecule2 ... default=Boranil*]"
+    echo "Usage: $0 GS|ES@method [molecule1 molecule2 ... default=Boranil*]"
     exit 1
 fi
  
 # Validate state argument
 state="$1"
-if [[ "$state" != "GS" && "$state" != "ES" ]]; then
+if [[ "$state" != GS* && "$state" != ES* ]]; then
     echo "Error: First argument must be GS or ES."
     exit 1
 fi
@@ -39,7 +39,7 @@ for molecule in ${@:-Boranil*}; do
     fi
 
    
-    if cp "$source_path" "$molecule.xyz"; then
+    if cp "$source_path" .; then
         echo "Copied: ${molecule}-OPT${state}.xyz"
     else
         echo "Error: Failed to copy $source_path"
