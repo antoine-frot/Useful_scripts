@@ -129,7 +129,7 @@ def main():
     Args:
         transitions (str, optional): Transition numbers/ranges (e.g., "1-3,5").
         --methods, -m (str, required): Comma-separated list of methods (ABS/FLUO base or specific ABS@*/FLUO@*).
-        --molecule, -M (str, optional): Molecule name pattern (default: Boranil*).
+        --molecule, -M (str, optional): Comma-separated list of molecule name patterns (default: Boranil*).
     """
     parser = argparse.ArgumentParser(description='Search transition patterns in computational chemistry outputs')
     parser.add_argument('transitions', nargs='?', default=None,
@@ -137,28 +137,34 @@ def main():
     parser.add_argument('--methods', '-m', nargs='?', type=str, required=True,
                         help='Comma-separated list of methods (ABS/FLUO base or specific ABS@*/FLUO@*)')
     parser.add_argument('--molecule', '-M', type=str, default='Boranil*',
-                        help='Molecule name pattern (default: Boranil*)')
+                        help='Comma-separated list of molecule name patterns (default: Boranil*)')
 
     args = parser.parse_args()
 
     # Validate methods
     methods = [m.strip() for m in args.methods.split(',')]
-    for method in methods:
-        if not (method in ['ABS', 'FLUO'] or
-                method.startswith('ABS@') or
-                method.startswith('FLUO@')):
-            raise ValueError(f"Invalid method '{method}': Must be ABS/FLUO or start with ABS@/FLUO@")
-
+    if not methods:
+        raise ValueError("No methods specified")
+    
     # Parse transitions
     transitions = parse_transitions(args.transitions)
-
-    # Find matching molecules
-    molecules = glob.glob(args.molecule)
+    
+    # Parse molecule patterns (NEW: handle comma-separated molecule patterns)
+    molecule_patterns = [m.strip() for m in args.molecule.split(',')]
+    
+    # Find matching molecules from all patterns
+    molecules = []
+    for pattern in molecule_patterns:
+        matches = glob.glob(pattern)
+        if matches:
+            molecules.extend(matches)
+    
     if not molecules:
-        raise FileNotFoundError(f"No molecules found matching pattern: {args.molecule}")
+        patterns_str = ', '.join(molecule_patterns)
+        raise FileNotFoundError(f"No molecules found matching patterns: {patterns_str}")
 
-    # Sort molecules alphabetically by their basename
-    molecules = sorted(molecules, key=lambda x: os.path.basename(x))
+    # Sort molecules alphabetically by their basename and remove duplicates
+    molecules = sorted(set(molecules), key=lambda x: os.path.basename(x))
 
     # Search through files
     print("""
@@ -186,7 +192,7 @@ def main():
         method_patterns = []
         for user_method in methods:
             if user_method in ['ABS', 'FLUO']:
-                method_patterns.append(f"{user_method}@*")
+                method_patterns.append(f"OPT[GE]S@*-{user_method}@*")
             else:
                 method_patterns.append(user_method)
 
