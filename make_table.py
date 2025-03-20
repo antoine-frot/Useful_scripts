@@ -86,6 +86,15 @@ MOLECULES_DATA = [
         "display": True
     },
     {
+        "name": "Boranil_I+RBINOL_CN",
+        "absorption_wavelength": 426,
+        "fluorescence_wavelength": 475,
+        "exp_abs_osc": 53.5,
+        "exp_fluo_osc": 0.14,
+        "exp_gabs": 6.4,
+        "display": True
+    },
+    {
         "name": "Boranil_CN+RBINOL_CN",
         "absorption_wavelength": 416,
         "fluorescence_wavelength": 466,
@@ -98,9 +107,18 @@ MOLECULES_DATA = [
         "name": "Boranil_NO2+RBINOL_CN",
         "absorption_wavelength": 426,
         "fluorescence_wavelength": 479,
-        "exp_abs_osc": 50.0,
+        "exp_abs_osc": 49.5,
         "exp_fluo_osc": 0.23,
         "exp_gabs": 3.2,
+        "display": True
+    },
+    {
+        "name": "Boranil_NH2+RBINOL_CN",
+        "absorption_wavelength": 405,
+        "fluorescence_wavelength": 518,
+        "exp_abs_osc": 44.0,
+        "exp_fluo_osc": 0.03,
+        "exp_gabs": 7.5,
         "display": True
     },
     {
@@ -177,7 +195,7 @@ for data in MOLECULES_DATA:
         'display': data["display"],
     }
 
-METHODS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft", "CAM-B3LYP", "wB97", "wB97X-D3", "wB97X-D3tddft", "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "CC2"]
+METHODS = ["OPTB3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft", "CAM-B3LYP", "wB97", "wB97X-D3", "wB97X-D3tddft", "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "CC2"]
 
 # Set working directory
 working_dir = "/home/afrot/Stage2025Tangui"
@@ -715,8 +733,276 @@ def generate_latex_metrics_table_molecules(exp_data: dict, dic: dict, warnings: 
     print("  \\label{tab:metrics_molecules}")
     print("\\end{table}")
     
-   
 def generate_comparison_plots():
+    """
+    Generate comparison plots for absorption and fluorescence data:
+    1. Individual plots for each method
+    2. Global plots combining all methods
+    """
+    # Make sure the output directory exists
+    os.makedirs("plot_comparison", exist_ok=True)
+    
+    # Assign unique markers to each molecule
+    molecule_markers = {}
+    available_markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h', 'H', '+', 'x']
+    
+    # Create molecule to marker mapping
+    for i, molecule in enumerate(sorted(exp_data.keys())):
+        if exp_data[molecule]['display']:
+            molecule_markers[molecule] = available_markers[i % len(available_markers)]
+    
+    # Data collectors for global plots
+    all_abs_data = {method: [] for method in METHODS}
+    all_fluo_data = {method: [] for method in METHODS}
+    
+    # 1. INDIVIDUAL METHOD PLOTS
+    for method in METHODS:
+        # ABSORPTION plot for current method
+        abs_x, abs_y = [], []
+        plt.figure(figsize=(10, 8))
+        
+        for molecule in sorted(exp_data.keys()):
+            if not exp_data[molecule]['display']:
+                continue
+                
+            display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+            comp_abs = dic[molecule][method]['ABS'].get('energy')
+            exp_abs = exp_data[molecule]['ABS'].get('energy')
+            
+            if comp_abs and exp_abs and not np.isnan([comp_abs, exp_abs]).any():
+                abs_x.append(exp_abs)
+                abs_y.append(comp_abs)
+                
+                # Use consistent marker per molecule
+                marker = molecule_markers[molecule]
+                plt.scatter(exp_abs, comp_abs, 
+                          marker=marker, 
+                          color='blue',  # Use blue for all absorption
+                          s=80,  # Larger points
+                          alpha=0.8,
+                          label=display_name)
+                
+                # Store for global plot
+                all_abs_data[method].append((exp_abs, comp_abs, display_name, marker))
+        
+        # Complete and save the absorption plot if we have data
+        if abs_x and abs_y:
+            # Add diagonal reference line
+            min_val = min(min(abs_x), min(abs_y))
+            max_val = max(max(abs_x), max(abs_y))
+            padding = 0.1 * (max_val - min_val)
+            axis_min = min_val - padding
+            axis_max = max_val + padding
+            
+            plt.plot([axis_min, axis_max], [axis_min, axis_max],
+                    color='gray', linestyle='--', alpha=0.5)
+            
+            # Create legend with unique labels (no duplicates)
+            handles, labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels, handles))
+            plt.legend(by_label.values(), by_label.keys(), 
+                      loc='lower right', title='Molecules')
+            
+            plt.xlim(axis_min, axis_max)
+            plt.ylim(axis_min, axis_max)
+            plt.title(f"Absorption ({method}): Experimental vs Computed Energies")
+            plt.xlabel("Experimental Energy (eV)")
+            plt.ylabel("Computed Energy (eV)")
+            plt.grid(alpha=0.2)
+            plt.tight_layout()
+            plt.savefig(f"plot_comparison/absorption_{method}.pdf")
+        plt.close()
+        
+        # FLUORESCENCE plot for current method
+        fluo_x, fluo_y = [], []
+        plt.figure(figsize=(10, 8))
+        
+        for molecule in sorted(exp_data.keys()):
+            if not exp_data[molecule]['display']:
+                continue
+                
+            display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+            comp_fluo = dic[molecule][method]['FLUO'].get('energy')
+            exp_fluo = exp_data[molecule]['FLUO'].get('energy')
+            
+            if comp_fluo and exp_fluo and not np.isnan([comp_fluo, exp_fluo]).any():
+                fluo_x.append(exp_fluo)
+                fluo_y.append(comp_fluo)
+                
+                # Use consistent marker per molecule
+                marker = molecule_markers[molecule]
+                plt.scatter(exp_fluo, comp_fluo, 
+                          marker=marker, 
+                          color='red',  # Use red for all fluorescence
+                          s=80,  # Larger points
+                          alpha=0.8,
+                          label=display_name)
+                
+                # Store for global plot
+                all_fluo_data[method].append((exp_fluo, comp_fluo, display_name, marker))
+        
+        # Complete and save the fluorescence plot if we have data
+        if fluo_x and fluo_y:
+            # Add diagonal reference line
+            min_val = min(min(fluo_x), min(fluo_y))
+            max_val = max(max(fluo_x), max(fluo_y))
+            padding = 0.1 * (max_val - min_val)
+            axis_min = min_val - padding
+            axis_max = max_val + padding
+            
+            plt.plot([axis_min, axis_max], [axis_min, axis_max],
+                    color='gray', linestyle='--', alpha=0.5)
+            
+            # Create legend with unique labels (no duplicates)
+            handles, labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels, handles))
+            plt.legend(by_label.values(), by_label.keys(), 
+                      loc='lower right', title='Molecules')
+            
+            plt.xlim(axis_min, axis_max)
+            plt.ylim(axis_min, axis_max)
+            plt.title(f"Fluorescence ({method}): Experimental vs Computed Energies")
+            plt.xlabel("Experimental Energy (eV)")
+            plt.ylabel("Computed Energy (eV)")
+            plt.grid(alpha=0.2)
+            plt.tight_layout()
+            plt.savefig(f"plot_comparison/fluorescence_{method}.pdf")
+        plt.close()
+    
+    # 2. GLOBAL PLOTS
+    # 2.1 GLOBAL ABSORPTION PLOT
+    plt.figure(figsize=(12, 9))
+    all_abs_x, all_abs_y = [], []
+    
+    # Plot data for each method with consistent coloring
+    for method_idx, method in enumerate(METHODS):
+        if all_abs_data[method]:  # Only if there's data for this method
+            color = plt.cm.tab10.colors[method_idx % len(plt.cm.tab10.colors)]
+            
+            for exp_val, comp_val, molecule_name, marker in all_abs_data[method]:
+                all_abs_x.append(exp_val)
+                all_abs_y.append(comp_val)
+                plt.scatter(exp_val, comp_val,
+                           marker=marker,
+                           color=color,
+                           s=80,
+                           alpha=0.8)
+    
+    # Complete the absorption global plot if we have data
+    if all_abs_x and all_abs_y:
+        # Add diagonal reference line
+        min_val = min(min(all_abs_x), min(all_abs_y))
+        max_val = max(max(all_abs_x), max(all_abs_y))
+        padding = 0.1 * (max_val - min_val)
+        axis_min = min_val - padding
+        axis_max = max_val + padding
+        
+        plt.plot([axis_min, axis_max], [axis_min, axis_max],
+                color='gray', linestyle='--', alpha=0.5)
+        
+        # Create legends (molecules and methods)
+        from matplotlib.lines import Line2D
+        
+        # Method color legend
+        method_handles = []
+        for i, method in enumerate(METHODS):
+            if any(all_abs_data[method]):
+                color = plt.cm.tab10.colors[i % len(plt.cm.tab10.colors)]
+                method_handles.append(Line2D([0], [0], color=color, lw=4, label=method))
+        
+        # Molecule marker legend  
+        molecule_handles = []
+        for molecule, marker in molecule_markers.items():
+            if exp_data[molecule]['display']:
+                display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+                molecule_handles.append(Line2D([0], [0], marker=marker, color='black', 
+                                             markersize=8, linestyle='None', label=display_name))
+        
+        # Add the legends
+        first_legend = plt.legend(handles=molecule_handles, loc='lower right', 
+                                 title='Molecules', fontsize=9)
+        plt.gca().add_artist(first_legend)
+        
+        plt.legend(handles=method_handles, loc='upper left', 
+                  title='Methods', fontsize=9)
+        
+        plt.xlim(axis_min, axis_max)
+        plt.ylim(axis_min, axis_max)
+        plt.title("Absorption: Experimental vs Computed Energies (All Methods)")
+        plt.xlabel("Experimental Energy (eV)")
+        plt.ylabel("Computed Energy (eV)")
+        plt.grid(alpha=0.2)
+        plt.tight_layout()
+        plt.savefig("plot_comparison/absorption_comparison.pdf")
+    plt.close()
+    
+    # 2.2 GLOBAL FLUORESCENCE PLOT
+    plt.figure(figsize=(12, 9))
+    all_fluo_x, all_fluo_y = [], []
+    
+    # Plot data for each method with consistent coloring
+    for method_idx, method in enumerate(METHODS):
+        if all_fluo_data[method]:  # Only if there's data for this method
+            color = plt.cm.tab10.colors[method_idx % len(plt.cm.tab10.colors)]
+            
+            for exp_val, comp_val, molecule_name, marker in all_fluo_data[method]:
+                all_fluo_x.append(exp_val)
+                all_fluo_y.append(comp_val)
+                plt.scatter(exp_val, comp_val,
+                           marker=marker,
+                           color=color,
+                           s=80,
+                           alpha=0.8)
+    
+    # Complete the fluorescence global plot if we have data
+    if all_fluo_x and all_fluo_y:
+        # Add diagonal reference line
+        min_val = min(min(all_fluo_x), min(all_fluo_y))
+        max_val = max(max(all_fluo_x), max(all_fluo_y))
+        padding = 0.1 * (max_val - min_val)
+        axis_min = min_val - padding
+        axis_max = max_val + padding
+        
+        plt.plot([axis_min, axis_max], [axis_min, axis_max],
+                color='gray', linestyle='--', alpha=0.5)
+        
+        # Create legends (molecules and methods)
+        from matplotlib.lines import Line2D
+        
+        # Method color legend
+        method_handles = []
+        for i, method in enumerate(METHODS):
+            if any(all_fluo_data[method]):
+                color = plt.cm.tab10.colors[i % len(plt.cm.tab10.colors)]
+                method_handles.append(Line2D([0], [0], color=color, lw=4, label=method))
+        
+        # Molecule marker legend  
+        molecule_handles = []
+        for molecule, marker in molecule_markers.items():
+            if exp_data[molecule]['display']:
+                display_name = MOLECULE_NAME_MAPPING.get(molecule, molecule)
+                molecule_handles.append(Line2D([0], [0], marker=marker, color='black', 
+                                             markersize=8, linestyle='None', label=display_name))
+        
+        # Add the legends
+        first_legend = plt.legend(handles=molecule_handles, loc='lower right', 
+                                 title='Molecules', fontsize=9)
+        plt.gca().add_artist(first_legend)
+        
+        plt.legend(handles=method_handles, loc='upper left', 
+                  title='Methods', fontsize=9)
+        
+        plt.xlim(axis_min, axis_max)
+        plt.ylim(axis_min, axis_max)
+        plt.title("Fluorescence: Experimental vs Computed Energies (All Methods)")
+        plt.xlabel("Experimental Energy (eV)")
+        plt.ylabel("Computed Energy (eV)")
+        plt.grid(alpha=0.2)
+        plt.tight_layout()
+        plt.savefig("plot_comparison/fluorescence_comparison.pdf")
+    plt.close()
+
+def generate_comparison_plots_swp():
     """Generate comparison plots with regression analysis"""
     for method in METHODS:
         plt.figure(figsize=(8, 6))
