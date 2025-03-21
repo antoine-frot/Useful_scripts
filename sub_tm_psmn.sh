@@ -8,7 +8,7 @@
 #SBATCH -n 16
 ##SBATCH --ntasks=16
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=100000               # Min memory requested per node (MB) 
+#SBATCH --mem=320000               # Min memory requested per node (MB) 
 #SBATCH --time=7-23:00:00
 #
 
@@ -166,7 +166,7 @@ cp * ${HOMEDIR}/
 rm -vrf "${SCRATCHDIR}"
 
 # Append to Submited.txt
-echo "$SLURM_JOB_NAME" >> $diractual/Submited.txt
+echo "$SLURM_JOB_NAME" >> /home/afrot/Stage2025Tangui/Submited.txt
 
 end=$(date +%s)
 echo "END_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
