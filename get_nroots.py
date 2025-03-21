@@ -6,7 +6,7 @@ def get_nroots(file_path):
                 if 'nroots' in line.lower():
                     parts = line.strip().split()
                     try:
-                        idx = parts.index('nroots')
+                        idx = [part.lower() for part in parts].index('nroots')
                         return int(parts[idx + 1])
                     except (ValueError, IndexError):
                         pass
