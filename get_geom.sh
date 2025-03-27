@@ -31,6 +31,7 @@ fi
  
 # Process each molecule
 for molecule in ${@:-Boranil*}; do
+    molecule=${molecule%/}
     source_path="${molecule}/${molecule}-OPT${state}/${molecule}-OPT${state}.xyz"
 
     if [ ! -f "$source_path" ]; then
@@ -39,7 +40,7 @@ for molecule in ${@:-Boranil*}; do
     fi
 
    
-    if cp "$source_path" .; then
+    if cp "$source_path" "$molecule.xyz"; then
         echo "Copied: ${molecule}-OPT${state}.xyz"
     else
         echo "Error: Failed to copy $source_path"
