@@ -40,7 +40,7 @@ for molecule in ${@:-Boranil*}; do
     fi
 
    
-    if cp "$source_path" "$molecule.xyz"; then
+    if cp "$source_path" .; then
         echo "Copied: ${molecule}-OPT${state}.xyz"
     else
         echo "Error: Failed to copy $source_path"
