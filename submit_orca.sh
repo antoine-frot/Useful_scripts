@@ -148,33 +148,6 @@ for xyz_file in "${xyz_files[@]}"; do
       continue
     fi
 
-    # Doesn't work yet.
-    # --- Optionally Add Previously Calculated Molecular Orbitals ---
-#    if [ -f "${job_directory}/${job_basename}.gbw" ]; then
-#      if (( same_parameter == 1 )); then
-#        if prompt_yes_no "Use previously calculated molecular orbitals"; then
-#          use_orbs=1
-#        else
-#          use_orbs=0
-#        fi
-#      fi
-#      if [ $use_orbs ]; then
-#          use_gbw="${job_basename}_use.gbw"
-#          cp "${job_directory}/${job_basename}.gbw" "${job_directory}/$use_gbw"
-#          {
-#              echo "!MOREAD"
-#              echo "%moinp \"${use_gbw}\""
-#          } > temp_insert.txt
-#          # Insert the molecular orbital directives after the first line of the input file.
-#          sed -i '1r temp_insert.txt' "$job_input"
-#          rm -f temp_insert.txt
-#          echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
-#      else
-#          echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
-#      fi
-#    else
-#      echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
-#    fi
   else
       mkdir -p "$job_directory"
   fi 
@@ -243,3 +216,35 @@ if prompt_yes_no "Do you want to keep the input file?"; then
 else
   rm "${root_dir}/${input}"
 fi
+
+
+
+
+
+    # Doesn't work yet.
+    # --- Optionally Add Previously Calculated Molecular Orbitals ---
+#    if [ -f "${job_directory}/${job_basename}.gbw" ]; then
+#      if (( same_parameter == 1 )); then
+#        if prompt_yes_no "Use previously calculated molecular orbitals"; then
+#          use_orbs=1
+#        else
+#          use_orbs=0
+#        fi
+#      fi
+#      if [ $use_orbs ]; then
+#          use_gbw="${job_basename}_use.gbw"
+#          cp "${job_directory}/${job_basename}.gbw" "${job_directory}/$use_gbw"
+#          {
+#              echo "!MOREAD"
+#              echo "%moinp \"${use_gbw}\""
+#          } > temp_insert.txt
+#          # Insert the molecular orbital directives after the first line of the input file.
+#          sed -i '1r temp_insert.txt' "$job_input"
+#          rm -f temp_insert.txt
+#          echo -e "${G}Previous calculated molecular orbitals have been used.${NC}"
+#      else
+#          echo -e "${G}Previous calculated molecular orbitals not used.${NC}"
+#      fi
+#    else
+#      echo -e "${Y}No previous calculated molecular orbitals found.${NC}"
+#    fi
