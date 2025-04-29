@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: ./rename.sh old_directory new_directory
+# Usage: ./rename_dir.sh old_directory new_directory
 #
 # This script renames a directory from old_directory to new_directory.
 # Then, it recursively renames any file or directory (within new_directory)
