@@ -1,11 +1,8 @@
 #!/bin/bash
-#SBATCH -J Orca
 #SBATCH -p Lake,Cascade
 #SBATCH -o %j.out
 #SBATCH -e %j.err
 #SBATCH --nodes=1
-#SBATCH --ntasks=32
-#SBATCH --mem=100G
 #SBATCH --cpus-per-task=1
 #SBATCH --time=7-23:00:00
 
@@ -53,7 +50,7 @@ echo "### Calling ORCA command ..."
 echo " "
 
 # Run ORCA in the background
-(/Xnfs/chimie/debian11/orca/orca_6_0_1/orca "${input}" > "${HOMEDIR}/${output}" 2>&1; orca_calc_done=1; echo "$orca_calc_done" > "$orca_isdone"; echo "all done") &
+(/Xnfs/chimie/debian11/orca/orca_6_0_1/orca "${input}" > "${HOMEDIR}/${output}" 2>&1; orca_calc_done=1; echo "$orca_calc_done" > "$orca_isdone") &
 
 # Periodically copy output files from scratch to home directory
 while [ "$orca_calc_done" -eq 0 ]
@@ -66,8 +63,20 @@ done
 # Ensure all files are copied after the job finishes
 cp *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
 
-# Append to Submited.txt
-echo "${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
+#Check if the calculation terminated normally and write it in the ouput and Submited file
+if head -n 1 "${input}" | grep -iq "opt"; then
+    search_pattern="HURRAY"
+else
+    search_pattern="ORCA TERMINATED NORMALLY"
+fi
+
+if grep -iq "$search_pattern" "${HOMEDIR}/${output}"; then
+    echo "HURRAY: ${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
+    echo "Calculation terminated normally."
+else
+    echo "ERROR: ${input%.inp}" >> /home/afrot/Stage2025Tangui/Submited.txt
+    echo "Calculation terminated ABnormally."
+fi
 
 # Clean up scratch directory
 rm -vrf "${SCRATCHDIR}"
