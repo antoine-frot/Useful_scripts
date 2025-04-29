@@ -151,6 +151,8 @@ for xyz_file in "${xyz_files[@]}"; do
       echo -e "${Y}Skipping $xyz_file.${NC}"
       popd > /dev/null
       continue
+    else
+      rm "$job_directory"/control
     fi
 
   else
@@ -161,6 +163,10 @@ for xyz_file in "${xyz_files[@]}"; do
   cp "${root_dir}/${input}" .
   cp "${root_dir}/${submission_script}" .
   cp "${root_dir}/${xyz_file}" .
+  for file in "${insert_files[@]}"; do
+    cp "${root_dir}/${file}" .
+  done
+
 
   # --- Prepare TURBOMOLE input files ---
   # Process geometry file
@@ -176,7 +182,7 @@ for xyz_file in "${xyz_files[@]}"; do
   if (( ${#insert_files[@]} > 0 )); then
       head -n -1 control > temp_head
       tail -n 1 control > temp_tail
-      cat temp_head "$root_dir/${insert_files[@]}" temp_tail > control
+      cat temp_head "${insert_files[@]}" temp_tail > control
       rm temp_head temp_tail
   fi
   
@@ -206,7 +212,7 @@ fi
 if prompt_yes_no "Do you want to keep the input file ($input)?"; then
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
-  echo "${input} stored in $Input_directory."
+  echo -e "${G}${input} stored in $Input_directory.${NC}"
 else
   rm "${root_dir}/${input}"
 fi
@@ -214,7 +220,7 @@ fi
 if prompt_yes_no "Do you want to keep the submission script ($submission_script)?"; then
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${submission_script}" "${root_dir}/$Input_directory/${submission_script}"
-  echo "${submission_script} stored in $Input_directory."
+  echo -e "${G}${submission_script} stored in $Input_directory.${NC}"
 else
   rm "${root_dir}/${submission_script}"
 fi
@@ -225,7 +231,7 @@ if (( ${#insert_files[@]} > 0 )); then
     if prompt_yes_no "Do you want to keep $insert_file ?"; then
       mkdir -p "${root_dir}/$Input_directory"
       mv "${root_dir}/${insert_file}" "${root_dir}/$Input_directory/${insert_file}"
-      echo "${insert_file} stored in $Input_directory."
+      echo -e "${G}${insert_file} stored in $Input_directory.${NC}"
     else
       rm "${root_dir}/${insert_file}"
     fi
