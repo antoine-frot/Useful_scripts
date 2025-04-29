@@ -1,0 +1,77 @@
+# If not running interactively, don't do anything
+[ -z "$PS1" ] && return
+HISTCONTROL=ignoreboth
+# append to the history file, don't overwrite it
+shopt -s histappend
+shopt -s histverify
+
+# Disable terminal bell
+set bell-style none
+
+# Eternal bash history.
+# ---------------------
+# Undocumented feature which sets the size to "unlimited".
+# http://stackoverflow.com/questions/9457233/unlimited-bash-history
+export HISTFILESIZE=
+export HISTSIZE=
+export HISTTIMEFORMAT="[%F %T] "
+# Change the file location because certain bash sessions truncate .bash_history file upon close.
+# http://superuser.com/questions/575479/bash-history-truncated-to-500-lines-on-each-login
+export HISTFILE=~/.bash_eternal_history
+# Force prompt to write history after every command.
+# http://superuser.com/questions/20900/bash-history-loss
+PROMPT_COMMAND="history -a; $PROMPT_COMMAND"
+
+set -b
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+#############
+# Functions #
+#############
+
+exp_molecules() {
+    python3 -c "import sys; sys.path.append('/home/afrot/script/data_visualisation'); from experimental_data import MOLECULES_DATA; print(*[molecule['name'] for molecule in MOLECULES_DATA], sep='\n')"
+}
+
+#############
+# Variables #
+#############
+
+lake="${USER}@cl6226comp2.psmn.ens-lyon.fr"
+cascade="${USER}@s92node01.psmn.ens-lyon.fr"
+script="/home/afrot/script"
+path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
+TURBODIR=/home/rrullan/TmoleX2024/TURBOMOLE
+source $TURBODIR/Config_turbo_env
+
+C0='CC3 CC5 CC7 CC9 CN4 CN6 CN8'
+C1='CN3 CN5 CN7 CN9'
+
+###########
+# Aliases #
+###########
+
+alias cputime="sreport -t Hour cluster AccountUtilizationByUser Start=2025-01-01 Users=$USER"
+alias sq='squeue -u $USER -o "%.8i %.61j %.6M"; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
+alias sqa='squeue -u $USER; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
+alias ls='ls --color'
+
+alias scancelall="$script/scancelall.sh"
+alias get_geom="$script/get_geom.sh"
+alias rename="$script/rename.sh"
+alias rename_file="$script/rename_file.sh"
+alias remove="$script/remove.sh"
+alias clean="$script/clean.sh"
+alias finish_cc2="$script/finish_cc2.sh"
+alias error="$script/error.sh"
+alias get_error="$script/get_error.sh"
+alias submit_orca="$script/submit_orca.sh"
+alias submit_turbomole="$script/submit_turbomole.sh"
+alias scancelname="python3 $script/scancelname.py"
+alias get_transition="python3 $script/get_transition.py"
+alias get_chiroptic="python3 $script/data_visualisation/get_chiroptic.py"
+
+alias molden="/home/ssteinma/bin/molden"
