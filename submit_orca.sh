@@ -83,6 +83,13 @@ else
   echo -e "${G}Found ${M}${#xyz_files[@]}${G} xyz files.${NC}"
 fi
 
+
+# Get the number of processor and the total memory from the input file
+output=$(python3 "$script_dir/get_slurm_procs_mem.py" "$input")
+nprocs=$(echo "$output" | awk '{print $1}')
+memory=$(echo "$output" | awk '{print $2}')
+echo -e "${Y}Input file asked for $nprocs procs and $memory memory (MB).${NC}"
+
 # --- Confirm Continuation ---
 if ! prompt_yes_no "Do you want to continue"; then
     echo -e "${R}Aborting.${NC}"
@@ -200,11 +207,6 @@ for xyz_file in "${xyz_files[@]}"; do
       exit 1
   fi
   
-  # Get the number of processor and the total memory from the input file
-  output=$(python3 "$script_dir/get_slurm_procs_mem.py" "$job_input")
-  nprocs=$(echo "$output" | awk '{print $1}')
-  memory=$(echo "$output" | awk '{print $2}')
-
   # Submit the job via SLURM
   sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" >/dev/null
   if [ $? != 0 ]; then

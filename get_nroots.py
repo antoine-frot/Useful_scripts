@@ -3,10 +3,10 @@ def get_nroots(file_path):
     try:
         with open(file_path, 'r') as f:
             for line in f:
-                if '> nroots' in line:
+                if 'nroots' in line.lower():
                     parts = line.strip().split()
                     try:
-                        idx = parts.index('nroots')
+                        idx = [part.lower() for part in parts].index('nroots')
                         return int(parts[idx + 1])
                     except (ValueError, IndexError):
                         pass
