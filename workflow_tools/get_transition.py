@@ -4,8 +4,8 @@ import glob
 import os
 import re
 import fnmatch
-from get_nroots import get_nroots
-from get_HOMO import get_HOMO
+from ../get_properties/orca/get_nroots import get_nroots
+from ../get_properties/orca/get_HOMO import get_HOMO
 
 threshold_contribution_transition = 0.4  # Variable that chooses which percentage of contribution in the total transition the transition between two orbitals is shown
 

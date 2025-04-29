@@ -85,7 +85,7 @@ fi
 
 
 # Get the number of processor and the total memory from the input file
-output=$(python3 "$script_dir/get_slurm_procs_mem.py" "$input")
+output=$(python3 "$script_dir/get_properties/orca/get_slurm_procs_mem.py" "$input")
 nprocs=$(echo "$output" | awk '{print $1}')
 memory=$(echo "$output" | awk '{print $2}')
 echo -e "${Y}Input file asked for $nprocs procs and $memory memory (MB).${NC}"
