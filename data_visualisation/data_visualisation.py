@@ -25,7 +25,7 @@ METHODS_OPTIMIZATION_EXCITED = ["",
 # Methods for absorption and fluorescence calculations
 ALL_FUNCTIONALS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft",
                    "CAM-B3LYP", "CAM-B3LYPtddft", "wB97", "wB97X-D3", "wB97X-D3tddft",
-                   "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "ADC2_COSMO", "CC2"]
+                   "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "ADC2_COSMO", "CC2", "CC2_COSMO"]
 
 ACCURATE_FUNCTIONALS = ["B3LYPtddft",
                         "wB97X-D3tddft",
@@ -33,7 +33,8 @@ ACCURATE_FUNCTIONALS = ["B3LYPtddft",
                         "MO62Xtddft", 
                         "B2PLYPtddft", 
                         "ADC2_COSMO",
-                        "CC2"]
+                        "CC2", 
+                        "CC2_COSMO"]
 
 METHODS_LUMINESCENCE_ABS = [f"ABS@{method}" for method in ALL_FUNCTIONALS]
 
