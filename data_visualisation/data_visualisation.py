@@ -91,11 +91,11 @@ def main(generate_plots):
     #        if f.endswith('.pdf'):
     #            os.remove(os.path.join(output_dir_plots, f))
 
-    METHODS_ABS = {'': METHODS_LUMINESCENCE_ABS, 'ACCURATE': METHODS_LUMINESCENCE_ABS_ACCURATE}
-    METHODS_FLUO = {'': METHODS_LUMINESCENCE_FLUO, 'ACCURATE': METHODS_LUMINESCENCE_FLUO_ACCURATE}
+    METHODS_ABS = {'': METHODS_LUMINESCENCE_ABS, '_ACCURATE': METHODS_LUMINESCENCE_ABS_ACCURATE}
+    METHODS_FLUO = {'': METHODS_LUMINESCENCE_FLUO, '_ACCURATE': METHODS_LUMINESCENCE_FLUO_ACCURATE}
     
     # Print LaTeX tables
-    for methods_type in ['', 'ACCURATE']:
+    for methods_type in ['', '_ACCURATE']:
         abs_luminescence_methods = METHODS_ABS[methods_type]
         fluo_luminescence_methods = METHODS_FLUO[methods_type]
         for luminescence_type in ['Absorption', 'Fluorescence']:
