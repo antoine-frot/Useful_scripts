@@ -107,14 +107,16 @@ echo -e "${G}Let's go!${NC}"
 
 # --- Initialize Flags ---
 two_existing_dir=1  # Indicates that at least one job directory already existed
-overwrite_dirs=1    # Flag to reuse the same parameters for existing directories
-ask=0       # Flag to stop prompting the user repeatedly
+same_parameter=1    # Flag to reuse the same parameters for existing directories
+ask_overwrite=0       # Flag to stop prompting the user repeatedly
+ask_sameparameter=0       # Flag to stop prompting the user repeatedly
 submitted=0
 
 # --- Process Each .xyz File ---
 for xyz_file in "${xyz_files[@]}"; do
   # Create a subdirectory named after the .xyz file (without its extension)
-  xyz_dir="${root_dir}/${xyz_file%.*}"
+  molecule_no_ext="${xyz_file%.*}"
+  xyz_dir="${root_dir}/${molecule_no_ext%%-*}"
   mkdir -p "$xyz_dir"
   
   # Enter the xyz_dir directory
@@ -129,8 +131,7 @@ for xyz_file in "${xyz_files[@]}"; do
     echo -e "${R}Directory $(basename "$job_directory") already exists.${NC}"
     
     # Ask before overwritting
-    if (( ask == 0 )); then
-      two_existing_dir=0
+    if (( ask_overwrite == 0 )); then
       if prompt_yes_no "Do you want to overwrite the directory"; then
         overwrite_dirs=0
       else

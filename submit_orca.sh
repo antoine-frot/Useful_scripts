@@ -141,6 +141,13 @@ for xyz_file in "${xyz_files[@]}"; do
       fi
     fi
 
+    # Ask the user if it want keep the same response as just asked
+    if [ "$two_existing_dir" -eq 0 ]; then
+      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
+        ask=1
+      fi
+      two_existing_dir=1
+    fi
     # Don't overwrite if asked
     if [ "$overwrite_dirs" -eq 1 ]; then
       echo -e "${Y}Skipping $xyz_file.${NC}"
@@ -208,8 +215,8 @@ else
   echo -e "${G}$submitted submitted successfully.${NC}"
 fi
 
-# Move the original *.inp file into an "Input_Orca" directory
-if prompt_yes_no "Do you want to keep the input file?"; then
+# Keep the input files in Input_directory
+if prompt_yes_no "Do you want to keep the input file ($input)?"; then
   mkdir -p "${root_dir}/$Input_directory"
   mv "${root_dir}/${input}" "${root_dir}/$Input_directory/${input}"
   echo -e "${G}${input} stored in $Input_directory.${NC}"
