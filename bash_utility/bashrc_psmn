@@ -42,7 +42,12 @@ exp_molecules() {
 
 lake="${USER}@cl6226comp2.psmn.ens-lyon.fr"
 cascade="${USER}@s92node01.psmn.ens-lyon.fr"
+
 script="/home/afrot/script"
+slurm_utility="$script/slurm_utility"
+bash_utility="$script/bash_utility"
+workflow_tools="$script/workflow_tools"
+
 path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
 TURBODIR=/home/rrullan/TmoleX2024/TURBOMOLE
 source $TURBODIR/Config_turbo_env
@@ -59,19 +64,19 @@ alias sq='squeue -u $USER -o "%.8i %.61j %.6M"; echo "Number of jobs running: $(
 alias sqa='squeue -u $USER; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
 alias ls='ls --color'
 
-alias scancelall="$script/scancelall.sh"
-alias get_geom="$script/get_geom.sh"
-alias rename="$script/rename.sh"
-alias rename_file="$script/rename_file.sh"
-alias remove="$script/remove.sh"
-alias clean="$script/clean.sh"
-alias finish_cc2="$script/finish_cc2.sh"
-alias error="$script/error.sh"
-alias get_error="$script/get_error.sh"
+alias scancelall="$slurm_utility/scancelall.sh"
+alias scancelname="python3 $slurm_utility/scancelname.py"
+
+alias get_geom="$workflow_tools/get_geom.sh"
+alias get_transition="python3 $workflow_tools/get_transition.py"
+alias get_chiroptic="python3 $workflow_tools/get_chiroptic.py"
+
+alias rename="$bash_utility/rename.sh"
+alias rename_file="$bash_utility/rename_file.sh"
+alias remove_pattern="python3 $bash_utility/remove.py"
+
 alias submit_orca="$script/submit_orca.sh"
 alias submit_turbomole="$script/submit_turbomole.sh"
-alias scancelname="python3 $script/scancelname.py"
-alias get_transition="python3 $script/get_transition.py"
-alias get_chiroptic="python3 $script/data_visualisation/get_chiroptic.py"
+
 
 alias molden="/home/ssteinma/bin/molden"
