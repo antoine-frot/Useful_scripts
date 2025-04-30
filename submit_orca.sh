@@ -141,13 +141,6 @@ for xyz_file in "${xyz_files[@]}"; do
       fi
     fi
 
-    # Ask the user if it want keep the same response as just asked
-    if [ "$two_existing_dir" -eq 0 ]; then
-      if prompt_yes_no "Do you want to keep the same parameter for all existing directories"; then
-        ask=1
-      fi
-      two_existing_dir=1
-    fi
     # Don't overwrite if asked
     if [ "$overwrite_dirs" -eq 1 ]; then
       echo -e "${Y}Skipping $xyz_file.${NC}"
