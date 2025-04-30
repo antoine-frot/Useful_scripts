@@ -37,7 +37,7 @@ alias get_chiroptic="python3 $workflow_tools/get_chiroptic.py"
 
 alias rename="$bash_utility/rename.sh"
 alias rename_file="$bash_utility/rename_file.sh"
-alias remove_pattern="python3 $bash_utility/remove.py"
+alias remove_pattern="python3 $bash_utility/remove_pattern.py"
 
 alias submit_orca="$script/submit_orca.sh"
 alias submit_turbomole="$script/submit_turbomole.sh"
