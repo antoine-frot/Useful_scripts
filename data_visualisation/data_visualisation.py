@@ -220,9 +220,12 @@ def main(generate_plots):
             outfile.write("\\newpage\n")
     print(f"All tables have been compiled into {all_tables}.")
 
-    # Print warning messages
+    # Print unique warning messages
+    seen_warnings = set()
     for warning in warnings_list:
-        print(warning)    
+        if warning not in seen_warnings:
+            print(warning)
+            seen_warnings.add(warning)
     #generate_comparison_plots()
     #print(f"Plots done")
 
