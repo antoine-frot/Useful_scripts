@@ -12,7 +12,7 @@ import os
 import argparse
 from experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
 from electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
-from make_plots import generate_plot_experiment_computed # type: ignore
+from make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed # type: ignore
 from latex_table import generate_latex_table, generate_latex_metrics_table
 
 # Methods for ground state optimization
@@ -27,13 +27,11 @@ ALL_FUNCTIONALS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft",
                    "CAM-B3LYP", "CAM-B3LYPtddft", "wB97", "wB97X-D3", "wB97X-D3tddft",
                    "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "ADC2_COSMO", "CC2", "CC2_COSMO"]
 
-ACCURATE_FUNCTIONALS = ["B3LYPtddft",
-                        "wB97X-D3tddft",
+ACCURATE_FUNCTIONALS = ["wB97X-D3tddft",
                         "CAM-B3LYPtddft",
                         "MO62Xtddft", 
                         "B2PLYPtddft", 
                         "ADC2_COSMO",
-                        "CC2", 
                         "CC2_COSMO"]
 
 METHODS_LUMINESCENCE_ABS = [f"ABS@{method}" for method in ALL_FUNCTIONALS]
@@ -206,9 +204,67 @@ def main(generate_plots):
                                                     dissymmetry_variant=dissymmetry_variant,
                                                     prop=prop,
                                                     molecules=DENIS_MOLECULES,
-                                                    #molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                    molecule_name_mapping=MOLECULE_NAME_MAPPING,
                                                     output_dir=output_dir_plots,
                                                     )
+    for prop in ['energy', 'dissymmetry_factor']:
+        gauges = ['length', 'velocity'] if prop == 'dissymmetry_factor' else [None]
+        for gauge in gauges:
+            generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                            luminescence_type='Absorption',
+                                            computed_data=dic_abs,
+                                            methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                            methods_luminescence=METHODS_LUMINESCENCE_ABS_ACCURATE,
+                                            gauge=gauge,
+                                            dissymmetry_variant='strength',
+                                            prop=prop,
+                                            molecules=DENIS_MOLECULES,
+                                            molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                            output_dir=output_dir_plots,
+                                            )
+
+            generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                        luminescence_type='Absorption',
+                                                        computed_data=dic_abs,
+                                                        methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                        methods_luminescence=["ABS@ADC2_COSMO", "ABS@CC2_COSMO"],
+                                                        gauge=gauge,
+                                                        dissymmetry_variant='strength',
+                                                        prop=prop,
+                                                        molecules=DENIS_MOLECULES,
+                                                        molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                        output_dir=output_dir_plots,
+                                                        output_filebasename="post_HF",
+                                                        )
+
+            for method_optimization in METHODS_OPTIMIZATION_EXCITED:
+                generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                        luminescence_type='Fluorescence',
+                                                        computed_data=dic_fluo,
+                                                        methods_optimization=[method_optimization],
+                                                        methods_luminescence=METHODS_LUMINESCENCE_FLUO_ACCURATE,
+                                                        gauge=gauge,
+                                                        dissymmetry_variant='strength',
+                                                        prop=prop,
+                                                        molecules=DENIS_MOLECULES,
+                                                        molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                        output_dir=output_dir_plots,
+                                                        )
+
+                generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                        luminescence_type='Fluorescence',
+                                                        computed_data=dic_fluo,
+                                                        methods_optimization=[method_optimization],
+                                                        methods_luminescence=["FLUO@ADC2_COSMO", "FLUO@CC2_COSMO"],
+                                                        gauge=gauge,
+                                                        dissymmetry_variant='strength',
+                                                        prop=prop,
+                                                        molecules=DENIS_MOLECULES,
+                                                        molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                        output_dir=output_dir_plots,
+                                                        output_filebasename=f"post_HF",
+                                                        )
+
 
     # Print LaTeX tables in one file thanks to \input
     all_tables = "all_tables.tex"
