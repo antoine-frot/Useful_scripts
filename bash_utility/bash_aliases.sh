@@ -35,8 +35,8 @@ alias get_geom="$workflow_tools/get_geom.sh"
 alias get_transition="python3 $workflow_tools/get_transition.py"
 alias get_chiroptic="python3 $workflow_tools/get_chiroptic.py"
 
-alias rename="$bash_utility/rename.sh"
-alias rename_file="$bash_utility/rename_file.sh"
+alias rename_dir="$bash_utility/rename_dir.sh"
+alias rename_files="$bash_utility/rename_files.sh"
 alias remove_pattern="python3 $bash_utility/remove_pattern.py"
 
 alias submit_orca="$script/submit_orca.sh"
