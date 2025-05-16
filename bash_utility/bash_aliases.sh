@@ -17,7 +17,7 @@ cascade="${USER}@s92node01.psmn.ens-lyon.fr"
 script="~/script"
 slurm_utility="$script/slurm_utility"
 bash_utility="$script/bash_utility"
-workflow_tools="$script/workflow_tools"
+workflow_tools="$script/workflow_tools/orca"
 
 ###########
 # Aliases #
@@ -34,6 +34,7 @@ alias scancelname="python3 $slurm_utility/scancelname.py"
 alias get_geom="$workflow_tools/get_geom.sh"
 alias get_transition="python3 $workflow_tools/get_transition.py"
 alias get_chiroptic="python3 $workflow_tools/get_chiroptic.py"
+alias get_difference_densities="python3 $workflow_tools/get_difference_densities.py"
 
 alias rename_dir="$bash_utility/rename_dir.sh"
 alias rename_files="$bash_utility/rename_files.sh"
