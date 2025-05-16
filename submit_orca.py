@@ -1,283 +1,274 @@
 #!/usr/bin/env python3
 """
-Script to manage and submit ORCA jobs using SLURM.
+Module: submit_orca.py
+Description:
+    This script automates the preparation and submission of ORCA quantum chemical calculation jobs
+    via SLURM. It expects exactly one input file (*.inp) and one or more geometry files (*.xyz) in
+    the current directory.
 
-This script automates the process of preparing and submitting ORCA jobs to a SLURM workload manager.
-It handles the creation of job directories, copying of input files, and submission of jobs with
-appropriate SLURM parameters. The script also supports a dry-run mode for testing without making
-actual changes.
-
-Key Features:
-- Prompts the user for confirmation before proceeding with actions.
-- Extracts SLURM parameters from ORCA input files.
-- Handles existing job directories and GBW files.
-- Submits jobs to SLURM with specified parameters.
-
+    For each *.xyz file, the script will:
+      - Create a dedicated directory (named after the geometry file without its extension).
+      - Construct a job directory named by combining the *.xyz filename and the *.inp filename.
+      - Copy and modify the input file: if the first "* xyzfile" line contains a .xyz file,
+        it removes the old coordinate reference and appends the current .xyz filename.
+      - Optionally insert directives to reuse previously calculated molecular orbitals if a
+        corresponding *.gbw file is found.
+      - Move the geometry file into the job directory.
+      - Copy a SLURM submission script and submit the job.
+      - Log the job submission in a designated log file.
+    Finally, the original *.inp file is moved into an "Inputs" subdirectory.
+    
 Usage:
-- Run the script from the specified ROOT_DIR.
-- Ensure exactly one .inp file and at least one .xyz file are present in the ROOT_DIR.
-- Use the --dry-run flag to test the script without making actual changes.
-
-Dependencies:
-- Requires Python 3.x and standard libraries (os, glob, shutil, subprocess, sys).
-- Assumes the presence of a SLURM submission script (orca_slurm.sh) in the SCRIPT_DIR.
+    Place one *.inp file and one or more *.xyz files in the working directory, then execute:
+        python3 path/submit_orca.py
+    (The coordinates in the input file should be specified as "* xyzfile", and multiple-step jobs are supported.)
 """
 
 import os
+import sys
 import glob
 import shutil
 import subprocess
-import sys
+import re
+from pathlib import Path
 
 # --- Define Color Variables ---
-NC = '\033[0m'       # No Color
-R = '\033[0;31m'     # Red
-G = '\033[0;32m'     # Green
-Y = '\033[0;33m'     # Yellow
-M = '\033[0;35m'     # Magenta
+class Colors:
+    NC = '\033[0m'         # No Color
+    R = '\033[0;31m'       # Red
+    G = '\033[0;32m'       # Green
+    Y = '\033[0;33m'       # Yellow
+    M = '\033[0;35m'       # Magenta
 
-# --- Configuration ---
+# --- Set Variables ---
 SCRIPT_DIR = "/home/afrot/script"
-ROOT_DIR = "/home/afrot/Stage2025Tangui"
-INPUT_DIR_NAME = "Input_Orca"
+SUBMISSION_SCRIPT = os.path.join(SCRIPT_DIR, "orca_slurm.sh")
+INPUT_DIRECTORY = 'Input_Orca'
 
-def prompt_yes_no(question):
+def colored_print(color, message):
+    """Print colored message to terminal"""
+    print(f"{color}{message}{Colors.NC}")
+
+def prompt_yes_no(prompt):
     """
-    Prompts the user with a yes/no question and returns a boolean.
-
-    Parameters:
-    question (str): The question to display.
-
+    Prompt user for yes/no input
+    Args:
+        prompt: The message to display
     Returns:
-    bool: True for 'y' or 'yes', False for 'n' or 'no'.
+        bool: True for Yes, False for No
     """
     while True:
-        answer = input(f"{Y}{question} (y/n)? {NC}").strip().lower()
-        if answer in ('y', 'yes'):
+        answer = input(f"{Colors.Y}{prompt} (y/n)? {Colors.NC}").lower()
+        if answer in ['y', 'yes']:
             return True
-        elif answer in ('n', 'no'):
+        elif answer in ['n', 'no']:
             return False
-        print(f"{R}Please answer y or n.{NC}")
+        else:
+            colored_print(Colors.R, "Please answer y or n.")
 
-def get_slurm_params(filename):
+def get_slurm_resources(input_file):
     """
-    Extracts the number of processors and memory required by an ORCA input file.
-
-    Parameters:
-    filename (str): Path to the ORCA input file.
-
+    Get the number of processors and memory from the input file by calling an external Python script
+    Args:
+        input_file: Path to the ORCA input file
     Returns:
-    tuple: A tuple containing the number of processors and memory required.
+        tuple: (number of processors, memory)
     """
-    with open(filename, 'r') as f:
-        content = f.read()
+    script_path = os.path.join(SCRIPT_DIR, "get_slurm_procs_mem.py")
+    try:
+        result = subprocess.run(
+            ["python3", script_path, input_file],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        nprocs, memory = result.stdout.strip().split()
+        return nprocs, memory
+    except subprocess.CalledProcessError as e:
+        colored_print(Colors.R, f"Error executing get_slurm_procs_mem.py: {e}")
+        sys.exit(1)
 
-    # Split content into job sections
-    sections = re.split(r'\$new_job', content)
-    all_pairs = []
-
-    for section in sections:
-        # Extract MaxCore and nprocs in current section
-        maxcore_match = re.search(r'\bmaxcore\b\D*(\d+)', section, re.I)
-        nprocs_match = re.search(r'\bnprocs\b\D*(\d+)', section, re.I)
-
-        # Use defaults if not found
-        maxcore = int(maxcore_match.group(1)) if maxcore_match else 4000
-        nprocs = int(nprocs_match.group(1)) if nprocs_match else 1
-
-        all_pairs.append((maxcore, nprocs))
-
-    if not all_pairs:
-        return (1, 4000)  # Both defaults if no sections
+def update_input_file(input_path, xyz_file):
+    """
+    Update the input file by modifying the xyz file reference
+    Args:
+        input_path: Path to the input file
+        xyz_file: Name of the xyz file to use
+    """
+    with open(input_path, 'r') as file:
+        lines = file.readlines()
     
-    max_nprocs = max(np for mc, np in all_pairs)
-    max_memory = max(mc * np for mc, np in all_pairs)
+    updated = False
+    for i, line in enumerate(lines):
+        if line.startswith('* xyzfile'):
+            # Remove existing xyz file reference if present
+            parts = line.split()
+            if any(part.endswith('.xyz') for part in parts):
+                # Remove the last word if it ends with .xyz
+                new_parts = []
+                for part in parts:
+                    if part.endswith('.xyz'):
+                        continue
+                    new_parts.append(part)
+                lines[i] = ' '.join(new_parts) + f" {xyz_file}\n"
+            else:
+                # Just append the xyz file
+                lines[i] = line.rstrip() + f" {xyz_file}\n"
+            updated = True
+            break
     
-    return (max_nprocs, max_memory)
+    if not updated:
+        colored_print(Colors.R, f"Warning: No line starting with \"* xyzfile\" was found in {input_path}.")
+        sys.exit(1)
+    
+    with open(input_path, 'w') as file:
+        file.writelines(lines)
 
 def main():
-    # --- Dry Run Flag ---
-    dry_run = '--dry-run' in sys.argv
-    if dry_run:
-        print(f"{M}\n=== DRY RUN MODE === (No changes will be made){NC}\n")
-
-    # --- Check Working Directory ---
-    if os.getcwd() != ROOT_DIR:
-        print(f"{R}Error: Please run script from {ROOT_DIR}{NC}")
-        sys.exit(1)
-
-    # --- Check Input Files ---
-    inp_files = glob.glob('*.inp')
+    """Main function to run the script"""
+    # --- Set the Working Directory ---
+    root_dir = os.getcwd()
+    colored_print(Colors.Y, f"You are in the directory {root_dir}.")
+    
+    # --- Check for Required Input Files ---
+    
+    # Require exactly one *.inp file in the current directory
+    inp_files = glob.glob("*.inp")
     if len(inp_files) != 1:
-        print(f"{R}Error: Exactly one .inp file required{NC}")
+        colored_print(Colors.R, f"Error: Exactly one input file (*.inp) is expected in the current directory (currently {inp_files} are given).")
         sys.exit(1)
-    inp_file = inp_files[0]
-
-    xyz_files = glob.glob('*.xyz')
-    if not xyz_files:
-        print(f"{R}Error: No .xyz files found{NC}")
+    input_file = inp_files[0]
+    
+    # Require at least one *.xyz file
+    xyz_files = glob.glob("*.xyz")
+    if len(xyz_files) == 0:
+        colored_print(Colors.R, "Error: No xyz files found in the current directory.")
         sys.exit(1)
-
-    print(f"{G}Found {M}{len(xyz_files)}{G} XYZ files{NC}")
-
-    if not prompt_yes_no("Continue"):
-        print(f"{R}Aborted{NC}")
-        sys.exit()
-
-    # --- Process XYZ Files ---
-    two_existing_dir = True  # At least one existing dir found?
-    same_parameter = True    # Use same params for all existing dirs
-    ask = False              # Stop prompting after first decision
-
-    for xyz_path in xyz_files:
-        xyz_file = os.path.basename(xyz_path)
-        base_name = os.path.splitext(xyz_file)[0]
-        
-        # Create XYZ directory
-        xyz_dir = os.path.join(ROOT_DIR, base_name)
-        if dry_run:
-            print(f"{M}Would create directory: {xyz_dir}{NC}")
-        else:
-            os.makedirs(xyz_dir, exist_ok=True)
-
-        # Create job directory name
-        job_base = f"{base_name}-{os.path.splitext(inp_file)[0]}"
-        job_dir = os.path.join(xyz_dir, job_base)
-        job_inp = os.path.join(job_dir, f"{job_base}.inp")
-
-        # Handle existing directory
-        dir_exists = os.path.exists(job_dir)
-        if dir_exists:
-            if not two_existing_dir and not ask:
-                if prompt_yes_no("Apply same parameters to all existing directories"):
-                    same_parameter = False
-                ask = True
-            two_existing_dir = False
-
-            print(f"{R}Directory {job_base} exists{NC}")
-            
-            if same_parameter:
-                if not prompt_yes_no("Overwrite directory"):
-                    print(f"{R}Aborted{NC}")
-                    sys.exit(1)
-            
-            if dry_run:
-                print(f"{M}Would copy input file to: {job_inp}{NC}")
-            else:
-                shutil.copy(os.path.join(ROOT_DIR, inp_file), job_inp)
-            
-            # Check for existing GBW file
-            gbw_file = os.path.join(job_dir, f"{job_base}.gbw")
-            use_gbw = None
-            if os.path.exists(gbw_file):
-                use_gbw = f"{job_base}_use.gbw"
-                if dry_run:
-                    print(f"{M}Would copy GBW file to: {use_gbw}{NC}")
-                else:
-                    shutil.copy(gbw_file, os.path.join(job_dir, use_gbw))
-                
-                if dry_run:
-                    print(f"{M}Would insert MOREAD directives in {job_inp}{NC}")
-                else:
-                    with open(job_inp, 'r') as f:
-                        lines = f.readlines()
-                    
-                    insert_lines = [
-                        "!MOREAD\n",
-                        f"%moinp {use_gbw}\n"
-                    ]
-                    
-                    for i, line in enumerate(lines):
-                        if line.strip().startswith('* xyzfile'):
-                            lines[i+1:i+1] = insert_lines
-                            break
-                    
-                    with open(job_inp, 'w') as f:
-                        f.writelines(lines)
-        else:
-            if dry_run:
-                print(f"{M}Would create directory: {job_dir}{NC}")
-                print(f"{M}Would copy input file to: {job_inp}{NC}")
-            else:
-                os.makedirs(job_dir)
-                shutil.copy(os.path.join(ROOT_DIR, inp_file), job_inp)
-
-        # Update XYZ reference in input file
-        if dry_run:
-            print(f"{M}Would update XYZ reference in {job_inp} to {xyz_file}{NC}")
-        else:
-            with open(job_inp, 'r') as f:
-                lines = f.readlines()
-
-            found = False
-            for i, line in enumerate(lines):
-                if line.strip().startswith('* xyzfile'):
-                    parts = line.strip().split()
-                    cleaned = [p for p in parts if not p.endswith('.xyz')]
-                    lines[i] = ' '.join(cleaned) + f' {xyz_file}\n'
-                    found = True
-                    break
-            
-            if not found:
-                print(f"{R}No * xyzfile line found in {job_inp}{NC}")
-                sys.exit(1)
-
-            with open(job_inp, 'w') as f:
-                f.writelines(lines)
-
-        # Move XYZ file to job directory
-        if dry_run:
-            print(f"{M}Would move {xyz_file} to {job_dir}{NC}")
-        else:
-            shutil.move(os.path.join(ROOT_DIR, xyz_file),
-                        os.path.join(job_dir, xyz_file))
-
-        # Submit SLURM job
-        submission_script = os.path.join(SCRIPT_DIR, 'orca_slurm.sh')
-        if not os.path.exists(submission_script):
-            print(f"{R}Submission script missing{NC}")
-            sys.exit(1)
-
-        try:
-            nprocs, memory = get_slurm_params(job_inp)
-        except ValueError as e:
-            print(e)
-            sys.exit(1)
-
-        if dry_run:
-            print(f"{M}Would submit job with: sbatch --job-name {job_base} "
-                  f"--ntasks {nprocs} --mem {memory}M {submission_script} {job_inp}{NC}")
-        else:
-            subprocess.run([
-                'sbatch',
-                '--job-name', job_base,
-                '--ntasks', str(nprocs),
-                '--mem', f'{memory}M',
-                submission_script,
-                job_inp
-            ], stdout=subprocess.DEVNULL)
-
-        print(f"{G}Submitted {job_base}{NC}")
-
-    # Move original input file
-    if prompt_yes_no("Keep input file"):
-        input_dir = os.path.join(ROOT_DIR, INPUT_DIR_NAME)
-        if dry_run:
-            print(f"{M}Would move {inp_file} to {input_dir}{NC}")
-        else:
-            os.makedirs(input_dir, exist_ok=True)
-            shutil.move(
-                os.path.join(ROOT_DIR, inp_file),
-                os.path.join(input_dir, inp_file)
+    
+    # Inform the user about the number of .xyz files found
+    if len(xyz_files) == 1:
+        colored_print(Colors.G, f"Found 1 xyz file ({xyz_files[0]}).")
     else:
-        if dry_run:
-            print(f"{M}Would delete {inp_file}{NC}")
+        colored_print(Colors.G, f"Found {Colors.M}{len(xyz_files)}{Colors.G} xyz files.")
+    
+    # --- Confirm Continuation ---
+    if not prompt_yes_no("Do you want to continue"):
+        colored_print(Colors.R, "Aborting.")
+        sys.exit(1)
+    colored_print(Colors.G, "Let's go!")
+    
+    # --- Initialize Flags ---
+    two_existing_dir = True  # Indicates that at least one job directory already existed
+    ask_overwrite = False    # Flag to stop prompting the user repeatedly
+    ask_sameparameter = False  # Flag to stop prompting the user repeatedly
+    overwrite_dirs = False   # Default value for overwriting directories
+    submitted = 0
+    
+    # --- Process Each .xyz File ---
+    for xyz_file in xyz_files:
+        # Create a subdirectory named after the .xyz file (without its extension)
+        molecule_no_ext = os.path.splitext(xyz_file)[0]
+        xyz_dir = os.path.join(root_dir, molecule_no_ext.split('-')[0])
+        os.makedirs(xyz_dir, exist_ok=True)
+        
+        # Enter the xyz_dir directory
+        original_dir = os.getcwd()
+        os.chdir(xyz_dir)
+        
+        # Construct job basename combining the .xyz filename and the input file name (both without extensions)
+        inp_no_ext = os.path.splitext(input_file)[0]
+        job_basename = f"{molecule_no_ext}-{inp_no_ext}"
+        job_directory = os.path.join(os.getcwd(), job_basename)
+        job_input = f"{job_basename}.inp"
+        
+        # If the job directory already exists, handle parameter reuse or prompt the user.
+        if os.path.exists(job_directory):
+            colored_print(Colors.R, f"Directory {os.path.basename(job_directory)} already exists.")
+            
+            # Ask the user if they want to keep the same response as just asked
+            if not two_existing_dir and not ask_sameparameter:
+                if prompt_yes_no("Do you want to keep the same parameter for all existing directories"):
+                    ask_overwrite = True
+                ask_sameparameter = True
+            
+            two_existing_dir = False
+            
+            # Ask before overwriting
+            if not ask_overwrite:
+                if prompt_yes_no("Do you want to overwrite the directory"):
+                    overwrite_dirs = True
+                else:
+                    overwrite_dirs = False
+            
+            # Don't overwrite if asked
+            if not overwrite_dirs:
+                colored_print(Colors.Y, f"Skipping {xyz_file}.")
+                os.chdir(original_dir)
+                continue
         else:
-            os.remove(os.path.join(ROOT_DIR, inp_file))
-
-    print(f"{G}All jobs submitted successfully{NC}")
-    if dry_run:
-        print(f"{M}\n=== DRY RUN COMPLETE === (No actual changes made){NC}")
+            os.makedirs(job_directory, exist_ok=True)
+        
+        # Change to job directory
+        os.chdir(job_directory)
+        
+        # Copy input file to job directory
+        shutil.copy(os.path.join(root_dir, input_file), job_input)
+        
+        # --- Update the Input File with the Current .xyz File ---
+        update_input_file(job_input, xyz_file)
+        
+        # Move the current .xyz file into the job directory
+        shutil.copy(os.path.join(root_dir, xyz_file), job_directory)
+        
+        # --- Prepare and Submit the Job ---
+        if not os.path.isfile(SUBMISSION_SCRIPT):
+            colored_print(Colors.R, f"Submission script not found at {SUBMISSION_SCRIPT}.")
+            os.chdir(original_dir)
+            sys.exit(1)
+        
+        # Get the number of processor and the total memory from the input file
+        nprocs, memory = get_slurm_resources(job_input)
+        
+        # Submit the job via SLURM
+        try:
+            subprocess.run([
+                "sbatch",
+                f"--job-name={job_basename}",
+                f"--ntasks={nprocs}",
+                f"--mem={memory}",
+                SUBMISSION_SCRIPT,
+                job_input
+            ], check=True, capture_output=True)
+            
+            submitted += 1
+            colored_print(Colors.G, f"{job_basename} has been submitted.")
+            
+            # Remove the original xyz file after successful submission
+            os.remove(os.path.join(root_dir, xyz_file))
+            
+        except subprocess.CalledProcessError:
+            colored_print(Colors.R, "Submitting the job failed. Exiting.")
+            sys.exit(1)
+        
+        # Return to the original directory
+        os.chdir(original_dir)
+    
+    if submitted == 0:
+        colored_print(Colors.R, "No file submitted.")
+        sys.exit(1)
+    else:
+        colored_print(Colors.G, f"{submitted} submitted successfully.")
+    
+    # Move the original *.inp file into an "Input_Orca" directory
+    if prompt_yes_no("Do you want to keep the input file?"):
+        os.makedirs(os.path.join(root_dir, INPUT_DIRECTORY), exist_ok=True)
+        shutil.move(
+            os.path.join(root_dir, input_file),
+            os.path.join(root_dir, INPUT_DIRECTORY, input_file)
+        )
+        colored_print(Colors.G, f"{input_file} stored in {INPUT_DIRECTORY}.")
+    else:
+        os.remove(os.path.join(root_dir, input_file))
 
 if __name__ == "__main__":
     main()
