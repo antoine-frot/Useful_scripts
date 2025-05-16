@@ -1,4 +1,29 @@
 #!/usr/bin/env python3
+"""
+ORCA Difference Density Generator
+
+This script processes .gbw files from ORCA calculations to generate
+difference density and organize them in a structured directory.
+
+The script:
+1. Processes .gbw files that don't start with digits (by default) or a specific file
+2. Takes state numbers to plot as arguments (default: state 1)
+3. Runs the ORCA plot command with appropriate input parameters
+4. Moves resulting .nto files to an organized directory structure
+
+Usage:
+    ./plot_mos.py [filename.out] [state1 state2 ...]
+
+Arguments:
+    filename: Optional. Specific .out file to process. If not provided,
+              processes all eligible .out files in the current directory.
+    states:   Optional. List of state numbers to plot. Default: 1.
+
+Requirements:
+    - The path_orca environment variable must be set and pointing to ORCA installation
+    - Must be run in a directory with the structure: /home/afrot/Stage2025Tangui/
+    - .gbw files must exist in the current directory
+"""
 import os
 import sys
 import glob
@@ -22,6 +47,19 @@ def main():
         files = [args.filename]
     else:
         files = [f for f in glob.glob(f"*{extension}") if not f[0].isdigit()]
+        if len(files) > 1:
+            for f in files:
+                print(f"  - {f}")
+            kept_file = input("Which file do you want to keep (0 for the first one, * for all): ")
+            if kept_file.isdigit():
+                kept_file_index = int(kept_file)
+                files = [files[kept_file_index]]
+            elif kept_file != "*":
+                print("Warning: Input is not a digit or *")
+                print("Aborting...")
+                sys.exit(1)
+            print("")
+
     
     if not files:
         print("No ORCA wavefunctions found to process.")
