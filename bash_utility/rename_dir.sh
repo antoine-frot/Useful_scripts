@@ -9,6 +9,10 @@
 # Ensure exactly two arguments are provided.
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 old_directory new_directory"
+    echo "This script renames a directory from old_directory to new_directory."
+    echo "Then, it recursively renames any file or directory (within new_directory)"
+    echo "whose name contains the old directory name by replacing that substring"
+    echo "with the new directory name."
     exit 1
 fi
 

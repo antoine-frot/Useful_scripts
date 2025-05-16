@@ -41,6 +41,6 @@ exp_molecules() {
 # Variables #
 #############
 
-path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
+export path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
 TURBODIR=/home/rrullan/TmoleX2024/TURBOMOLE
 source $TURBODIR/Config_turbo_env
