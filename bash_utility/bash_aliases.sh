@@ -33,6 +33,7 @@ alias scancelname="python3 $slurm_utility/scancelname.py"
 
 alias get_geom="$workflow_tools/get_geom.sh"
 alias get_transition="python3 $workflow_tools/get_transition.py"
+alias get_error="$workflow_tools/get_error.sh"
 alias get_chiroptic="python3 $workflow_tools/get_chiroptic.py"
 alias get_difference_densities="python3 $workflow_tools/get_difference_densities.py"
 
