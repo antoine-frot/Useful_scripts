@@ -65,10 +65,41 @@ def parse_file(molecule: str, method_optimization: str, method_luminescence: str
         - dissymmetry factors
         - angles between dipole moments
     """
-
+    if working_dir is None:
+        working_dir = os.getcwd()
     
-    # Initialize data dictionary
-    data = {
+    # Select appropriate file path and parser based on method
+    if "CC2" in method_luminescence or "ADC2_COSMO" in method_luminescence or "CC2_COSMO" in method_luminescence:
+        filename = f"{working_dir}/{molecule}/{molecule}{method_optimization}-{method_luminescence}/ricc2.out"
+        parser_func = parse_turbomole_format
+    else:
+        filename = f"{working_dir}/{molecule}/{molecule}{method_optimization}-{method_luminescence}/{molecule}{method_optimization}-{method_luminescence}.out"
+        parser_func = parse_orca_format
+    
+    if not os.path.exists(filename):
+        warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
+        return initialize_data()
+    
+    try:
+        data = parser_func(filename, solvant_correction)
+    except Exception as e:
+        warnings.warn(f"⚠️ Error reading file {filename}: {str(e)}", UserWarning)
+        return initialize_data()
+    
+    generate_CD(data)
+    return data
+    
+def initialize_data():
+    """
+    Initialize a dictionary with default values for electronic transition data.
+    
+    Returns
+    -------
+    dict
+        Dictionary with keys for energy, wavelength, oscillator strengths, 
+        rotational strengths, dipole moments, and other properties initialized to NaN.
+    """
+    return {
         'energy': float('nan'), # in eV
         'wavelength': float('nan'), # in nm
         'oscillator_strength_length': float('nan'), # dimensionless
@@ -86,35 +117,10 @@ def parse_file(molecule: str, method_optimization: str, method_luminescence: str
         'dissymmetry_factor_vector_length': float('nan'),  # 10**-4
         'dissymmetry_factor_vector_velocity': float('nan'), # 10**-4
         'angle_length': float('nan'), # in degrees
-        'angle_velocity': float('nan'), # in degrees
+        'angle_velocity': float('nan') # in degrees
     }
-    
-    if working_dir is None:
-        working_dir = os.getcwd()
-    
-    # Select appropriate file path and parser based on method
-    if "CC2" in method_luminescence or "ADC2_COSMO" in method_luminescence or "CC2_COSMO" in method_luminescence:
-        filename = f"{working_dir}/{molecule}/{molecule}{method_optimization}-{method_luminescence}/ricc2.out"
-        parser_func = parse_turbomole_format
-    else:
-        filename = f"{working_dir}/{molecule}/{molecule}{method_optimization}-{method_luminescence}/{molecule}{method_optimization}-{method_luminescence}.out"
-        parser_func = parse_orca_format
-    
-    if not os.path.exists(filename):
-        warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
-        return data
-    
-    try:
-        parser_func(data, filename, solvant_correction)
-    except Exception as e:
-        warnings.warn(f"⚠️ Error reading file {filename}: {str(e)}", UserWarning)
-        return data
-    
-    generate_CD(data)
-    return data
-    
-    
-def parse_orca_format(data: dict[str, float], filename: str, solvant_correction: float=0):
+     
+def parse_orca_format(filename: str, solvant_correction: float=0):
     """
     Parse ORCA output files for electronic transition data values.
     
@@ -122,6 +128,7 @@ def parse_orca_format(data: dict[str, float], filename: str, solvant_correction:
     oscillator and rotational strengths in both length and velocity gauges, 
     as well as transition electric and magnetic dipole moments.
     """
+    data = initialize_data()
     with open(filename, 'r') as f:
         pattern = (
             r'0-1\S+\s+->\s+1-1\S+\s+'
@@ -164,15 +171,15 @@ def parse_orca_format(data: dict[str, float], filename: str, solvant_correction:
                         data['M2'] = data['MX']**2 + data['MY']**2 + data['MZ']**2
                     elif counter == 3:
                         data['rotational_strength_velocity'] = float(match.group('strength'))
-                        return
+                        return data
                     counter += 1
                 except (ValueError, IndexError) as e:
                     warnings.warn(f"⚠️ Parsing error in {filename}: {str(e)}", UserWarning)
-                    return
+                    return data
     warnings.warn(f"⚠️ Missing data in {filename}", UserWarning)
-    return
+    return data
 
-def parse_turbomole_format(data: dict, filename: str, solvant_correction: float=0):
+def parse_turbomole_format(filename: str, solvant_correction: float=0):
     """
     Parse TURBOMOLE output files for electronic transition data values.
 
@@ -180,6 +187,7 @@ def parse_turbomole_format(data: dict, filename: str, solvant_correction: float=
     oscillator and rotational strengths in both length and velocity gauges, 
     as well as transition electric and magnetic dipole moments.
     """
+    data = initialize_data()
     patterns = {
         'energy': r'(\d+\.\d+)\s+e\.V\.',
         'DX': r'xdiplen\s+\|\s+\S+\s+\|\s+(\S+)',
@@ -253,7 +261,7 @@ def parse_turbomole_format(data: dict, filename: str, solvant_correction: float=
         data['dipole_strength_velocity'] = data['P2'] * au_to_cgs_charge_length**2
     if not any(field in missing_fields for field in ['MX', 'MY', 'MZ']):
         data['M2'] = data['MX']**2 + data['MY']**2 + data['MZ']**2
-    return
+    return data
 
 def get_solvatation_correction(molecule: str, method_optimization: str, method_luminescence: str, warnings_list: list, working_dir=None) -> float:
     """
