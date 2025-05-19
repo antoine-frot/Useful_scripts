@@ -24,8 +24,8 @@ workflow_tools="$script/workflow_tools/orca"
 ###########
 
 alias cputime="sreport -t Hour cluster AccountUtilizationByUser Start=2025-01-01 Users=$USER"
-alias sq='squeue -u $USER -o "%.76j %.6M"; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
-alias sqa='squeue -u $USER -o "%.8i %.120j %.6M %.4C %.8m"; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
+alias sq='squeue -u $USER -o "%.76j %.10M"; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
+alias sqa='squeue -u $USER -o "%.8i %.120j %.10M %.4C %.8m"; echo "Number of jobs running: $(($(squeue --me --noheader | wc -l)))"'
 alias ls='ls --color'
 
 alias scancelall="$slurm_utility/scancelall.sh"
