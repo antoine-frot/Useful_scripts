@@ -36,7 +36,7 @@ if [ "$job_count" -gt 0 ]; then
     fi
     
     # Finally display
-    squeue -u $USER -o "%.8i %${name_width}j %.${time_width}M %.4C %.7m %R"
+    squeue -u $USER -o "%.8i %.${name_width}j %.${time_width}M %.4C %.7m %R"
 fi
 
 echo "Number of jobs running: $job_count"
