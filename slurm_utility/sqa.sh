@@ -26,7 +26,7 @@ if [ "$job_count" -gt 0 ]; then
 
     # Calculate terminal width constraints
     terminal_width=$(tput cols)
-    maximal_name_width=$((terminal_width - time_width - 4 - 19)) # -4 for spaces and -19 for the other informations
+    maximal_name_width=$((terminal_width - time_width - 4 - 35)) # -4 for spaces and -19 for the other informations
 
     if [ $maximal_name_width -lt 4 ]; then
         echo "Terminal too narrow."
@@ -36,7 +36,7 @@ if [ "$job_count" -gt 0 ]; then
     fi
     
     # Finally display
-    squeue -u $USER -o "%.8i %.${name_width}j %.${time_width}M %.4C %.7m"
+    squeue -u $USER -o "%.8i %${name_width}j %.${time_width}M %.4C %.7m %R"
 fi
 
 echo "Number of jobs running: $job_count"
