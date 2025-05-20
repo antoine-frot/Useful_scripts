@@ -233,6 +233,7 @@ MOLECULE_NAME_MAPPING = {
     "Boranil_NH2+RBINOL_CN": "NH2+CN",
     "Boranil_CN+RBINOL_CN": "CN+CN",
     "Boranil_NO2+RBINOL_CN": "NO2+CN",
+    "Boranil_CO2H+RBINOL_CN": "CO2H+CN",
     "BODIPY+RBinol_H": "BODIPY+H",
     "BODIPY+RBinol_Br": "BODIPY+Br",
     "Boranil_NH2+F2": "NH2+F2",
