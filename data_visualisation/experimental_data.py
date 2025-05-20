@@ -112,6 +112,15 @@ MOLECULES_DATA = [
         "exp_glum": 0,
     },
     {
+        "name": "Boranil_CO2H+RBINOL_CN",
+        "absorption_wavelength": 412,
+        "fluorescence_wavelength": 464,
+        "exp_abs_osc": 43.4,
+        "exp_fluo_osc": 0.33,
+        "exp_gabs": -5.0,
+        "exp_glum": 0,
+    },
+    {
         "name": "BODIPY+F2",
         "absorption_wavelength": np.nan,
         "fluorescence_wavelength": np.nan, 
