@@ -1,0 +1,106 @@
+"Disable the bell
+set noerrorbells
+ 
+"Enable line numbers
+" set number
+ 
+" Show relative line numbers
+" set relativenumber
+ 
+" Enable syntax highlighting
+syntax on
+ 
+" Set colorscheme
+colorscheme default
+ 
+" Enable file type detection and plugin support
+filetype plugin indent on
+ 
+" Set tabs and indentation
+set tabstop=4        " Number of spaces that a <Tab> character represents
+set shiftwidth=4     " Number of spaces to use for auto-indentation
+set expandtab        " Convert tabs to spaces
+set autoindent       " Copy indent from current line when starting a new line
+set smartindent      " Automatically insert indents in some cases
+ 
+" Enable search enhancements
+set ignorecase       " Ignore case when searching
+set smartcase        " Case-sensitive search if uppercase letter is used
+set incsearch        " Show matches as you type
+set hlsearch         " Highlight search results
+ 
+" Disable line wrapping
+set nowrap
+ 
+" Enable visual line highlighting for the current line
+set cursorline
+ 
+" Show matching parentheses and brackets
+set showmatch
+ 
+" Enable clipboard sharing with the system clipboard
+set clipboard=unnamedplus
+ 
+" Set a more informative status line
+set laststatus=2     " Always show the status line
+set showcmd          " Show partial command in the status line
+set ruler            " Show cursor position
+ 
+" Enable persistent undo (requires a backup directory)
+if has("persistent_undo")
+    set undofile
+    set undodir=~/.vim/undo
+endif
+ 
+" Show a visual line to indicate the 80-character limit (good for coding style)
+set colorcolumn=80
+ 
+" Enable auto-completion menu
+set completeopt=menuone,noinsert,noselect
+ 
+" Reduce delay for key sequences
+set timeoutlen=300
+ 
+" Use the system clipboard for copy-pasting
+set clipboard=unnamedplus
+ 
+" Allow backspace in insert mode over everything
+set backspace=indent,eol,start
+ 
+" Automatically reload files if they are changed outside of Vim
+set autoread
+ 
+" Faster redrawing for smoother experience
+set lazyredraw
+ 
+" Enable folding based on syntax
+set foldmethod=syntax
+set foldlevelstart=99
+ 
+" ----------------------------
+" Useful Mappings & Shortcuts
+" ----------------------------
+ 
+" Map space as the leader key
+" let mapleader=" "
+ 
+" Quickly save with <leader>w
+" nnoremap <leader>w :w<CR>
+ 
+" Quit with <leader>q
+" nnoremap <leader>q :q<CR>
+ 
+" Quickly save and quit with <leader>x
+" nnoremap <leader>x :wq<CR>
+ 
+" Toggle line numbers with <leader>n
+" nnoremap <leader>n :set nu!<CR>
+ 
+" Clear search highlighting with <leader>/
+" nnoremap <leader>/ :noh<CR>
+ 
+" Move between splits using Ctrl + hjkl
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
