@@ -6,6 +6,18 @@
 copy() { cat $1 | xclip -sel clip
 }
 
+# Perform mathematical computation
+num()
+{
+    echo "scale=3; $*" | bc -l
+}
+
+# Copy a file or directory in multiple destinations
+mcp()
+{
+    echo "${*:2}" | xargs -n 1 cp $1
+}
+
 #############
 # Variables #
 #############
