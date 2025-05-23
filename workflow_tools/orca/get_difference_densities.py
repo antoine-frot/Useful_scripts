@@ -77,9 +77,13 @@ def main():
         sys.exit(1)
     
     for file in files:
-        states_str = " ".join(map(str, args.states))
-        input_content = f"6\ny\n{states_str}\n12"
+        # Check if the corresponding .cis file exists
+        file_cis = file.split('.')[0] + '.cis'
+        if not os.path.isfile(file_cis):
+            print(f"Warning: {file_cis} not found, skipping {file}")
+            continue
 
+        states_str = " ".join(map(str, args.states))
         try:
             print(f"Processing {file}...")
 
