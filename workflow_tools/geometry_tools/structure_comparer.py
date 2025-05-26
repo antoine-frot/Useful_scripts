@@ -5,8 +5,9 @@ Molecular Structure Comparison Tool
 This script compares two molecular geometries from .xyz files using:
 1. Optimal alignment (Kabsch algorithm) to handle rotations/translations
 2. Root Mean Square Deviation (RMSD) calculation
-3. Enantiomer detection (mirror image structures)
-4. Chemical bond analysis and geometric descriptors
+3. Heavy-atom RMSD (ignoring hydrogens)
+4. Enantiomer detection (mirror image structures)
+5. Chemical bond analysis and geometric descriptors
 
 Usage: python compare_structures.py structure1.xyz structure2.xyz
 """
@@ -90,7 +91,6 @@ def kabsch_algorithm(P, Q, allow_reflection=False):
             # Force proper rotation by flipping the last column of Vt
             Vt[-1, :] *= -1
             R = Vt.T @ U.T
-        # If allow_reflection=True, keep the reflection matrix as is
     
     # Apply transformation to centered coordinates
     Q_aligned = Q_centered @ R.T
@@ -110,6 +110,30 @@ def calculate_rmsd(coords1, coords2):
     """
     diff = coords1 - coords2
     return np.sqrt(np.mean(np.sum(diff**2, axis=1)))
+
+def calculate_heavy_atom_rmsd(symbols, coords1, coords2):
+    """
+    Calculate RMSD considering only heavy atoms (non-hydrogen).
+    
+    Args:
+        symbols (list): List of atomic symbols
+        coords1 (np.ndarray): First set of coordinates
+        coords2 (np.ndarray): Second set of coordinates
+        
+    Returns:
+        tuple: (heavy_atom_rmsd, n_heavy_atoms)
+    """
+    heavy_indices = np.array([i for i, symbol in enumerate(symbols) if symbol.upper() != 'H'])
+    
+    if len(heavy_indices) == 0:
+        return 0.0, 0
+    
+    heavy_coords1 = coords1[heavy_indices]
+    heavy_coords2 = coords2[heavy_indices]
+    
+    heavy_rmsd = calculate_rmsd(heavy_coords1, heavy_coords2)
+    
+    return heavy_rmsd, len(heavy_indices)
 
 def get_covalent_radius(element):
     """
@@ -328,6 +352,12 @@ def main():
     rmsd_after = calculate_rmsd(coords1, coords2_aligned)
     print(f"RMSD after optimal alignment: {rmsd_after:.4f} Å")
     
+    # Calculate heavy-atom RMSD
+    heavy_rmsd, n_heavy = calculate_heavy_atom_rmsd(symbols1, coords1, coords2_aligned)
+    n_hydrogen = len(symbols1) - n_heavy
+    
+    print(f"Heavy-atom RMSD (ignoring H): {heavy_rmsd:.4f} Å ({n_heavy} heavy atoms, {n_hydrogen} hydrogens)")
+    
     if enantiomer_analysis['is_enantiomer']:
         print("⚠️  ENANTIOMER DETECTED: Structures are mirror images!")
         print(f"   RMSD with rotation only: {enantiomer_analysis['rmsd_rotation_only']:.4f} Å")
@@ -392,7 +422,8 @@ def main():
     else:
         print("✗ Structures show significant differences")
     
-    print(f"Final RMSD: {rmsd_after:.4f} Å")
+    print(f"Final RMSD (all atoms): {rmsd_after:.4f} Å")
+    print(f"Heavy-atom RMSD: {heavy_rmsd:.4f} Å")
     
     if args.verbose:
         output_file = f"aligned_{Path(args.file2).stem}.xyz"

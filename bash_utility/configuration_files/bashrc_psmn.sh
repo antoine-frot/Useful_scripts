@@ -56,7 +56,7 @@ alias get_chiroptic="python3 /home/afrot/script/data_visualisation/get_chiroptic
 # Generate aliases for all usefull scripts in workflow
 OUTPUT_GENERATE_ALIASE="$HOME/.generated_aliases.txt"
 script="/home/afrot/script"
-DIRS_WITH_SCRIPTS_FOR_WORKFLOW=("bash_utility" "calculation_submission" "geometry_tools" "get_properties/orca" "slurm_utility" "workflow_tools" "workflow_tools/orca")
+DIRS_WITH_SCRIPTS_FOR_WORKFLOW=("bash_utility" "calculation_submission" "get_properties/orca" "slurm_utility" "workflow_tools" "workflow_tools/orca" "workflow_tools/geometry_tools")
 
 if [ -f "$OUTPUT_GENERATE_ALIASE" ]; then
     rm "$OUTPUT_GENERATE_ALIASE"
