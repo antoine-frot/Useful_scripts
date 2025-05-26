@@ -44,3 +44,25 @@ exp_molecules() {
 export path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
 TURBODIR=/home/rrullan/TmoleX2024/TURBOMOLE
 source $TURBODIR/Config_turbo_env
+alias orca_plot="$path_orca/orca_plot"
+alias molden="/home/ssteinma/bin/molden"
+ 
+###########
+# Aliases #
+###########
+
+# Generate aliases for all usefull scripts in workflow
+OUTPUT_GENERATE_ALIASE="$HOME/.generated_aliases.txt"
+script="/home/afrot/script"
+DIRS_WITH_SCRIPTS_FOR_WORKFLOW=("bash_utility" "calculation_submission" "geometry_tools" "get_properties/orca" "slurm_utility" "workflow_tools/orca")
+
+if [ -f "$OUTPUT_GENERATE_ALIASE" ]; then
+    rm "$OUTPUT_GENERATE_ALIASE"
+fi
+
+for dir in "${DIRS_WITH_SCRIPTS_FOR_WORKFLOW[@]}"; do
+    echo "# $dir" >> "$OUTPUT_GENERATE_ALIASE"
+    bash "$script/bash_utility/configuration_files/generate_aliases.sh" "$script/$dir" >> "$OUTPUT_GENERATE_ALIASE"
+done
+
+source "$OUTPUT_GENERATE_ALIASE"

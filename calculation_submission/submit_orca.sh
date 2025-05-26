@@ -35,7 +35,7 @@ M='\033[0;35m'       # Magenta
 
 # --- Set Variables ---
 script_dir="/home/afrot/script"
-submission_script="$script_dir/slurm_utility/orca_slurm.sh"
+submission_script="$script_dir/slurm_utility/calculation_submission/sbatch_files/orca_slurm.sh"
 Input_directory='Input_Orca'
 
 # --- Set the Working Directory ---

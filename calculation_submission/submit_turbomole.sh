@@ -32,7 +32,6 @@ M='\033[0;35m'       # Magenta
 
 # --- Set Variables ---
 Input_directory='Input_Turbomole'
-submission_script="sub_tm_psmn.sh"
 
 # --- Set the Working Directory ---
 root_dir=$(pwd)
@@ -63,6 +62,14 @@ prompt_yes_no() {
 }
 
 # --- Check for Required Input Files ---
+
+# Require exactly one submission script file in the current directory
+submission_scripts=( sub_tm_*.sh )
+if (( ${#submission_scripts[@]} != 1 )); then
+    echo -e "${R}Error: Exactly one submissiob script (sub_tm_*.sh) is expected in the current directory (currently ${submission_scripts[@]} are given).${NC}"
+    exit 1
+fi
+submission_script="${submission_scripts[0]}"
 
 # Require exactly one *.inp file in the current directory
 input_files=( *.input )
