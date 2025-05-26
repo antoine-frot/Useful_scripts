@@ -35,9 +35,14 @@ M='\033[0;35m'       # Magenta
 
 # --- Set Variables ---
 script_dir="/home/afrot/script"
-submission_script="$script_dir/slurm_utility/calculation_submission/sbatch_files/orca_slurm.sh"
+submission_script="$script_dir/calculation_submission/sbatch_files/orca_slurm.sh"
 Input_directory='Input_Orca'
 
+if [ ! -f "$submission_script" ]; then
+  echo -e "${R}Submission script not found at $submission_script.${NC}"
+  exit 1
+fi
+  
 # --- Set the Working Directory ---
 root_dir=$(pwd)
 echo -e "${Y}You are in the directory ${root_dir}.${NC}"
@@ -141,7 +146,6 @@ for xyz_file in "${xyz_files[@]}"; do
       fi
     fi
 
-    # Don't overwrite if asked
     if [ "$overwrite_dirs" -eq 1 ]; then
       echo -e "${Y}Skipping $xyz_file.${NC}"
       popd > /dev/null
@@ -169,16 +173,7 @@ for xyz_file in "${xyz_files[@]}"; do
       exit 1
   fi
 
-  # Move the current .xyz file into the job directory
   cp "${root_dir}/${xyz_file}" "$job_directory/"
-  
-  # --- Prepare and Submit the Job ---
-  if [ ! -f "$submission_script" ]; then
-      echo -e "${R}Submission script not found at $submission_script.${NC}"
-      popd > /dev/null
-      popd > /dev/null
-      exit 1
-  fi
   
   # Submit the job via SLURM
   sbatch --job-name="$job_basename" --ntasks="$nprocs" --mem="$memory" "$submission_script" "$job_input" >/dev/null
