@@ -12,7 +12,7 @@ The script:
 4. Moves resulting .nto files to an organized directory structure
 
 Usage:
-    ./plot_mos.py [filename.out] [state1 state2 ...]
+    ./plot_mos.py[state1 state2 ...] [filename.out]
 
 Arguments:
     filename: Optional. Specific .out file to process. If not provided,
@@ -34,9 +34,9 @@ import re
 
 def main():
     parser = argparse.ArgumentParser(description='Generate difference densities from ORCA wavefunction file')
-    parser.add_argument('filename', nargs='?', help='ORCA wavefunction to process')
     parser.add_argument('states', nargs='*', type=int, default=[1], 
                         help='States numbers to plot, give a list of blanks separated integers (default: 1)')
+    parser.add_argument('filename', nargs='?', help='ORCA wavefunction to process')
     args = parser.parse_args()
     
     extension = '.gbw'
@@ -87,20 +87,18 @@ def main():
         try:
             print(f"Processing {file}...")
 
-            temp_script = f"temp_orca_script_{os.getpid()}.sh"
-            with open(temp_script, 'w') as script:
-                script.write(f'''#!/bin/bash
-{path_orca}/orca_plot {file} -i << EOF > /dev/null 2>&1
-6
-y
-{states_str}
-12
-EOF
-''')
-
-            os.chmod(temp_script, 0o755)
-            result = subprocess.run(f"./{temp_script}", shell=True, capture_output=True, text=True)
-            os.unlink(temp_script)
+            # Prepare the input for orca_plot
+            orca_input = f"6\ny\n{states_str}\n12\n"
+            
+            # Run orca_plot directly with input piped through stdin
+            orca_cmd = f"{path_orca}/orca_plot {file} -i"
+            result = subprocess.run(
+                orca_cmd,
+                shell=True,
+                input=orca_input,
+                text=True,
+                capture_output=True
+            )
 
             if result.returncode != 0:
                 print(f"Error processing {file} (code {result.returncode})")
