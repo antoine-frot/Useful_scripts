@@ -31,6 +31,9 @@ fi
  
 # Process each molecule
 for molecule in ${@:-Boranil*}; do
+    if [ ! -d "$molecule" ]; then
+        continue
+    fi
     molecule=${molecule%/}
     source_path="${molecule}/${molecule}-OPT${state}/${molecule}-OPT${state}.xyz"
 
