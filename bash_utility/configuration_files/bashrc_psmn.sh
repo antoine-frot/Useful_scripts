@@ -51,6 +51,8 @@ alias molden="/home/ssteinma/bin/molden"
 # Aliases #
 ###########
 
+alias get_chiroptic="python3 /home/afrot/script/data_visualisation/get_chiroptic.py"
+
 # Generate aliases for all usefull scripts in workflow
 OUTPUT_GENERATE_ALIASE="$HOME/.generated_aliases.txt"
 script="/home/afrot/script"
