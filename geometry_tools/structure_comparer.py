@@ -284,28 +284,6 @@ def detect_enantiomers(coords1, coords2, symbols):
         'used_reflection': rmsd_refl < rmsd_no_refl
     }
 
-def analyze_geometry(coords):
-    """
-    Calculate basic geometric descriptors.
-    
-    Args:
-        coords (np.ndarray): Coordinates of shape (n_atoms, 3)
-        
-    Returns:
-        dict: Dictionary with geometric descriptors
-    """
-    centroid = np.mean(coords, axis=0)
-    distances_from_centroid = np.linalg.norm(coords - centroid, axis=1)
-    
-    return {
-        'centroid': centroid,
-        'radius_of_gyration': np.sqrt(np.mean(distances_from_centroid**2)),
-        'max_distance_from_centroid': np.max(distances_from_centroid),
-        'span_x': np.max(coords[:, 0]) - np.min(coords[:, 0]),
-        'span_y': np.max(coords[:, 1]) - np.min(coords[:, 1]),
-        'span_z': np.max(coords[:, 2]) - np.min(coords[:, 2])
-    }
-
 def main():
     parser = argparse.ArgumentParser(description='Compare two molecular structures from XYZ files')
     parser.add_argument('file1', help='First XYZ file')
@@ -324,7 +302,6 @@ def main():
             print(f"Error: File {filename} not found")
             sys.exit(1)
     
-    print(f"Reading structures from {args.file1} and {args.file2}")
     symbols1, coords1 = read_xyz_file(args.file1)
     symbols2, coords2 = read_xyz_file(args.file2)
     
@@ -339,26 +316,10 @@ def main():
                 if s1 != s2:
                     print(f"  Atom {i+1}: {s1} vs {s2}")
     
-    print(f"Comparing structures with {len(symbols1)} atoms")
     
     rmsd_before = calculate_rmsd(coords1, coords2)
     print(f"\nRMSD before alignment: {rmsd_before:.4f} Å")
     
-    print("Identifying chemical bonds...")
-    bonds1 = identify_bonds(symbols1, coords1, args.bond_tolerance)
-    bonds2 = identify_bonds(symbols2, coords2, args.bond_tolerance)
-    
-    print(f"Structure 1: {len(bonds1)} bonds identified")
-    print(f"Structure 2: {len(bonds2)} bonds identified")
-    
-    if args.verbose:
-        print(f"\nBonds in structure 1:")
-        for i, j, dist in bonds1:
-            print(f"  {symbols1[i]}{i+1}-{symbols1[j]}{j+1}: {dist:.3f} Å")
-        if len(bonds1) > 10:
-            print(f"  ... and {len(bonds1)-10} more bonds")
-    
-    print("Performing structural alignment...")
     enantiomer_analysis = detect_enantiomers(coords1, coords2, symbols1)
     
     coords2_aligned = enantiomer_analysis['best_aligned_coords']
@@ -385,14 +346,22 @@ def main():
     
     bonds2_aligned = identify_bonds(symbols2, coords2_aligned, args.bond_tolerance)
     
+    bonds1 = identify_bonds(symbols1, coords1, args.bond_tolerance)
+    bonds2 = identify_bonds(symbols2, coords2, args.bond_tolerance)
+    
+    if args.verbose:
+        print(f"\nBonds in structure 1:")
+        for i, j, dist in bonds1:
+            print(f"  {symbols1[i]}{i+1}-{symbols1[j]}{j+1}: {dist:.3f} Å")
+    
     bond_comparison = compare_actual_bonds(bonds1, bonds2_aligned, symbols1, symbols2, args.tolerance)
     
     print(f"\nChemical bond analysis:")
-    print(f"  Bonds in structure 1: {bond_comparison['total_bonds_1']}")
-    print(f"  Bonds in structure 2: {bond_comparison['total_bonds_2']}")
-    print(f"  Common bonds: {bond_comparison['common_bonds']}")
-    print(f"  Missing in structure 2: {bond_comparison['missing_in_structure_2']}")
-    print(f"  Missing in structure 1: {bond_comparison['missing_in_structure_1']}")
+    #print(f"  Bonds in structure 1: {bond_comparison['total_bonds_1']}")
+    #print(f"  Bonds in structure 2: {bond_comparison['total_bonds_2']}")
+    #print(f"  Common bonds: {bond_comparison['common_bonds']}")
+    #print(f"  Missing in structure 2: {bond_comparison['missing_in_structure_2']}")
+    #print(f"  Missing in structure 1: {bond_comparison['missing_in_structure_1']}")
     print(f"  Max bond length difference: {bond_comparison['max_bond_length_diff']:.4f} Å")
     print(f"  Mean bond length difference: {bond_comparison['mean_bond_length_diff']:.4f} Å")
     print(f"  Bonds with difference >{args.tolerance} Å: {bond_comparison['bonds_with_large_diff']}")
@@ -405,16 +374,6 @@ def main():
     print(f"\nAll pairwise distances analysis:")
     print(f"  Maximum distance difference: {max_dist_diff:.4f} Å")
     print(f"  Mean distance difference: {mean_dist_diff:.4f} Å")
-    print(f"  Distance pairs differing by >{args.tolerance} Å: {large_dist_diffs}")
-    
-    geom1 = analyze_geometry(coords1)
-    geom2 = analyze_geometry(coords2)
-    
-    print(f"\nGeometric descriptors:")
-    print(f"  Radius of gyration: {geom1['radius_of_gyration']:.4f} Å vs {geom2['radius_of_gyration']:.4f} Å")
-    print(f"  Molecular spans (x,y,z):")
-    print(f"    Structure 1: ({geom1['span_x']:.3f}, {geom1['span_y']:.3f}, {geom1['span_z']:.3f}) Å")
-    print(f"    Structure 2: ({geom2['span_x']:.3f}, {geom2['span_y']:.3f}, {geom2['span_z']:.3f}) Å")
     
     print(f"\n{'='*50}")
     print("COMPARISON SUMMARY:")
@@ -443,6 +402,7 @@ def main():
             for symbol, coord in zip(symbols2, coords2_aligned):
                 f.write(f"{symbol:2s} {coord[0]:12.6f} {coord[1]:12.6f} {coord[2]:12.6f}\n")
         print(f"\nAligned structure saved to: {output_file}")
+    print()
 
 if __name__ == "__main__":
     main()
