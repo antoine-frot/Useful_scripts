@@ -136,7 +136,7 @@ MOLECULES_DATA = [
         "exp_abs_osc": 60,
         "exp_fluo_osc": 0.47,
         "exp_gabs": -8.4,
-        "exp_glum": 7.0,
+        "exp_glum": 7.5,
     },
     {
         "name": "BODIPY+RBinol_Br", # the value in the diffrent article seems to be very different
@@ -145,7 +145,7 @@ MOLECULES_DATA = [
         "exp_abs_osc": 74,
         "exp_fluo_osc": 0.69,
         "exp_gabs": -9.0,
-        "exp_glum": -6.0,
+        "exp_glum": -7.0,
     },
     {
         "name": "Boranil_NH2+F2",
