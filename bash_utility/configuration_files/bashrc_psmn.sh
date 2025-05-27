@@ -36,6 +36,9 @@ exp_molecules() {
     python3 -c "import sys; sys.path.append('/home/afrot/script/data_visualisation'); from experimental_data import MOLECULES_DATA; print(*[molecule['name'] for molecule in MOLECULES_DATA], sep='\n')"
 }
 
+denis_molecules() {
+    python3 -c "import sys; sys.path.append('/home/afrot/script/data_visualisation'); from experimental_data import DENIS_MOLECULES; print(*[molecule for molecule in DENIS_MOLECULES], sep='\n')"
+}
 
 #############
 # Variables #
