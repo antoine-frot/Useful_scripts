@@ -318,6 +318,8 @@ def main():
                        help='Additional tolerance for bond identification beyond covalent radii (default: 0.4 Å)')
     parser.add_argument('--verbose', '-v', action='store_true', 
                        help='Enable verbose output')
+    parser.add_argument('--store', '-s', action='store_true', 
+                       help='Store the second xyz structure aligned with the first')
     
     args = parser.parse_args()
     
@@ -334,7 +336,7 @@ def main():
         sys.exit(1)
     
     if symbols1 != symbols2:
-        print("Warning: Atomic symbols don't match exactly")
+        print("⚠️  Atomic symbols don't match exactly")
         if args.verbose:
             for i, (s1, s2) in enumerate(zip(symbols1, symbols2)):
                 if s1 != s2:
@@ -413,11 +415,11 @@ def main():
         print("🔄 Structures are ENANTIOMERS (mirror images)")
         print("   - Same connectivity and bond lengths")
         print("   - Opposite chirality/handedness")
-    elif rmsd_after < 0.001:
-        print("✓ Structures are essentially identical")
-    elif rmsd_after < 0.01:
-        print("✓ Structures are very similar")
     elif rmsd_after < 0.1:
+        print("✓✓ Structures are essentially identical")
+    elif rmsd_after < 1:
+        print("✓ Structures are very similar")
+    elif rmsd_after < 5:
         print("~ Structures are moderately similar")
     else:
         print("✗ Structures show significant differences")
@@ -425,13 +427,25 @@ def main():
     print(f"Final RMSD (all atoms): {rmsd_after:.4f} Å")
     print(f"Heavy-atom RMSD: {heavy_rmsd:.4f} Å")
     
-    if args.verbose:
-        output_file = f"aligned_{Path(args.file2).stem}.xyz"
+    if args.store:
+        # Build the name of the output_file
+        parts1 = Path(args.file1).stem.split('-')
+        parts2 = Path(args.file2).stem.split('-')
+        merged_parts = []
+        max_len = max(len(parts1), len(parts2))
+        for i in range(max_len):
+            if i < len(parts1) and parts1[i] not in merged_parts:
+                merged_parts.append(parts1[i])
+            if i < len(parts2) and parts2[i] not in merged_parts:
+                merged_parts.append(parts2[i])
+        output_file = f"aligned_{'-'.join(merged_parts)}.xyz"
+        # Write the second file with helium for interpretation
         with open(output_file, 'w') as f:
-            f.write(f"{len(symbols2)}\n")
+            f.write(f"{2*len(symbols2)}\n")
             f.write(f"Aligned structure from {args.file2}\n")
-            for symbol, coord in zip(symbols2, coords2_aligned):
-                f.write(f"{symbol:2s} {coord[0]:12.6f} {coord[1]:12.6f} {coord[2]:12.6f}\n")
+            for symbol1, coord1, coord2 in zip(symbols1, coords1, coords2_aligned):
+                f.write(f"{symbol1:2s} {coord1[0]:12.6f} {coord1[1]:12.6f} {coord1[2]:12.6f}\n")
+                f.write(f"He {coord2[0]:12.6f} {coord2[1]:12.6f} {coord2[2]:12.6f}\n")
         print(f"\nAligned structure saved to: {output_file}")
     print()
 
