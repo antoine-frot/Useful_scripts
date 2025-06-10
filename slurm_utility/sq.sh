@@ -18,6 +18,9 @@ fi
 
 # Get all job information in a single squeue call and store it
 job_data=$(squeue -u $user -o "%i %j %M %C %m" --noheader)
+if [ -z "$job_data" ]; then
+    exit 0
+fi
 job_count=$(echo "$job_data" | wc -l)
 
 if [ "$job_count" -gt 0 ]; then
