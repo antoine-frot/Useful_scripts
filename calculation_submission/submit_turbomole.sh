@@ -196,7 +196,7 @@ for xyz_file in "${xyz_files[@]}"; do
   
   # Submit the job via SLURM
   if ! sbatch --job-name="$job_basename" "${submission_script}" >/dev/null; then
-      echo -e "${R}Submission failed for $job_name.${NC}"
+      echo -e "${R}Submission failed for $job_basename.${NC}"
       exit 1
   fi
   (( submitted += 1 ))
