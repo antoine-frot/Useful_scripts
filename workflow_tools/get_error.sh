@@ -48,6 +48,11 @@ To process only calculations containing "pattern1" or "pattern2":
     ./get_error.sh pattern1 pattern2
 '
 
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Usage: ./get_error.sh [pattern1] [pattern2] ... (default: all)"
+    exit 0
+fi
+
 get_input_file=0
 
 for pattern in ${@:-""}
