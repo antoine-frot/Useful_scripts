@@ -79,7 +79,7 @@ do
 
         if [ $get_input_file -eq 0 ]; then
           input_file_orca=$(ls *.inp 2>/dev/null)
-          input_file_turbomole=$(ls *.input insert_*.txt sub_tm_psmn.sh 2>/dev/null)
+          input_file_turbomole=$(ls *.input insert_*.txt sub_*.sh 2>/dev/null)
           if [[ -n $input_file_orca ]]; then
             cp $input_file_orca ../../${input_file_orca##*-}
           elif [[ -n $input_file_turbomole ]]; then
@@ -107,7 +107,7 @@ do
     fi
   done
 
-  echo "$number_of_file_copied files copied."
+  echo "$number_of_file_copied geometries copied."
 done
 
 echo "All done."
