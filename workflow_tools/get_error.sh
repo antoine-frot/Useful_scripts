@@ -50,6 +50,7 @@ To process only calculations containing "pattern1" or "pattern2":
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     echo "Usage: ./get_error.sh [pattern1] [pattern2] ... (default: all)"
+    echo "Get the last geometries and the input files"
     exit 0
 fi
 
