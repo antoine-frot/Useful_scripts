@@ -1,0 +1,4 @@
+# .bashrc to set up for every environment
+configuration_files="path/script/bash_utility/configuration_files"
+source $configuration_files/bashrc_particular_to_the_environment.sh
+source $configuration_files/bash_aliases.sh
