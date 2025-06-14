@@ -51,7 +51,7 @@ if [ "$job_count" -gt 0 ]; then
         output_format="%.${name_width}j %.${time_width}M"
     else
         # Full mode: ID, name, time, CPUs, memory, priority, reason
-        maximal_name_width=$((terminal_width - time_width - 5 - 43)) # -5 for spaces, -43 for other info
+        maximal_name_width=$((terminal_width - time_width - 6 - 43)) # -6 for spaces, -43 for other info
         output_format="%.8i %.${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
     fi
 
