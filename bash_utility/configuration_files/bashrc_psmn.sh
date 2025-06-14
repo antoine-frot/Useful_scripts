@@ -32,42 +32,12 @@ shopt -s checkwinsize
 # Functions #
 #############
 
-exp_molecules() {
-    python3 -c "import sys; sys.path.append('/home/afrot/script/data_visualisation'); from experimental_data import MOLECULES_DATA; print(*[molecule['name'] for molecule in MOLECULES_DATA], sep='\n')"
-}
-
-denis_molecules() {
-    python3 -c "import sys; sys.path.append('/home/afrot/script/data_visualisation'); from experimental_data import DENIS_MOLECULES; print(*[molecule for molecule in DENIS_MOLECULES], sep='\n')"
-}
-
-#############
-# Variables #
-#############
+#######################
+# Variables & Aliases #
+#######################
 
 export path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
 TURBODIR=/home/rrullan/TmoleX2024/TURBOMOLE
 source $TURBODIR/Config_turbo_env
 alias orca_plot="$path_orca/orca_plot"
 alias molden="/home/ssteinma/bin/molden"
- 
-###########
-# Aliases #
-###########
-
-alias get_chiroptic="python3 /home/afrot/script/data_visualisation/get_chiroptic.py"
-
-# Generate aliases for all usefull scripts in workflow
-OUTPUT_GENERATE_ALIASE="$HOME/.generated_aliases.txt"
-script="/home/afrot/script"
-DIRS_WITH_SCRIPTS_FOR_WORKFLOW=("bash_utility" "calculation_submission" "get_properties/orca" "slurm_utility" "workflow_tools" "workflow_tools/orca" "workflow_tools/geometry_tools")
-
-if [ -f "$OUTPUT_GENERATE_ALIASE" ]; then
-    rm "$OUTPUT_GENERATE_ALIASE"
-fi
-
-for dir in "${DIRS_WITH_SCRIPTS_FOR_WORKFLOW[@]}"; do
-    echo "# $dir" >> "$OUTPUT_GENERATE_ALIASE"
-    bash "$script/bash_utility/configuration_files/generate_aliases.sh" "$script/$dir" >> "$OUTPUT_GENERATE_ALIASE"
-done
-
-source "$OUTPUT_GENERATE_ALIASE"
