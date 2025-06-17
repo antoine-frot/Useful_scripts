@@ -93,7 +93,7 @@ do
         fi
 
         # Get the xyz file with the shortest filename
-        shortest_xyz=$(find . -maxdepth 1 -name "*.xyz" -printf "%f\n" | awk '{ print length, $0 }' | sort -n | head -1 | cut -d' ' -f2-)
+        shortest_xyz=$(find . -maxdepth 1 -name "$molecule*.xyz" -printf "%f\n" | awk '{ print length, $0 }' | sort -n | head -1 | cut -d' ' -f2-)
 
         if [[ -n $shortest_xyz && -f $shortest_xyz ]]; then
           cp "$shortest_xyz" ../../
