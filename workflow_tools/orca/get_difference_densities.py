@@ -119,10 +119,17 @@ def main():
             target_dir = f"/home/afrot/Stage2025Tangui/MOs/{sub_dir}/"
             os.makedirs(target_dir, exist_ok=True)
             
-            nto_files = glob.glob('*.cube')
-            for nto_file in nto_files:
-                target_path = os.path.join(target_dir, nto_file)
-                shutil.move(nto_file, target_path)
+            cube_files = glob.glob('*.cube')
+
+            if not cube_files:
+                print("============================")
+                print("Error: No .cube files found.")
+                print("============================")
+                sys.exit(1)
+
+            for cube_file in cube_files:
+                target_path = os.path.join(target_dir, cube_file)
+                shutil.move(cube_file, target_path)
             print("Moved .cube files")
         else:
             print("Current directory structure doesn't match expected pattern.")
