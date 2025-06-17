@@ -257,7 +257,7 @@ DENIS_MOLECULES = [
     "Boranil_I+RBINOL_CN",
     "Boranil_CN+RBINOL_CN",
     "Boranil_NO2+RBINOL_CN",
-    "Boranil_CO2H+RBINOL_CN",
+#    "Boranil_CO2H+RBINOL_CN",
 ]
 
 # Build experimental data dictionary for each molecule
