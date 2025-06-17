@@ -336,6 +336,8 @@ def main():
             print(f"Error: File {filename} not found")
             sys.exit(1)
     
+    print(f"Structure comparaison between {args.file1.rstrip('.xyz')} and {args.file2.rstrip('.xyz')}.")
+
     symbols1, coords1 = read_xyz_file(args.file1)
     symbols2, coords2 = read_xyz_file(args.file2)
     
@@ -351,8 +353,9 @@ def main():
                     print(f"  Atom {i+1}: {s1} vs {s2}")
     
     
-    rmsd_before = calculate_rmsd(coords1, coords2)
-    print(f"\nRMSD before alignment: {rmsd_before:.4f} Å")
+    if args.verbose:
+        rmsd_before = calculate_rmsd(coords1, coords2)
+        print(f"\nRMSD before alignment: {rmsd_before:.4f} Å")
     
     enantiomer_analysis = detect_enantiomers(coords1, coords2, symbols1)
     
@@ -360,13 +363,15 @@ def main():
     rotation_matrix = enantiomer_analysis['transformation_matrix']
     
     rmsd_after = calculate_rmsd(coords1, coords2_aligned)
-    print(f"RMSD after optimal alignment: {rmsd_after:.4f} Å")
+    if args.verbose:
+        print(f"RMSD after optimal alignment: {rmsd_after:.4f} Å")
     
     # Calculate heavy-atom RMSD
     heavy_rmsd, n_heavy = calculate_heavy_atom_rmsd(symbols1, coords1, coords2_aligned)
     n_hydrogen = len(symbols1) - n_heavy
     
-    print(f"Heavy-atom RMSD (ignoring H): {heavy_rmsd:.4f} Å ({n_heavy} heavy atoms, {n_hydrogen} hydrogens)")
+    if args.verbose:
+        print(f"Heavy-atom RMSD (ignoring H): {heavy_rmsd:.4f} Å ({n_heavy} heavy atoms, {n_hydrogen} hydrogens)")
     
     if enantiomer_analysis['is_enantiomer']:
         print("⚠️  ENANTIOMER DETECTED: Structures are mirror images!")
@@ -393,10 +398,11 @@ def main():
         print(f"\nBonds in structure 1:")
         for i, j, dist in bonds1:
             print(f"  {symbols1[i]}{i+1}-{symbols1[j]}{j+1}: {dist:.3f} Å")
+        print()
     
     bond_comparison = compare_actual_bonds(bonds1, bonds2_aligned, symbols1, symbols2, args.tolerance)
     
-    print(f"\nChemical bond analysis:")
+    print(f"Chemical bond analysis:")
     #print(f"  Bonds in structure 1: {bond_comparison['total_bonds_1']}")
     #print(f"  Bonds in structure 2: {bond_comparison['total_bonds_2']}")
     #print(f"  Common bonds: {bond_comparison['common_bonds']}")
@@ -406,19 +412,22 @@ def main():
     print(f"  Mean bond length difference: {bond_comparison['mean_bond_length_diff']:.4f} Å")
     print(f"  Bonds with difference >{args.tolerance} Å: {bond_comparison['bonds_with_large_diff']}")
     
-    dist1 = calculate_all_distances(coords1)
-    dist2_aligned = calculate_all_distances(coords2_aligned)
-    max_dist_diff, mean_dist_diff, large_dist_diffs = compare_distance_matrices(
-        dist1, dist2_aligned, args.tolerance)
+    if args.verbose:
+        dist1 = calculate_all_distances(coords1)
+        dist2_aligned = calculate_all_distances(coords2_aligned)
+        max_dist_diff, mean_dist_diff, large_dist_diffs = compare_distance_matrices(
+            dist1, dist2_aligned, args.tolerance)
+        
+        print(f"\nAll pairwise distances analysis:")
+        print(f"  Maximum distance difference: {max_dist_diff:.4f} Å")
+        print(f"  Mean distance difference: {mean_dist_diff:.4f} Å")
     
-    print(f"\nAll pairwise distances analysis:")
-    print(f"  Maximum distance difference: {max_dist_diff:.4f} Å")
-    print(f"  Mean distance difference: {mean_dist_diff:.4f} Å")
+    if args.verbose:
+        print(f"\n{'='*50}")
+        print("COMPARISON SUMMARY:")
+        print(f"{'='*50}")
     
-    print(f"\n{'='*50}")
-    print("COMPARISON SUMMARY:")
-    print(f"{'='*50}")
-    
+    print(f"RMSD: {rmsd_after:.4f} Å")
     if enantiomer_analysis['is_enantiomer']:
         print("🔄 Structures are ENANTIOMERS (mirror images)")
         print("   - Same connectivity and bond lengths")
@@ -432,8 +441,6 @@ def main():
     else:
         print("✗ Structures show significant differences")
     
-    print(f"Final RMSD (all atoms): {rmsd_after:.4f} Å")
-    print(f"Heavy-atom RMSD: {heavy_rmsd:.4f} Å")
     
     if args.store:
         # Build the name of the output_file
@@ -454,7 +461,7 @@ def main():
             for symbol1, coord1, coord2 in zip(symbols1, coords1, coords2_aligned):
                 f.write(f"{symbol1:2s} {coord1[0]:12.6f} {coord1[1]:12.6f} {coord1[2]:12.6f}\n")
                 f.write(f"He {coord2[0]:12.6f} {coord2[1]:12.6f} {coord2[2]:12.6f}\n")
-        print(f"\nAligned structure saved to: {output_file}")
+        print(f"Aligned structure saved to: {output_file}")
     print()
 
 if __name__ == "__main__":
