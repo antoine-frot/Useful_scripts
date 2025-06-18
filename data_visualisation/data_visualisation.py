@@ -394,19 +394,19 @@ def main(generate_plots):
                                              molecules=DENIS_MOLECULES,
                                              molecule_name_mapping=MOLECULE_NAME_MAPPING,
                                              output_dir=output_dir_plots,
-                                             output_filebasename="graph_raph_absorption")
+                                             output_filebasename="graph_raph")
 
     generate_plot_computed_multiple_computed(main_method_optimization="",
                                              main_method_luminescence="FLUO@ADC2_COSMO",
                                              luminescence_type='Fluorescence',
                                              computed_data=dic_fluo,
                                              methods_optimization=[""],
-                                             methods_luminescence=METHODS_LUMINESCENCE_FLUO_ACCURATE,
+                                             methods_luminescence=METHODS_LUMINESCENCE_FLUO_ACCURATE + ["FLUO@CC2"],
                                              prop='energy',
                                              molecules=DENIS_MOLECULES,
                                              molecule_name_mapping=MOLECULE_NAME_MAPPING,
                                              output_dir=output_dir_plots,
-                                             output_filebasename="graph_raph_fluorescence")
+                                             output_filebasename="graph_raph")
 
     all_tables = "all_tables.tex"
     tex_files = sorted(f for f in os.listdir(output_dir) if f.endswith('.tex') and f != all_tables)
