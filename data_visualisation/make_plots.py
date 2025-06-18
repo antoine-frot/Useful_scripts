@@ -9,18 +9,33 @@ from collections import OrderedDict
 from matplotlib.lines import Line2D
 from latex_table import get_adjusted_prop
 
+## Presentation parameters
+#plt.rcParams.update({
+#    'figure.figsize': [10, 10],
+#    'font.size': 32,
+#    'font.weight': 'bold',
+#    'axes.labelweight': 'bold',
+#    'axes.titlesize': 32,
+#    'axes.titleweight': 'bold',
+#    'legend.fontsize': 24,
+#    'xtick.labelsize': 24,
+#    'ytick.labelsize': 24
+#})
+#s_plot=140
+
+# Normal parameters
 plt.rcParams.update({
     'figure.figsize': [10, 10],
-    'font.size': 32,
+    'font.size': 24,
     'font.weight': 'bold',
     'axes.labelweight': 'bold',
-    'axes.titlesize': 32,
+    'axes.titlesize': 24,
     'axes.titleweight': 'bold',
-    'legend.fontsize': 24,
-    'xtick.labelsize': 24,
-    'ytick.labelsize': 24
+    'legend.fontsize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16
 })
-s_plot=140
+s_plot=80
 
 available_markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h', 'H', '+', 'x']
 additional_markers = ['1', '2', '3', '4', '8', '|', '_'] 
@@ -162,7 +177,7 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
                 plt.scatter(experimental_data, calculated_data, 
                         marker=marker, 
                         color=marker_color,
-                        s=80,  # Larger points
+                        s=s_plot,
                         alpha=0.8,
                         label=display_name)
             
@@ -177,22 +192,24 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
                 
                 if label is None:
                     label = f"{' '.join(prop.split('_'))}"
+                if label == "energy":
+                    label = "Energy (eV)"
+                elif label == "dissymmetry_factor":
+                    label = "Dissymmetry factor (g)"
+                elif label == "oscillator_strength":
+                    label = "Oscillator strength (f)"
+                elif label == "wavelength":
+                    label = "Wavelength (nm)"
+                elif label == "0-0":
+                    label = "0-0 energy (eV)"
                 plt.xlabel(f"Experimental {label}")
                 plt.ylabel(f"Computed {label}")
                 plt.grid(alpha=0.2)
+                plt.tight_layout()
 
                 display_opt = method_opt.split('@')[1] if '@' in method_opt else method_opt
                 display_lum = method_lum.split('@')[1] if '@' in method_lum else method_lum
                 method_name = f"{display_opt}-{display_lum}".lstrip("-")
-
-                if gauge is not None and dissymmetry_variant is not None:
-                    title_text = f"{luminescence_type} ({gauge}, {dissymmetry_variant}) {label} of experimental data against {method_name} computed data."
-                else:
-                    title_text = f"{luminescence_type} {label} of experimental data against {method_name} computed data."
-                plt.title(title_text)
-
-                plt.tight_layout()
-
                 if output_filebasename is None:
                     if gauge is not None and dissymmetry_variant is not None:
                         output_filename = f"{luminescence_type}_{method_name}_{prop}_{gauge}_{dissymmetry_variant}"
@@ -328,7 +345,7 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
                 plt.scatter(experimental_data, calculated_data, 
                         marker=marker, 
                         color=color,
-                        s=80,  # Larger points
+                        s=s_plot,
                         alpha=0.8,
                         label=display_name)
                 
@@ -356,25 +373,28 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
                                         markersize=8, linestyle='None', label=display_name))
     
     # Add the legends
-    first_legend = plt.legend(handles=molecule_handles, loc='lower right', 
-                                title='Molecules')
-    plt.gca().add_artist(first_legend)
+    # first_legend = plt.legend(handles=molecule_handles, loc='best', 
+    #                             title='Molecules')
+    # plt.gca().add_artist(first_legend)
     
-    plt.legend(handles=method_handles, loc='upper right', 
+    plt.legend(handles=method_handles, loc='best', 
                 title='Methods')
     
     if label is None:
         label = f"{' '.join(prop.split('_'))}"
+    if label == "energy":
+        label = "Energy (eV)"
+    elif label == "dissymmetry_factor":
+        label = "Dissymmetry factor (g)"
+    elif label == "oscillator_strength":
+        label = "Oscillator strength (f)"
+    elif label == "wavelength":
+        label = "Wavelength (nm)"
+    elif label == "0-0":
+        label = "0-0 energy (eV)"
     plt.xlabel(f"Experimental {label}")
     plt.ylabel(f"Computed {label}")
     plt.grid(alpha=0.2)
-
-    if gauge is not None and dissymmetry_variant is not None:
-        title_text = f"{luminescence_type} ({gauge}, {dissymmetry_variant}) {label} of experimental data against computed data."
-    else:
-        title_text = f"{luminescence_type} {label} of experimental data against computed data."
-    plt.title(title_text)
-
     plt.tight_layout()
 
     if output_filebasename is None:
@@ -486,20 +506,21 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
                     continue
                 
                 # Get the experimental data
-                if (molecule_data and 
-                    molecule in molecule_data and 
-                    luminescence_type in molecule_data[molecule] and 
-                    prop in molecule_data[molecule][luminescence_type]):
-                    experimental_data = molecule_data[molecule][luminescence_type][prop]
+                if (molecule in computed_data and 
+                    method_opt in computed_data[molecule] and 
+                    method_lum in computed_data[molecule][main_method_optimization] and
+                    adjusted_prop in computed_data[molecule][main_method_optimization][main_method_luminescence] and
+                    not np.isnan(computed_data[molecule][main_method_optimization][main_method_luminescence][adjusted_prop])):
+                    main_method_data = computed_data[molecule][main_method_optimization][main_method_luminescence][adjusted_prop]
                 else:
                     continue
 
                 # If both data are found add the data to the lists
                 calculated.append(calculated_data)
                 all_calculated.append(calculated_data)
-                experimental.append(experimental_data)
-                all_experimental.append(experimental_data)
-                    
+                experimental.append(main_method_data)
+                all_experimental.append(main_method_data)
+
                 # Plot the molecule data
                 color = method_color[method_name]
                 marker = molecule_markers[molecule]
@@ -507,10 +528,10 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
                     display_name = molecule
                 else:
                     display_name = molecule_name_mapping.get(molecule, molecule)
-                plt.scatter(experimental_data, calculated_data, 
+                plt.scatter(main_method_data, calculated_data, 
                         marker=marker, 
                         color=color,
-                        s=80,  # Larger points
+                        s=s_plot,
                         alpha=0.8,
                         label=display_name)
                 
@@ -546,7 +567,6 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
     first_legend = plt.legend(handles=molecule_handles, loc='lower right', 
                                 title='Molecules')
     plt.gca().add_artist(first_legend)
-    
     plt.legend(handles=method_handles, loc='upper right', 
                 title='Methods')
     
@@ -555,13 +575,6 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
     plt.xlabel(f"Experimental {label}")
     plt.ylabel(f"Computed {label}")
     plt.grid(alpha=0.2)
-
-    if gauge is not None and dissymmetry_variant is not None:
-        title_text = f"{luminescence_type} ({gauge}, {dissymmetry_variant}) {label} of experimental data against computed data."
-    else:
-        title_text = f"{luminescence_type} {label} of experimental data against computed data."
-    plt.title(title_text)
-
     plt.tight_layout()
 
     if output_filebasename is None:
@@ -578,115 +591,6 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
     try:
         plt.savefig(f"{output_dir}/{output_filename}.pdf", format='pdf')
         plt.savefig(f"{output_dir}/{output_filename}.png")
-        print(f"Plot saved to {output_dir}/{output_filename}.pdf and {output_dir}/{output_filename}.png")
-    except Exception as e:
-        print(f"Error saving plot {output_dir}/{output_filename}: {e}")
-    plt.close()
-
-def PhD_Day(exp_data: dict, computed_data: dict, output_dir="plot_comparison",
-                                    molecule_name_mapping=None, method_colors=None, label=None,
-                                    gauge=None, dissymmetry_variant=None, molecules=None):
-    """
-    special function to generate the plot for the PhD day
-    """
-    # Handle default arguments
-    if molecules is None:
-        molecules = list(exp_data.keys()) if isinstance(exp_data, dict) else [item["name"] for item in exp_data]
-    molecule_data = exp_data if isinstance(exp_data, dict) else {item["name"]: item for item in exp_data}
-
-    # Assign unique markers to each molecule
-    method_color = {}
-    available_colors = method_colors if method_colors is not None else plt.cm.tab10.colors # type: ignore
-                
-    # Make sure the output directory exists
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-    except OSError as e:
-        print(f"Error: Unable to create or access the directory '{output_dir}'. Please check the path and permissions.")
-        raise
-    all_calculated = []
-    all_experimental = []
-    method_names = []
-    counter = 0
-    prop = "energy"
-    luminescence_type = "Absorption"
-    for method_opt in [""]:
-        for method_lum in ["ABS@MO62Xtddft","ABS@ADC2_COSMO"]:
-            display_opt = method_opt.split('@')[1] if '@' in method_opt else method_opt
-            display_lum = method_lum.split('@')[1] if '@' in method_lum else method_lum
-            method_name = f"{display_opt}-{display_lum}".lstrip("-")
-            method_names.append(method_name)
-            if counter >= len(available_colors):
-                raise ValueError("Not enough colors available for the number of methods. Please provide a list of colors.")
-            method_color[method_name] = available_colors[counter]
-            counter += 1
-
-            calculated = []
-            experimental = []
-            for molecule in molecules:
-                # Get the computed data
-                adjusted_prop = get_adjusted_prop(prop, gauge, dissymmetry_variant)
-                if (molecule in computed_data and 
-                    method_opt in computed_data[molecule] and 
-                    method_lum in computed_data[molecule][method_opt] and
-                    adjusted_prop in computed_data[molecule][method_opt][method_lum] and
-                    not np.isnan(computed_data[molecule][method_opt][method_lum][adjusted_prop])):
-                    calculated_data = computed_data[molecule][method_opt][method_lum][adjusted_prop]
-                else:
-                    continue
-                
-                # Get the experimental data
-                if (molecule_data and 
-                    molecule in molecule_data and 
-                    luminescence_type in molecule_data[molecule] and 
-                    prop in molecule_data[molecule][luminescence_type]):
-                    experimental_data = molecule_data[molecule][luminescence_type][prop]
-                else:
-                    continue
-
-                # If both data are found add the data to the lists
-                calculated.append(calculated_data)
-                all_calculated.append(calculated_data)
-                experimental.append(experimental_data)
-                all_experimental.append(experimental_data)
-                    
-            # Plot the molecule data
-            if method_lum == "ABS@ADC2_COSMO":
-                color = plt.cm.tab10.colors[1]
-                marker = 's'
-                method = "Post HF: ADC(2)"
-            else:
-                color = plt.cm.tab10.colors[0]
-                marker = 'o'
-                method = "TDDFT: M06-2X "
-            plt.scatter(experimental, calculated, 
-                    marker=marker, 
-                    color=color,
-                    s=140,  # Larger points
-                    alpha=0.8,
-                    label=method)
-            
-    if not all_calculated or not all_experimental:
-        print("No data to plot.")
-        plt.close()
-        return
-    
-    add_diagonal_reference_line(all_experimental, all_calculated)
-
-    if label is None:
-        label = f"{' '.join(prop.split('_'))}"
-    plt.xlabel(f"Experimental {label}")
-    plt.ylabel(f"Computed {label}")
-    plt.grid(alpha=0.2)
-    plt.legend(title='Methods', loc='upper right')
-    plt.tight_layout()
-
-    output_filename = "PhD_Day"
-    output_filename = re.sub(r'[<>:"/\\|?*]', '_', output_filename)
-    try:
-        plt.savefig(f"{output_dir}/{output_filename}.pdf", format='pdf')
-        plt.savefig(f"{output_dir}/{output_filename}.png")
-        plt.savefig(f"{output_dir}/{output_filename}.svg")
         print(f"Plot saved to {output_dir}/{output_filename}.pdf and {output_dir}/{output_filename}.png")
     except Exception as e:
         print(f"Error saving plot {output_dir}/{output_filename}: {e}")
