@@ -28,7 +28,6 @@ import re
 import os
 import warnings
 import numpy as np
-import scipy
 from constants import nm_to_eV, au_to_cgs_charge_length, eV_to_au, fine_strucure_constant
 
 def parse_file(molecule: str, method_optimization: str, method_luminescence: str, solvant_correction: float=0, working_dir=None) -> dict:
@@ -77,7 +76,7 @@ def parse_file(molecule: str, method_optimization: str, method_luminescence: str
         parser_func = parse_orca_format
     
     if not os.path.exists(filename):
-        warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
+        #warnings.warn(f"⚠️ Missing file: {filename}", UserWarning)
         return initialize_data()
     
     try:
@@ -130,16 +129,30 @@ def parse_orca_format(filename: str, solvant_correction: float=0):
     """
     data = initialize_data()
     with open(filename, 'r') as f:
+        # The following functionnals create a imaginary transition thus the second need to be taken
+#        if any(x in filename for x in ["ABS@MO62X", "ABS@CAM-B3LYP", "ABS@B3LYP", "ABS@B2PLYP", "ABS@CC2"]) and "Boranil_NO2+RBINOL_H" in filename:
+#            pattern = (
+#            r'0-1\S+\s+->\s+2-1\S+\s+'
+#            r'\s+(?P<energy_eV>[-+]?\d+\.\d+)'
+#            r'\s+(?P<energy_rcm>[-+]?\d+\.\d+)'
+#            r'\s+(?P<wavelength>[-+]?\d+\.\d+)'
+#            r'\s+(?P<strength>[-+]?\d+\.\d+)'
+#            r'\s+(?P<transition_dipole1>[-+]?\d+\.\d+)'
+#            r'\s+(?P<transition_dipole2>[-+]?\d+\.\d+)'
+#            r'\s+(?P<transition_dipole3>[-+]?\d+\.\d+)'
+#            r'\s+(?P<transition_dipole4>[-+]?\d+\.\d+)?'
+#            )
+#        else:
         pattern = (
-            r'0-1\S+\s+->\s+1-1\S+\s+'
-            r'\s+(?P<energy_eV>[-+]?\d+\.\d+)'
-            r'\s+(?P<energy_rcm>[-+]?\d+\.\d+)'
-            r'\s+(?P<wavelength>[-+]?\d+\.\d+)'
-            r'\s+(?P<strength>[-+]?\d+\.\d+)'
-            r'\s+(?P<transition_dipole1>[-+]?\d+\.\d+)'
-            r'\s+(?P<transition_dipole2>[-+]?\d+\.\d+)'
-            r'\s+(?P<transition_dipole3>[-+]?\d+\.\d+)'
-            r'\s+(?P<transition_dipole4>[-+]?\d+\.\d+)?'
+        r'0-1\S+\s+->\s+1-1\S+\s+'
+        r'\s+(?P<energy_eV>[-+]?\d+\.\d+)'
+        r'\s+(?P<energy_rcm>[-+]?\d+\.\d+)'
+        r'\s+(?P<wavelength>[-+]?\d+\.\d+)'
+        r'\s+(?P<strength>[-+]?\d+\.\d+)'
+        r'\s+(?P<transition_dipole1>[-+]?\d+\.\d+)'
+        r'\s+(?P<transition_dipole2>[-+]?\d+\.\d+)'
+        r'\s+(?P<transition_dipole3>[-+]?\d+\.\d+)'
+        r'\s+(?P<transition_dipole4>[-+]?\d+\.\d+)?'
         )
         counter = 0
         for line in f:
