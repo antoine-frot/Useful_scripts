@@ -10,9 +10,10 @@ It then prints two LaTeX tables:
 
 import os
 import argparse
+from re import M
 from experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
 from electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
-from make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed # type: ignore
+from make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
 from latex_table import generate_latex_table, generate_latex_metrics_table
 
 # Methods for ground state optimization
@@ -20,12 +21,37 @@ METHODS_OPTIMIZATION_GROUND = [""]
 
 # Methods for excited state optimization
 METHODS_OPTIMIZATION_EXCITED = ["",
-                                "-OPTES@MO62Xtddft"]
+                                "-OPTES@MO62Xtddft",
+                                "-OPTES@CAMB3LYPtddft",
+                                "-OPTES@w97X-D3tddft"
+                                ]
 
 # Methods for absorption and fluorescence calculations
-ALL_FUNCTIONALS = ["B3LYP", "B3LYPtddft", "PBE0", "MO62X", "MO62Xtddft",
+ALL_FUNCTIONALS = ["B3LYP", "B3LYPtddft", "PBE0", "PBE0tddft", "MO62X", "MO62Xtddft",
                    "CAM-B3LYP", "CAM-B3LYPtddft", "wB97", "wB97X-D3", "wB97X-D3tddft",
                    "B2PLYP", "B2PLYPtddft", "CIS", "CISD", "ADC2_COSMO", "CC2", "CC2_COSMO"]
+
+TDDFT_FUNCTIONALS =["PBE0rddft",
+                    "B3LYPtddft",
+                    "wB97X-D3tddft",
+                    "CAM-B3LYPtddft",
+                    "MO62Xtddft",
+                    "B2PLYPtddft"
+                    ]
+
+TDADFT_FUNCTIONALS = ["PBE0",
+                      "B3LYP",
+                      "wB97X-D3",
+                      "CAM-B3LYP",
+                      "MO62X",
+                      "B2PLYP"
+                      ]
+
+POSTHF_FUNCTIONALS = [#"CIS", 
+                      "CISD", 
+                      "ADC2_COSMO", 
+                      "CC2", 
+                      "CC2_COSMO"]
 
 ACCURATE_FUNCTIONALS = ["wB97X-D3tddft",
                         "CAM-B3LYPtddft",
@@ -35,12 +61,16 @@ ACCURATE_FUNCTIONALS = ["wB97X-D3tddft",
                         "CC2_COSMO"]
 
 METHODS_LUMINESCENCE_ABS = [f"ABS@{method}" for method in ALL_FUNCTIONALS]
-
 METHODS_LUMINESCENCE_ABS_ACCURATE = [f"ABS@{method}" for method in ACCURATE_FUNCTIONALS]
+METHODS_LUMINESCENCE_ABS_TDDFT = [f"ABS@{method}" for method in TDDFT_FUNCTIONALS]
+METHODS_LUMINESCENCE_ABS_TDADFT = [f"ABS@{method}" for method in TDADFT_FUNCTIONALS]
+METHODS_LUMINESCENCE_ABS_POSTHF = [f"ABS@{method}" for method in POSTHF_FUNCTIONALS]
 
 METHODS_LUMINESCENCE_FLUO = [f"FLUO@{method}" for method in ALL_FUNCTIONALS]
-
 METHODS_LUMINESCENCE_FLUO_ACCURATE = [f"FLUO@{method}" for method in ACCURATE_FUNCTIONALS]
+METHODS_LUMINESCENCE_FLUO_TDDFT = [f"FLUO@{method}" for method in TDDFT_FUNCTIONALS]
+METHODS_LUMINESCENCE_FLUO_TDADFT = [f"FLUO@{method}" for method in TDADFT_FUNCTIONALS]
+METHODS_LUMINESCENCE_FLUO_POSTHF = [f"FLUO@{method}" for method in POSTHF_FUNCTIONALS]
 
 # Data storage structure: molecule -> method -> calculation type -> {energy, wavelength, oscillator}
 dic_abs = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_ABS} for method_optimization in METHODS_OPTIMIZATION_GROUND} for data in MOLECULES_DATA}
@@ -51,6 +81,7 @@ def main(generate_plots):
     warnings_list = [] # Store the warning messages
 
     # Collect computational data
+    print("Collecting computational data...")
     for data in MOLECULES_DATA:
         molecule = data["name"]
         abs_solvant_correction = get_solvatation_correction(molecule, "", "ABS@MO62Xtddft", warnings_list)
@@ -207,42 +238,11 @@ def main(generate_plots):
                                                     molecule_name_mapping=MOLECULE_NAME_MAPPING,
                                                     output_dir=output_dir_plots,
                                                     )
-    for prop in ['energy', 'dissymmetry_factor']:
-        gauges = ['length', 'velocity'] if prop == 'dissymmetry_factor' else [None]
-        for gauge in gauges:
-            generate_plot_experiment_multiple_computed(exp_data=exp_data,
-                                            luminescence_type='Absorption',
-                                            computed_data=dic_abs,
-                                            methods_optimization=METHODS_OPTIMIZATION_GROUND,
-                                            methods_luminescence=METHODS_LUMINESCENCE_ABS_ACCURATE,
-                                            gauge=gauge,
-                                            dissymmetry_variant='strength',
-                                            prop=prop,
-                                            molecules=DENIS_MOLECULES,
-                                            molecule_name_mapping=MOLECULE_NAME_MAPPING,
-                                            output_dir=output_dir_plots,
-                                            )
-
-            generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                        generate_plot_experiment_multiple_computed(exp_data=exp_data,
                                                         luminescence_type='Absorption',
                                                         computed_data=dic_abs,
                                                         methods_optimization=METHODS_OPTIMIZATION_GROUND,
-                                                        methods_luminescence=["ABS@ADC2_COSMO", "ABS@CC2_COSMO"],
-                                                        gauge=gauge,
-                                                        dissymmetry_variant='strength',
-                                                        prop=prop,
-                                                        molecules=DENIS_MOLECULES,
-                                                        molecule_name_mapping=MOLECULE_NAME_MAPPING,
-                                                        output_dir=output_dir_plots,
-                                                        output_filebasename="post_HF",
-                                                        )
-
-            for method_optimization in METHODS_OPTIMIZATION_EXCITED:
-                generate_plot_experiment_multiple_computed(exp_data=exp_data,
-                                                        luminescence_type='Fluorescence',
-                                                        computed_data=dic_fluo,
-                                                        methods_optimization=[method_optimization],
-                                                        methods_luminescence=METHODS_LUMINESCENCE_FLUO_ACCURATE,
+                                                        methods_luminescence=METHODS_LUMINESCENCE_ABS_ACCURATE,
                                                         gauge=gauge,
                                                         dissymmetry_variant='strength',
                                                         prop=prop,
@@ -251,22 +251,163 @@ def main(generate_plots):
                                                         output_dir=output_dir_plots,
                                                         )
 
-                generate_plot_experiment_multiple_computed(exp_data=exp_data,
-                                                        luminescence_type='Fluorescence',
-                                                        computed_data=dic_fluo,
-                                                        methods_optimization=[method_optimization],
-                                                        methods_luminescence=["FLUO@ADC2_COSMO", "FLUO@CC2_COSMO"],
-                                                        gauge=gauge,
-                                                        dissymmetry_variant='strength',
-                                                        prop=prop,
-                                                        molecules=DENIS_MOLECULES,
-                                                        molecule_name_mapping=MOLECULE_NAME_MAPPING,
-                                                        output_dir=output_dir_plots,
-                                                        output_filebasename=f"post_HF",
+                        generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                    luminescence_type='Absorption',
+                                                                    computed_data=dic_abs,
+                                                                    methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                                    methods_luminescence=["ABS@ADC2_COSMO", "ABS@CC2_COSMO"],
+                                                                    gauge=gauge,
+                                                                    dissymmetry_variant='strength',
+                                                                    prop=prop,
+                                                                    molecules=DENIS_MOLECULES,
+                                                                    molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                    output_dir=output_dir_plots,
+                                                                    output_filebasename="post_HF",
+                                                                    )
+
+                        for method_optimization in METHODS_OPTIMIZATION_EXCITED:
+                            generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                    luminescence_type='Fluorescence',
+                                                                    computed_data=dic_fluo,
+                                                                    methods_optimization=[method_optimization],
+                                                                    methods_luminescence=METHODS_LUMINESCENCE_FLUO_ACCURATE,
+                                                                    gauge=gauge,
+                                                                    dissymmetry_variant='strength',
+                                                                    prop=prop,
+                                                                    molecules=DENIS_MOLECULES,
+                                                                    molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                    output_dir=output_dir_plots,
+                                                                    )
+
+                            generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                    luminescence_type='Fluorescence',
+                                                                    computed_data=dic_fluo,
+                                                                    methods_optimization=[method_optimization],
+                                                                    methods_luminescence=["FLUO@ADC2_COSMO", "FLUO@CC2_COSMO"],
+                                                                    gauge=gauge,
+                                                                    dissymmetry_variant='strength',
+                                                                    prop=prop,
+                                                                    molecules=DENIS_MOLECULES,
+                                                                    molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                    output_dir=output_dir_plots,
+                                                                    output_filebasename=f"post_HF",
                                                         )
 
 
-    # Print LaTeX tables in one file thanks to \input
+    if generate_plots:
+        for prop in ['energy', 'dissymmetry_factor']:
+            gauges = ['length', 'velocity'] if prop == 'dissymmetry_factor' else [None]
+            dissymmetry_variants = ['strength', 'vector'] if prop == 'dissymmetry_factor' else [None]
+            for gauge in gauges:
+                for dissymmetry_variant in dissymmetry_variants:
+                    generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                luminescence_type='Absorption',
+                                                                computed_data=dic_abs,
+                                                                methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                                methods_luminescence=METHODS_LUMINESCENCE_ABS_TDDFT,
+                                                                prop=prop,
+                                                                gauge=gauge,
+                                                                dissymmetry_variant=dissymmetry_variant,
+                                                                molecules=DENIS_MOLECULES,
+                                                                molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                output_dir=output_dir_plots,
+                                                                output_filebasename="TDDFT",
+                                                            )
+
+                    generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                luminescence_type='Absorption',
+                                                                computed_data=dic_abs,
+                                                                methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                                methods_luminescence=METHODS_LUMINESCENCE_ABS_TDADFT,
+                                                                prop=prop,
+                                                                gauge=gauge,
+                                                                dissymmetry_variant=dissymmetry_variant,
+                                                                molecules=DENIS_MOLECULES,
+                                                                molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                output_dir=output_dir_plots,
+                                                                output_filebasename="TDADFT",
+                                                            )
+                    
+                    generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                luminescence_type='Absorption',
+                                                                computed_data=dic_abs,
+                                                                methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                                methods_luminescence=METHODS_LUMINESCENCE_ABS_TDDFT+METHODS_LUMINESCENCE_ABS_TDADFT,
+                                                                prop=prop,
+                                                                gauge=gauge,
+                                                                dissymmetry_variant=dissymmetry_variant,
+                                                                molecules=DENIS_MOLECULES,
+                                                                molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                output_dir=output_dir_plots,
+                                                                output_filebasename="TDDFTvsTDADFT",
+                                                            )
+
+                    generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                luminescence_type='Absorption',
+                                                                computed_data=dic_abs,
+                                                                methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                                methods_luminescence=METHODS_LUMINESCENCE_ABS_POSTHF,
+                                                                prop=prop,
+                                                                gauge=gauge,
+                                                                dissymmetry_variant=dissymmetry_variant,
+                                                                molecules=DENIS_MOLECULES,
+                                                                molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                output_dir=output_dir_plots,
+                                                                output_filebasename="POSTHF",
+                                                            )
+
+                    generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                luminescence_type='Fluorescence',
+                                                                computed_data=dic_fluo,
+                                                                methods_optimization=[""],
+                                                                methods_luminescence=METHODS_LUMINESCENCE_ABS_POSTHF,
+                                                                prop=prop,
+                                                                gauge=gauge,
+                                                                dissymmetry_variant=dissymmetry_variant,
+                                                                molecules=DENIS_MOLECULES,
+                                                                molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                output_dir=output_dir_plots,
+                                                                output_filebasename="POSTHF_fluo",
+                                                            )
+                                                
+                    generate_plot_experiment_multiple_computed(exp_data=exp_data,
+                                                                luminescence_type='Absorption',
+                                                                computed_data=dic_abs,
+                                                                methods_optimization=METHODS_OPTIMIZATION_GROUND,
+                                                                methods_luminescence=METHODS_LUMINESCENCE_ABS_POSTHF + METHODS_LUMINESCENCE_ABS_TDDFT,
+                                                                prop=prop,
+                                                                gauge=gauge,
+                                                                dissymmetry_variant=dissymmetry_variant,
+                                                                molecules=DENIS_MOLECULES,
+                                                                molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                                                output_dir=output_dir_plots,
+                                                                output_filebasename="POSTHFvsTDDFT",
+                                                        )
+
+    generate_plot_computed_multiple_computed(main_method_optimization="",
+                                             main_method_luminescence="ABS@CC2_COSMO",
+                                             luminescence_type='Absorption',
+                                             computed_data=dic_abs,
+                                             methods_optimization=[""],
+                                             methods_luminescence=METHODS_LUMINESCENCE_ABS_ACCURATE + ["ABS@CC2"],
+                                             prop='energy',
+                                             molecules=DENIS_MOLECULES,
+                                             molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                             output_dir=output_dir_plots,
+                                             output_filebasename="graph_raph_absorption")
+
+    generate_plot_computed_multiple_computed(main_method_optimization="",
+                                             main_method_luminescence="FLUO@ADC2_COSMO",
+                                             luminescence_type='Fluorescence',
+                                             computed_data=dic_fluo,
+                                             methods_optimization=[""],
+                                             methods_luminescence=METHODS_LUMINESCENCE_FLUO_ACCURATE,
+                                             prop='energy',
+                                             molecules=DENIS_MOLECULES,
+                                             molecule_name_mapping=MOLECULE_NAME_MAPPING,
+                                             output_dir=output_dir_plots,
+                                             output_filebasename="graph_raph_fluorescence")
+
     all_tables = "all_tables.tex"
     tex_files = sorted(f for f in os.listdir(output_dir) if f.endswith('.tex') and f != all_tables)
     with open(os.path.join(output_dir, all_tables), 'w') as outfile:
