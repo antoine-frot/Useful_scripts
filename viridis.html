@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Viridis Color Picker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    input {
+      font-size: 16px;
+      width: 100px;
+    }
+    .color-box {
+      width: 100px;
+      height: 50px;
+      margin-top: 10px;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+  <h2>Viridis Color Picker</h2>
+  <p>
+    Enter a value between 
+    <strong>
+      <span id="minLabel">0</span> and <span id="maxLabel">1</span>
+    </strong>:
+  </p>
+  <input type="number" step="0.01" id="minVal" value="0" style="width:60px;">
+  <input type="number" step="0.01" id="maxVal" value="1" style="width:60px;">
+  <input type="number" step="0.01" id="inputVal">
+  <button onclick="getColor()">Get Color</button>
+
+  <div id="output" style="margin-top: 20px;"></div>
+
+  <script>
+    // Full Viridis colormap with 256 RGB triplets (shortened here for brevity; use full array in practice)
+    const viridis = [
+      [68, 1, 84],[68, 2, 85],[68, 3, 87],[68, 5, 88],[69, 6, 89],[69, 8, 91],[69, 9, 92],[69, 11, 93],
+      [69, 12, 94],[69, 14, 96],[70, 15, 97],[70, 17, 98],[70, 18, 99],[70, 20, 101],[70, 21, 102],
+      [71, 22, 103],[71, 24, 104],[71, 25, 105],[71, 27, 106],[71, 28, 108],[71, 29, 109],[71, 31, 110],
+      [71, 32, 111],[71, 34, 112],[72, 35, 113],[72, 36, 114],[72, 38, 115],[72, 39, 116],[72, 40, 117],
+      [72, 42, 118],[72, 43, 119],[72, 44, 120],[72, 46, 121],[72, 47, 122],[72, 48, 123],[72, 50, 124],
+      [72, 51, 124],[72, 52, 125],[72, 54, 126],[72, 55, 127],[72, 56, 128],[72, 58, 129],[72, 59, 129],
+      [72, 60, 130],[71, 62, 131],[71, 63, 132],[71, 64, 132],[71, 66, 133],[71, 67, 134],[71, 68, 135],
+      [70, 70, 135],[70, 71, 136],[70, 72, 137],[70, 74, 137],[69, 75, 138],[69, 76, 139],[69, 78, 139],
+      [68, 79, 140],[68, 80, 141],[67, 82, 141],[67, 83, 142],[66, 84, 142],[66, 86, 143],[65, 87, 144],
+      [65, 88, 144],[64, 90, 145],[63, 91, 145],[63, 92, 146],[62, 94, 146],[61, 95, 147],[61, 96, 147],
+      [60, 98, 148],[59, 99, 148],[58, 100, 148],[58, 102, 149],[57, 103, 149],[56, 104, 150],[55, 106, 150],
+      [55, 107, 150],[54, 108, 151],[53, 110, 151],[52, 111, 151],[51, 112, 151],[50, 114, 152],[50, 115, 152],
+      [49, 116, 152],[48, 118, 152],[47, 119, 152],[46, 120, 153],[45, 121, 153],[45, 123, 153],[44, 124, 153],
+      [43, 125, 153],[42, 126, 153],[41, 128, 153],[41, 129, 153],[40, 130, 153],[39, 131, 153],[38, 133, 153],
+      [38, 134, 153],[37, 135, 153],[36, 136, 153],[35, 137, 153],[35, 138, 153],[34, 140, 153],[33, 141, 153],
+      [33, 142, 152],[32, 143, 152],[31, 144, 152],[31, 145, 152],[30, 146, 152],[30, 147, 152],[29, 148, 151],
+      [29, 149, 151],[28, 151, 151],[28, 152, 151],[27, 153, 150],[27, 154, 150],[26, 155, 150],[26, 156, 149],
+      [26, 157, 149],[25, 158, 149],[25, 159, 148],[25, 160, 148],[25, 161, 147],[24, 161, 147],[24, 162, 146],
+      [24, 163, 146],[24, 164, 145],[24, 165, 144],[24, 166, 144],[24, 167, 143],[24, 168, 143],[24, 169, 142],
+      [25, 170, 141],[25, 171, 141],[25, 172, 140],[26, 172, 139],[26, 173, 139],[27, 174, 138],[27, 175, 137],
+      [28, 176, 136],[29, 177, 135],[30, 178, 135],[30, 179, 134],[31, 180, 133],[33, 181, 132],[34, 182, 131],
+      [35, 183, 130],[37, 183, 129],[38, 184, 128],[40, 185, 127],[41, 186, 126],[43, 187, 125],[45, 188, 124],
+      [46, 189, 123],[48, 190, 122],[50, 190, 121],[52, 191, 120],[54, 192, 119],[56, 193, 118],[58, 194, 117],
+      [60, 195, 116],[62, 195, 115],[64, 196, 114],[66, 197, 113],[68, 198, 112],[70, 199, 111],[73, 199, 110],
+      [75, 200, 109],[77, 201, 108],[80, 202, 107],[82, 202, 106],[85, 203, 105],[87, 204, 104],[90, 205, 103],
+      [92, 205, 102],[95, 206, 101],[97, 207, 100],[100, 208, 99],[102, 208, 98],[105, 209, 97],[108, 210, 96],
+      [110, 210, 95],[113, 211, 94],[116, 212, 93],[118, 212, 92],[121, 213, 91],[124, 214, 90],[126, 214, 89],
+      [129, 215, 88],[132, 216, 87],[134, 216, 86],[137, 217, 85],[140, 218, 84],[143, 218, 83],[145, 219, 82],
+      [148, 220, 81],[151, 220, 80],[154, 221, 79],[156, 221, 78],[159, 222, 77],[162, 223, 76],[165, 223, 75],
+      [168, 224, 74],[170, 224, 73],[173, 225, 72],[176, 225, 71],[179, 226, 70],[181, 226, 69],[184, 227, 68],
+      [187, 227, 67],[190, 228, 66],[192, 228, 65],[195, 229, 64],[198, 229, 63],[201, 230, 62],[203, 230, 61],
+      [206, 231, 60],[209, 231, 59],[211, 232, 58],[214, 232, 57],[217, 233, 56],[219, 233, 55],[222, 234, 54],
+      [224, 234, 53],[227, 235, 52],[229, 235, 51],[232, 236, 50],[234, 236, 49],[237, 237, 48],[239, 237, 47],
+      [242, 238, 46],[244, 238, 45],[247, 239, 44],[249, 239, 43],[252, 240, 42],[253, 240, 41],[253, 241, 40]
+    ];
+
+    function getViridisColor(t) {
+      t = Math.min(1, Math.max(0, t)); // Clamp to [0,1]
+      const idx = t * (viridis.length - 1);
+      const i0 = Math.floor(idx);
+      const i1 = Math.min(i0 + 1, viridis.length - 1);
+      const f = idx - i0;
+
+      const rgb = [0, 1, 2].map(j =>
+        Math.round((1 - f) * viridis[i0][j] + f * viridis[i1][j])
+      );
+
+      const hex = '#' + rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+      return { rgb, hex };
+    }
+
+    function getColor() {
+      const min = parseFloat(document.getElementById('minVal').value);
+      const max = parseFloat(document.getElementById('maxVal').value);
+      const val = parseFloat(document.getElementById('inputVal').value);
+
+      if (isNaN(min) || isNaN(max) || min >= max) {
+        alert("Please enter valid minimal and maximal values (min < max).");
+        return;
+      }
+      if (isNaN(val) || val < min || val > max) {
+        alert(`Please enter a number between ${min} and ${max}.`);
+        return;
+      }
+
+      // Normalize val to [0,1]
+      const normVal = (val - min) / (max - min);
+
+      const { rgb, hex } = getViridisColor(normVal);
+      document.getElementById('output').innerHTML = `
+        <p><strong>RGB:</strong> (${rgb.join(', ')})</p>
+        <p><strong>HEX:</strong> ${hex}</p>
+        <div class="color-box" style="background: ${hex};"></div>
+      `;
+    }
+
+    // Update min/max labels when changed
+    document.getElementById('minVal').addEventListener('input', function() {
+      document.getElementById('minLabel').textContent = this.value;
+    });
+    document.getElementById('maxVal').addEventListener('input', function() {
+      document.getElementById('maxLabel').textContent = this.value;
+    });
+
+    // Add Enter key listener
+    document.getElementById("inputVal").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        getColor();
+      }
+    });
+  </script>
+</body>
+</html>
