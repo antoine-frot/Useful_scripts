@@ -37,7 +37,9 @@ shopt -s checkwinsize
 #######################
 
 export path_orca="/Xnfs/chimie/debian11/orca/orca_6_0_1"
+export PATH="${path_orca}:${PATH}"
 TURBODIR=/home/rrullan/TmoleX2024/TURBOMOLE
 source $TURBODIR/Config_turbo_env
 alias orca_plot="$path_orca/orca_plot"
 alias molden="/home/ssteinma/bin/molden"
+export PATH="/home/rrullan/fcclasses3-3.0.4/tools/generators:/home/rrullan/fcclasses3-3.0.4/src/main:$PATH"
