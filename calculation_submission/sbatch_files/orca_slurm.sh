@@ -57,11 +57,11 @@ while [ "$orca_calc_done" -eq 0 ]
 do
   sleep 60
   orca_calc_done=$(<"$orca_isdone")
-  cp *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
+  cp *.engrad *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
 done
 
 # Ensure all files are copied after the job finishes
-cp *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
+cp *.engrad *.nto *.gbw *.hess *.xyz *.interp *.nbo FILE.47 *.densities *.trj *.cis *.densitiesinfo *.loc *.mdcip *.S "${HOMEDIR}/" 2>/dev/null
 
 #Check if the calculation terminated normally and write it in the ouput and Submited file
 if head -n 1 "${input}" | grep -iq "opt"; then
