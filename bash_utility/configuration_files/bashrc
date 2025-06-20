@@ -1,5 +1,6 @@
 # .bashrc to set up for every environment
 path_to_git="path/to/git/repository"
+export PYTHONPATH="$path_to_git:$PYTHONPATH"
 configuration_files="$path_to_git/bash_utility/configuration_files"
 source $configuration_files/bashrc_particular_to_the_environment.sh
 source $configuration_files/bash_aliases.sh

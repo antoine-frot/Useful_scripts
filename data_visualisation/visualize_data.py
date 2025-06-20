@@ -11,10 +11,10 @@ It then prints two LaTeX tables:
 import os
 import argparse
 from re import M
-from experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
-from electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
-from make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
-from latex_table import generate_latex_table, generate_latex_metrics_table
+from data_visualisation.experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
+from get_properties.electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
+from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
+from data_visualisation.latex_table import generate_latex_table, generate_latex_metrics_table
 
 # Methods for ground state optimization
 METHODS_OPTIMIZATION_GROUND = [""]
@@ -57,6 +57,7 @@ ACCURATE_FUNCTIONALS = ["wB97X-D3tddft",
                         "CAM-B3LYPtddft",
                         "MO62Xtddft", 
                         "B2PLYPtddft", 
+                        "CISD",
                         "ADC2_COSMO",
                         "CC2_COSMO"]
 
@@ -383,7 +384,8 @@ def main(generate_plots):
                                                                 output_dir=output_dir_plots,
                                                                 output_filebasename="POSTHFvsTDDFT",
                                                         )
-
+    print(METHODS_LUMINESCENCE_ABS_ACCURATE)
+    print(METHODS_LUMINESCENCE_FLUO_ACCURATE)
     generate_plot_computed_multiple_computed(main_method_optimization="",
                                              main_method_luminescence="ABS@CC2_COSMO",
                                              luminescence_type='Absorption',

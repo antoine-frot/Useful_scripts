@@ -2,7 +2,7 @@
 import os
 import argparse
 import numpy as np
-from electronic_transition_parser import parse_orca_format, parse_turbomole_format, generate_CD
+from get_properties.electronic_transition_parser import parse_orca_format, parse_turbomole_format, generate_CD
 
 def parse_custom_file(filename: str):
     """
