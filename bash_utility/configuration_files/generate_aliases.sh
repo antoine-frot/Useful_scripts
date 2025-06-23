@@ -53,7 +53,7 @@ for file in "$SCRIPT_DIR"/*; do
     alias_name="${filename%.*}"
     [ -z "$alias_name" ] && continue
     
-    # Check for duplicate alias names and make them unique
+    # Check for duplicate alias names
     if [ -n "${seen_aliases[$alias_name]}" ]; then
         echo "Two files have the same name $alias_name"
         exit 1
