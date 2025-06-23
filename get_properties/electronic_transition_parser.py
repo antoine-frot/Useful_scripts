@@ -28,7 +28,7 @@ import re
 import os
 import warnings
 import numpy as np
-from data_visualisation.constants import nm_to_eV, au_to_cgs_charge_length, eV_to_au, fine_strucure_constant
+from constants import nm_to_eV, au_to_cgs_charge_length, eV_to_au, fine_strucure_constant
 
 def parse_file(molecule: str, method_optimization: str, method_luminescence: str, solvant_correction: float=0, working_dir=None) -> dict:
     """
