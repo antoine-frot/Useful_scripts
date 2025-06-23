@@ -26,14 +26,14 @@ def parse_nto_transitions(output_file, state):
     start_pos = match.end()
     remaining_content = content[start_pos:]
     
-    match = re.search(rf'\s*(\d+){irred_rep}\s+->\s+(\d+){irred_rep}\s+:\s+n=\s+(\d+.\d+)', remaining_content)
+    match = re.search(rf'\s*(\d+)({irred_rep})\s+->\s+(\d+)({irred_rep})\s+:\s+n=\s+(\d+.\d+)', remaining_content)
     
     if match:
-        return int(match.group(1)), int(match.group(2)), float(match.group(3))
+        return [(int(match.group(1)), str(match.group(2)), int(match.group(3)), str(match.group(4)), float(match.group(5)))]
     
     return None
 
-def parse_canonical_transitions(output_file, state):
+def parse_canonical_transitions(output_file, state, threshold=0.2):
     """Parse transitions for a given state (with canonical orbitals)."""
     with open(output_file, 'r') as f:
         content = f.read()
@@ -56,15 +56,17 @@ def parse_canonical_transitions(output_file, state):
             break
         
         # Look for transition pattern
-        transition_match = re.search(rf'\s*(\d+){irred_rep}\s+->\s+(\d+){irred_rep}\s+:\s+(\d+.\d+)', line)
+        transition_match = re.search(rf'\s*(\d+)({irred_rep})\s+->\s+(\d+)({irred_rep})\s+:\s+(\d+.\d+)', line)
         if transition_match:
             initial_orbital = int(transition_match.group(1))
-            final_orbital = int(transition_match.group(2))
-            contribution = float(transition_match.group(3))
-            transitions.append((initial_orbital, final_orbital, contribution))
+            irred_rep1 = str(transition_match.group(2))
+            final_orbital = int(transition_match.group(3))
+            irred_rep2 = str(transition_match.group(4))
+            contribution = float(transition_match.group(5))
+            if contribution > threshold:
+                transitions.append((initial_orbital, irred_rep1, final_orbital, irred_rep2, contribution))
     
     if not transitions:
         return None
     
-    # Return transition with highest contribution
-    return max(transitions, key=lambda x: x[2])
+    return transitions
