@@ -7,21 +7,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from latex_table import get_adjusted_prop
 
-## Presentation parameters
-#plt.rcParams.update({
-#    'figure.figsize': [10, 10],
-#    'font.size': 32,
-#    'font.weight': 'bold',
-#    'axes.labelweight': 'bold',
-#    'axes.titlesize': 32,
-#    'axes.titleweight': 'bold',
-#    'legend.fontsize': 24,
-#    'xtick.labelsize': 24,
-#    'ytick.labelsize': 24
-#})
-#s_plot=140
+matplotlib.rcParams['text.usetex'] = True
 
-# Normal parameters
+# Plot parameters
 plt.rcParams.update({
     'figure.figsize': [10, 10],
     'font.size': 24,
@@ -37,52 +25,52 @@ s_plot=80
 
 visual_molecule_attributes = {
     "Boranil_CH3+RBINOL_H": {
-        "name": "CH3_H",
+        "name": "CH3-H",
         "marker": "o",
         "filled": True,
     },
     "Boranil_I+RBINOL_H": {
-        "name": "I_H",
+        "name": "I-H",
         "marker": "s",
         "filled": True,
     },
     "Boranil_CF3+RBINOL_H": {
-        "name": "CF3_H",
+        "name": "CF3-H",
         "marker": "^",
         "filled": True,
     },
     "Boranil_SMe+RBINOL_H": {
-        "name": "SMe_H",
+        "name": "SMe-H",
         "marker": "D",
         "filled": True,
     },
     "Boranil_CN+RBINOL_H": {
-        "name": "CN_H",
+        "name": "CN-H",
         "marker": "*",
         "filled": True,
     },
     "Boranil_NO2+RBINOL_H": {
-        "name": "NO2_H",
+        "name": "NO2-H",
         "marker": "X",
         "filled": True,
     },
     "Boranil_NH2+RBINOL_CN": {
-        "name": "NH2_CN",
+        "name": "NH2-CN",
         "marker": "P",
         "filled": False,
     },
     "Boranil_I+RBINOL_CN": {
-        "name": "I_CN",
+        "name": "I-CN",
         "marker": "s",
         "filled": False,
     },
     "Boranil_CN+RBINOL_CN": {
-        "name": "CN_CN",
+        "name": "CN-CN",
         "marker": "*",
         "filled": False,
     },
     "Boranil_NO2+RBINOL_CN": {
-        "name": "NO2_CN",
+        "name": "NO2-CN",
         "marker": "X",
         "filled": False,
     },
@@ -198,12 +186,12 @@ def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filen
         else:
             loc_molecule = 'upper left'
     first_legend = plt.legend(handles=molecule_handles, loc=loc_molecule, 
-                title='Molecules')
+                title=r'\textbf{Molecules}')
     if method_handles:
         plt.gca().add_artist(first_legend)
-        plt.legend(handles=method_handles, loc=loc_method, title='Methods') # type: ignore
-    plt.xlabel(x_label, size=axes_label_size)
-    plt.ylabel(y_label, size=axes_label_size)
+        plt.legend(handles=method_handles, loc=loc_method, title=r'\textbf{Methods}') # type: ignore
+    plt.xlabel(fr"\textbf{{{x_label}}}", size=axes_label_size)
+    plt.ylabel(fr"\textbf{{{y_label}}}", size=axes_label_size)
     plt.grid(alpha=0.2)
     plt.tight_layout()
 
@@ -238,7 +226,7 @@ def get_label(prop, gauge=None):
     """
     if prop == 'energy':
         label = 'Energy (eV)'
-        axes_label_size = 20
+        axes_label_size = 26
     elif prop == 'dissymmetry_factor':
         if gauge == 'length':
             label = 'dissymmetry factor in length gauge (g)'
@@ -246,10 +234,21 @@ def get_label(prop, gauge=None):
             label = 'dissymmetry factor in velocity gauge (g)'
         else:
             raise ValueError(f"Unknown gauge: {gauge}. Please set gauge to 'length' or 'velocity'.")
-        axes_label_size = 16
+        axes_label_size = 20
     else:
         raise ValueError(f"Unknown property: {prop}. Please set prop to 'energy' or 'dissymmetry_factor'.")
     return label, axes_label_size
+
+def make_molecule_legend_handle(molecule_handles, molecule, color):
+    if visual_molecule_attributes[molecule]["filled"]:
+        facecolor=color
+    else:
+        facecolor='none'
+    molecule_handles.append(Line2D([0], [0], marker=visual_molecule_attributes[molecule]["marker"], linestyle='None',
+                                    markeredgecolor=color,
+                                    markerfacecolor=facecolor,
+                                    markersize=s_plot**0.5,
+                                    label=fr"\textbf{{{visual_molecule_attributes[molecule]['name']}}}"))
 
 
 def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, computed_data: dict, methods_optimization: list, 
@@ -316,16 +315,7 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
                 calculated.append(calculated_data)
                 experimental.append(experimental_data)
                 _plot(experimental_data, calculated_data, molecule, display_lum)
-                if visual_molecule_attributes[molecule]["filled"]:
-                    facecolor=color
-                else:
-                    facecolor='none'
-                molecule_handles.append(Line2D([0], [0], marker=visual_molecule_attributes[molecule]["marker"], linestyle='None',
-                                                markeredgecolor=color,
-                                                markerfacecolor=facecolor,
-                                                markersize=s_plot**0.5,
-                                                label=visual_molecule_attributes[molecule]["name"]))
-                    
+                make_molecule_legend_handle(molecule_handles, molecule, color)
             
             # Complete and save the plot if we have data
             if calculated:
@@ -411,21 +401,11 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
                 all_experimental.append(experimental_data)
                 _plot(experimental_data, calculated_data, molecule, display_lum)
                 if not molecule_legend_done:
-                    color = 'black'
-                    if visual_molecule_attributes[molecule]["filled"]:
-                        facecolor=color
-                    else:
-                        facecolor='none'
-                    molecule_handles.append(Line2D([0], [0], marker=visual_molecule_attributes[molecule]["marker"], linestyle='None',
-                                                    markeredgecolor=color,
-                                                    markerfacecolor=facecolor,
-                                                    markersize=s_plot**0.5,
-                                                    label=visual_molecule_attributes[molecule]["name"]))
+                    make_molecule_legend_handle(molecule_handles, molecule, 'black')
             if not molecule_legend_done:
                 molecule_legend_done = True
-            method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=visual_method_attributes[display_lum]["name"]))
-                    
-                
+            method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
+
     if not all_calculated or not all_experimental:
         print("No data to plot.")
         plt.close()
@@ -528,19 +508,10 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
                 all_experimental.append(main_method_data)
                 _plot(main_method_data, calculated_data, molecule, display_lum)
                 if not molecule_legend_done:
-                    color = 'black'
-                    if visual_molecule_attributes[molecule]["filled"]:
-                        facecolor=color
-                    else:
-                        facecolor='none'
-                    molecule_handles.append(Line2D([0], [0], marker=visual_molecule_attributes[molecule]["marker"], linestyle='None',
-                                                    markeredgecolor=color,
-                                                    markerfacecolor=facecolor,
-                                                    markersize=s_plot**0.5,
-                                                    label=visual_molecule_attributes[molecule]["name"]))
+                    make_molecule_legend_handle(molecule_handles, molecule, "black")
             if not molecule_legend_done:
                 molecule_legend_done = True
-            method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=visual_method_attributes[display_lum]["name"]))
+            method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
                     
                 
     if not all_calculated or not all_experimental:
