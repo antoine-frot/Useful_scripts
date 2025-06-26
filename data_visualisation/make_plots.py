@@ -1,3 +1,4 @@
+from matplotlib import axis
 import numpy as np
 import os
 import matplotlib
@@ -90,39 +91,39 @@ visual_molecule_attributes = {
 visual_method_attributes = {
     "B3LYPtddft": {
         "name": "B3LYP",
-        "color": "#1f77b4",  # Dark blue
+        "color": "#1f77b4",  # Blue
     },
     "PBE0tddft": {
         "name": "PBE0",
-        "color": "#7eb3d6",  # Light blue
+        "color": "#005fa3",  # Dark blue
     },
     "wB97X-D3tddft": {
-        "name": "omegaB97X-D3",
-        "color": "#2ca02c",  # Dark green
+        "name": r"$\omega$B97X-D3",
+        "color": "#2ca02c",  # Green
     },
     "CAM-B3LYPtddft": {
         "name": "CAM-B3LYP",
-        "color": "#98df8a",  # Medium green
+        "color": "#137a13",  # Dark green
     },
     "MO62Xtddft": {
         "name": "M06-2X",
-        "color": "#5ad45a",  # Light green
+        "color": "#0e4d0e",  # Even darker green
     },
     "CISD": {
         "name": "CIS(D)",
-        "color": "#d62728",  # Dark red
+        "color": "#d62728",  # Red
     },
     "B2PLYPtddft": {
         "name": "B2PLYP",
-        "color": "#ff9896",  # Light red
+        "color": "#8c1c13",  # Dark red
     },
     "ADC2_COSMO": {
         "name": "ADC(2)",
-        "color": "#9467bd",  # Dark purple
+        "color": "#9467bd",  # Purple
     },
     "CC2_COSMO": {
         "name": "CC2",
-        "color": "#c5b0d5",  # Light purple
+        "color": "#5e3370",  # Dark purple
     },
 }
                    
@@ -156,8 +157,11 @@ def add_diagonal_reference_line(data_x, data_y):
 
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
-
-    return
+    if max_val - max(data_x) >= min(data_x) - min_val:
+        loc= 'right'
+    else:
+        loc= 'left'
+    return loc
     
 def _plot(x, y, molecule, method):
     color = visual_method_attributes[method]["color"]
@@ -184,16 +188,24 @@ def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filen
         plt.close()
         return
 
-    add_diagonal_reference_line(x_data, y_data)
-    first_legend = plt.legend(handles=molecule_handles, loc='lower right', 
+    loc = add_diagonal_reference_line(x_data, y_data)
+    if method_handles:
+        loc_molecule = f"lower {loc}"
+        loc_method = f"upper {loc}"
+    else:
+        if loc == 'right':
+            loc_molecule = 'lower right'
+        else:
+            loc_molecule = 'upper left'
+    first_legend = plt.legend(handles=molecule_handles, loc=loc_molecule, 
                 title='Molecules')
     if method_handles:
         plt.gca().add_artist(first_legend)
-        plt.legend(handles=method_handles, loc='upper right', title='Methods')
+        plt.legend(handles=method_handles, loc=loc_method, title='Methods') # type: ignore
     plt.xlabel(x_label, size=axes_label_size)
     plt.ylabel(y_label, size=axes_label_size)
     plt.grid(alpha=0.2)
-    #plt.tight_layout()
+    plt.tight_layout()
 
     if output_dir is None:
         output_dir = "plot_comparison"
@@ -274,12 +286,12 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
     if molecules is None:
         molecules = list(exp_data.keys())
 
-    calculated = []
-    experimental = []
     for method_optimization in methods_optimization:
         for method_luminescence in methods_luminescence:
             display_lum = method_luminescence.split('@')[1] if '@' in method_luminescence else method_luminescence
             color = visual_method_attributes[display_lum]["color"]
+            calculated = []
+            experimental = []
             molecule_handles = []
             for molecule in molecules:
                 adjusted_prop = get_adjusted_prop(prop, gauge, dissymmetry_variant)
