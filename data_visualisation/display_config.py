@@ -22,7 +22,6 @@ METHODS_OPTIMIZATION_GROUND = ['']
 # Methods for excited state optimization
 METHODS_OPTIMIZATION_EXCITED = ['',
                                 "-OPTES@MO62Xtddft",
-                                "-OPTES@CAMB3LYPtddft",
                                 "-OPTES@wB97X-D3tddft"
                                 ]
 
