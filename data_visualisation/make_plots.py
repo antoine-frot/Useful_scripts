@@ -31,7 +31,6 @@ plt.rcParams.update({
     'legend.fontsize': 16,
     'xtick.labelsize': 16,
     'ytick.labelsize': 16,
-    #'axes.labelsize': 16
 })
 s_plot=80
 
@@ -176,7 +175,7 @@ def _plot(x, y, molecule, method):
                 label=visual_molecule_attributes[molecule]["name"])
     
 
-def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filename, molecule_handles, method_handles=None):
+def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filename, molecule_handles, axes_label_size, method_handles=None):
     """
     Consolidated steps for adding a diagonal line, legends, labels, and saving the plot.
     """
@@ -191,8 +190,8 @@ def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filen
     if method_handles:
         plt.gca().add_artist(first_legend)
         plt.legend(handles=method_handles, loc='upper right', title='Methods')
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
+    plt.xlabel(x_label, size=axes_label_size)
+    plt.ylabel(y_label, size=axes_label_size)
     plt.grid(alpha=0.2)
     #plt.tight_layout()
 
@@ -227,6 +226,7 @@ def get_label(prop, gauge=None):
     """
     if prop == 'energy':
         label = 'Energy (eV)'
+        axes_label_size = 20
     elif prop == 'dissymmetry_factor':
         if gauge == 'length':
             label = 'dissymmetry factor in length gauge (g)'
@@ -234,9 +234,10 @@ def get_label(prop, gauge=None):
             label = 'dissymmetry factor in velocity gauge (g)'
         else:
             raise ValueError(f"Unknown gauge: {gauge}. Please set gauge to 'length' or 'velocity'.")
+        axes_label_size = 16
     else:
         raise ValueError(f"Unknown property: {prop}. Please set prop to 'energy' or 'dissymmetry_factor'.")
-    return label
+    return label, axes_label_size
 
 
 def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, computed_data: dict, methods_optimization: list, 
@@ -316,7 +317,7 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
             
             # Complete and save the plot if we have data
             if calculated:
-                label_text = get_label(prop, gauge)
+                label_text, axes_label_size = get_label(prop, gauge)
                 _common_save_plot(
                     x_data=experimental,
                     y_data=calculated,
@@ -324,7 +325,9 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
                     y_label=f"Computed {label_text}",
                     output_dir=output_dir,
                     output_filename=f"{output_filebasename}_{luminescence_type}_{method_optimization}_{method_luminescence}_{prop}",
-                    molecule_handles=molecule_handles
+                    molecule_handles=molecule_handles,
+                    axes_label_size=axes_label_size
+
                 )
 
 
@@ -415,8 +418,8 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
         print("No data to plot.")
         plt.close()
         return
-    
-    label_text = get_label(prop, gauge)
+
+    label_text, axes_label_size = get_label(prop, gauge)
     _common_save_plot(
         x_data=all_experimental,
         y_data=all_calculated,
@@ -425,7 +428,8 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
         output_dir=output_dir,
         output_filename=f"{output_filebasename}_{luminescence_type}_multiple_exp_{prop}",
         molecule_handles=molecule_handles,
-        method_handles=method_handles
+        method_handles=method_handles,
+        axes_label_size=axes_label_size
     )
 
 
@@ -532,7 +536,7 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
         plt.close()
         return
     
-    label_text = get_label(prop, gauge)
+    label_text, axes_label_size = get_label(prop, gauge)
     display_main_lum = main_method_luminescence.split('@')[1] if '@' in main_method_luminescence else main_method_luminescence
     label_x = visual_method_attributes[display_main_lum]["name"]
     _common_save_plot(
@@ -543,5 +547,6 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
         output_dir=output_dir,
         output_filename=f"{output_filebasename}_{luminescence_type}_multiple_computed_{prop}",
         molecule_handles=molecule_handles,
-        method_handles=method_handles
+        method_handles=method_handles,
+        axes_label_size=axes_label_size
     )
