@@ -15,6 +15,7 @@ from data_visualisation.experimental_data import MOLECULES_DATA, exp_data, MOLEC
 from get_properties.electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
 from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
 from data_visualisation.latex_table import generate_latex_table, generate_latex_metrics_table
+import json
 
 # Methods for ground state optimization
 METHODS_OPTIMIZATION_GROUND = ['']
@@ -90,40 +91,55 @@ METHODS_LUMINESCENCE_FLUO_POSTHF_LIGHT = [f"FLUO@{method}" for method in POSTHF_
 METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY = [f"FLUO@{method}" for method in POSTHF_HEAVY]
 METHODS_LUMINESCENCE_FLUO_GROUPS = [METHODS_LUMINESCENCE_FLUO_HYBRID, METHODS_LUMINESCENCE_FLUO_RS_META, METHODS_LUMINESCENCE_FLUO_POSTHF_LIGHT, METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY]
 
-# Data storage structure: molecule -> method -> calculation type -> {energy, wavelength, oscillator}
-dic_abs = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_ABS} for method_optimization in METHODS_OPTIMIZATION_GROUND} for data in MOLECULES_DATA}
-dic_fluo = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_FLUO} for method_optimization in METHODS_OPTIMIZATION_EXCITED} for data in MOLECULES_DATA}
 
-def main(generate_plots):
+def main(generate_plots, store_data):
     """Main function to coordinate data collection and LaTeX table generation."""
     warnings_list = [] # Store the warning messages
 
-    # Collect computational data
-    print("Collecting computational data...")
-    for data in MOLECULES_DATA:
-        molecule = data["name"]
-        abs_solvant_correction = get_solvatation_correction(molecule, "", "ABS@MO62Xtddft", warnings_list)
-        for method_optimization in METHODS_OPTIMIZATION_GROUND:
-            for method_luminescence in METHODS_LUMINESCENCE_ABS:
-                if method_luminescence == "ABS@CC2":
-                    abs_result = parse_file(molecule, method_optimization, method_luminescence, abs_solvant_correction)
-                else: 
-                    abs_result = parse_file(molecule, method_optimization, method_luminescence)
-                if abs_result:
-                    dic_abs[molecule][method_optimization][method_luminescence] = abs_result
-                else:
-                    print(f"⚠️️ No absorbance data found for {molecule} with optimization {method_optimization} and luminescence {method_luminescence}.")
-        fluo_solvant_correction = get_solvatation_correction(molecule, "", "FLUO@MO62Xtddft", warnings_list)
-        for method_optimization in METHODS_OPTIMIZATION_EXCITED:
-            for method_luminescence in METHODS_LUMINESCENCE_FLUO:
-                if method_luminescence == "FLUO@CC2":
-                    fluo_result = parse_file(molecule, method_optimization, method_luminescence, fluo_solvant_correction)
-                else:
-                    fluo_result = parse_file(molecule, method_optimization, method_luminescence)
-                if fluo_result:
-                    dic_fluo[molecule][method_optimization][method_luminescence] = fluo_result
-                else:
-                    print(f"⚠️️ No fluorescence data found for {molecule} with optimization {method_optimization} and luminescence {method_luminescence}.")
+    json_file = "computed_transitions_data"
+    # Data storage structure: molecule -> method -> calculation type -> {energy, wavelength, oscillator}
+    dic_abs = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_ABS} for method_optimization in METHODS_OPTIMIZATION_GROUND} for data in MOLECULES_DATA}
+    dic_fluo = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_FLUO} for method_optimization in METHODS_OPTIMIZATION_EXCITED} for data in MOLECULES_DATA}
+    if store_data:
+        # Generate new data if store_data is True
+        print("Collecting computational data...")
+        for data in MOLECULES_DATA:
+            molecule = data["name"]
+            abs_solvant_correction = get_solvatation_correction(molecule, "", "ABS@MO62Xtddft", warnings_list)
+            for method_optimization in METHODS_OPTIMIZATION_GROUND:
+                for method_luminescence in METHODS_LUMINESCENCE_ABS:
+                    if method_luminescence == "ABS@CC2":
+                        abs_result = parse_file(molecule, method_optimization, method_luminescence, abs_solvant_correction)
+                    else: 
+                        abs_result = parse_file(molecule, method_optimization, method_luminescence)
+                    if abs_result:
+                        dic_abs[molecule][method_optimization][method_luminescence] = abs_result
+                    else:
+                        print(f"⚠️️ No absorbance data found for {molecule} with optimization {method_optimization} and luminescence {method_luminescence}.")
+            fluo_solvant_correction = get_solvatation_correction(molecule, "", "FLUO@MO62Xtddft", warnings_list)
+            for method_optimization in METHODS_OPTIMIZATION_EXCITED:
+                for method_luminescence in METHODS_LUMINESCENCE_FLUO:
+                    if method_luminescence == "FLUO@CC2":
+                        fluo_result = parse_file(molecule, method_optimization, method_luminescence, fluo_solvant_correction)
+                    else:
+                        fluo_result = parse_file(molecule, method_optimization, method_luminescence)
+                    if fluo_result:
+                        dic_fluo[molecule][method_optimization][method_luminescence] = fluo_result
+                    else:
+                        print(f"⚠️️ No fluorescence data found for {molecule} with optimization {method_optimization} and luminescence {method_luminescence}.")
+            with open(f"{json_file}_abs.json", "w") as f:
+                json.dump(dic_abs, f)
+            with open(f"{json_file}_fluo.json", "w") as f:
+                json.dump(dic_fluo, f)
+    else:
+        # Load data from JSON files if not generating new data
+        print("Loading computational data from JSON files...")
+        if not os.path.exists(f"{json_file}_abs.json") or not os.path.exists(f"{json_file}_fluo.json"):
+            print(f"⚠️️ Data files {json_file}_abs and {json_file}_fluo do not exist. Please add the flag --store_data/-s to generate them.")
+        with open(f"{json_file}_abs.json", "r") as f:
+            dic_abs = json.load(f)
+        with open(f"{json_file}_fluo.json", "r") as f:
+            dic_fluo = json.load(f)
 
     # Remove all .tex file in the output directory
     output_dir = "latex_tables"
@@ -335,7 +351,8 @@ def main(generate_plots):
 if __name__ == "__main__":
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Generate LaTeX tables and optionally plots for computational chemistry data.")
-    parser.add_argument("--plots", action="store_true", default=False, help="Generate plots alongside LaTeX tables.")
+    parser.add_argument("--plots", "-p", action="store_true", default=False, help="Generate plots alongside LaTeX tables.")
+    parser.add_argument("--store_data", "-s", action="store_true", default=False, help="Store collected data in JSON files.")
     args = parser.parse_args()
-    main(generate_plots=args.plots)
+    main(generate_plots=args.plots, store_data=args.store_data)
     print("Done.")
