@@ -12,7 +12,7 @@ user=${2:-$USER}
 # Validate mode
 if [[ "$mode" != "simple" && "$mode" != "full" ]]; then
     echo "Error: Mode must be 'simple' or 'full'"
-    echo "Usage: $0 [username] [simple|full]"
+    echo "Usage: $0 [simple|full] [username]"
     exit 1
 fi
 
