@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from latex_table import get_adjusted_prop
 
-matplotlib.rcParams['text.usetex'] = True
-
-# Plot parameters
+matplotlib.rcParams.update({
+    "text.usetex": True,
+    "text.latex.preamble": r"\usepackage{amsmath}"
+})
 plt.rcParams.update({
     'figure.figsize': [10, 10],
     'font.size': 24,
@@ -79,39 +80,39 @@ visual_molecule_attributes = {
 visual_method_attributes = {
     "B3LYPtddft": {
         "name": "B3LYP",
-        "color": "#1f77b4",  # Blue
+        "color": "#1f77b4",
     },
     "PBE0tddft": {
         "name": "PBE0",
-        "color": "#005fa3",  # Dark blue
+        "color": "#86c5e9",
     },
     "wB97X-D3tddft": {
-        "name": r"$\omega$B97X-D3",
-        "color": "#2ca02c",  # Green
+        "name": r"$\boldsymbol{\omega}$B97X-D3",
+        "color": "#2ca02c",
     },
     "CAM-B3LYPtddft": {
         "name": "CAM-B3LYP",
-        "color": "#137a13",  # Dark green
+        "color": "#5cb85c",
     },
     "MO62Xtddft": {
         "name": "M06-2X",
-        "color": "#0e4d0e",  # Even darker green
+        "color": "#94d494", 
     },
     "CISD": {
         "name": "CIS(D)",
-        "color": "#d62728",  # Red
+        "color": "#ff7f0e",
     },
     "B2PLYPtddft": {
         "name": "B2PLYP",
-        "color": "#8c1c13",  # Dark red
+        "color": "#ffab4f",
     },
     "ADC2_COSMO": {
         "name": "ADC(2)",
-        "color": "#9467bd",  # Purple
+        "color": "#9467bd",
     },
     "CC2_COSMO": {
         "name": "CC2",
-        "color": "#5e3370",  # Dark purple
+        "color": "#b68ed1",
     },
 }
                    
@@ -202,6 +203,7 @@ def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filen
     except OSError as e:
         print(f"Error: Unable to create or access the directory '{output_dir}'. Please check the path and permissions.")
         raise
+    output_filename= f"{output_filename.lstrip('_').rstrip('_').replace(' ', '_').replace('__','_').replace('_-','_').replace('ABS@','').replace('FLUO@','')}"
     try:
         plt.savefig(f"{output_dir}/{output_filename}.pdf", format='pdf')
         print(f"Plot saved to {output_dir}/{output_filename} in format pdf and png")
@@ -326,7 +328,7 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
                     x_label=f"Experimental {label_text}",
                     y_label=f"Computed {label_text}",
                     output_dir=output_dir,
-                    output_filename=f"{output_filebasename}_{luminescence_type}_{method_optimization}_{method_luminescence}_{prop}",
+                    output_filename=f"{luminescence_type}_{prop}_{method_optimization}_{method_luminescence}_{output_filebasename}",
                     molecule_handles=molecule_handles,
                     axes_label_size=axes_label_size
 
@@ -418,7 +420,7 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
         x_label=f"Experimental {label_text}",
         y_label=f"Computed {label_text}",
         output_dir=output_dir,
-        output_filename=f"{output_filebasename}_{luminescence_type}_multiple_exp_{prop}",
+        output_filename=f"{luminescence_type}_multiple_exp_{prop}_{output_filebasename}",
         molecule_handles=molecule_handles,
         method_handles=method_handles,
         axes_label_size=axes_label_size
@@ -528,7 +530,7 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
         x_label=f"{label_x} {label_text}",
         y_label=f"Computed {label_text}",
         output_dir=output_dir,
-        output_filename=f"{output_filebasename}_{luminescence_type}_multiple_computed_{prop}",
+        output_filename=f"{luminescence_type}_multiple_computed_{prop}_{output_filebasename}",
         molecule_handles=molecule_handles,
         method_handles=method_handles,
         axes_label_size=axes_label_size

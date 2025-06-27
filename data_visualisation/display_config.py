@@ -289,7 +289,7 @@ def main(generate_plots):
                                                                 prop=prop,
                                                                 molecules=DENIS_MOLECULES,
                                                                 output_dir=output_dir_plots,
-                                                                output_filebasename=f"{methods_luminescence}"
+                                                                output_filebasename="_".join(methods_luminescence).replace("'",'').replace('[','').replace(']','')
                                                                 )
 
         generate_plot_computed_multiple_computed(main_method_optimization="",
