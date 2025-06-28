@@ -3,7 +3,7 @@
 # Script to generate aliases for all scripts in a given directory
 # Usage: ./generate_aliases.sh /path/to/scripts/directory
 
-SCRIPT_DIR="${1:-$HOME/script}"  # Use first argument or default to ~/script
+SCRIPT_DIR="${1:-$path_to_git}"  # Use first argument or default to ~/script
 
 if [ ! -d "$SCRIPT_DIR" ]; then
     echo "Error: Directory '$SCRIPT_DIR' does not exist."
