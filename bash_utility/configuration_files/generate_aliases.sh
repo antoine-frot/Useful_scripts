@@ -13,8 +13,6 @@ fi
 
 SCRIPT_DIR=$(realpath "$SCRIPT_DIR")
 
-declare -A seen_aliases
-
 # Function to determine the appropriate interpreter/command
 get_command() {
     local file_path="$1"
@@ -52,13 +50,6 @@ for file in "$SCRIPT_DIR"/*; do
     
     alias_name="${filename%.*}"
     [ -z "$alias_name" ] && continue
-    
-    # Check for duplicate alias names
-    if [ -n "${seen_aliases[$alias_name]}" ]; then
-        echo "Two files have the same name $alias_name"
-        exit 1
-    fi
-    seen_aliases[$alias_name]=1
     
     echo "alias $alias_name='$command'"
 done
