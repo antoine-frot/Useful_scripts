@@ -254,6 +254,15 @@ def main(generate_plots, store_data):
                                                     label=label,
                                                     warnings_list=warnings_list)
                         
+    all_tables = "all_tables.tex"
+    tex_files = sorted(f for f in os.listdir(output_dir) if f.endswith('.tex') and f != all_tables)
+    with open(os.path.join(output_dir, all_tables), 'w') as outfile:
+        for fname in tex_files:
+            filepath = os.path.join(output_dir, fname)
+            outfile.write(f"\\input{{{filepath}}}\n")
+            outfile.write("\\newpage\n")
+    print(f"All tables have been compiled into {all_tables}.")
+
     if generate_plots: 
         print("Generating plots...")
         for luminescence_type in ['Absorption', 'Fluorescence']:
@@ -292,20 +301,21 @@ def main(generate_plots, store_data):
                                                             prop=prop,
                                                             molecules=DENIS_MOLECULES,
                                                             output_dir=output_dir_plots,
+                                                            output_filebasename="all"
                                                             )
                             methods_luminescence_groups = METHODS_LUMINESCENCE_ABS_GROUPS if luminescence_type == 'Absorption' else METHODS_LUMINESCENCE_FLUO_GROUPS
-                            for methods_luminescence in methods_luminescence_groups:
+                            for methods_luminescence_group in methods_luminescence_groups:
                                 generate_plot_experiment_multiple_computed(exp_data=exp_data,
                                                                 luminescence_type=luminescence_type,
                                                                 computed_data=computed_data,
                                                                 methods_optimization=[method_optimization],
-                                                                methods_luminescence=methods_luminescence,
+                                                                methods_luminescence=methods_luminescence_group,
                                                                 gauge=gauge,
                                                                 dissymmetry_variant=dissymmetry_variant,
                                                                 prop=prop,
                                                                 molecules=DENIS_MOLECULES,
                                                                 output_dir=output_dir_plots,
-                                                                output_filebasename="_".join(methods_luminescence).replace("'",'').replace('[','').replace(']','')
+                                                                output_filebasename="_".join(methods_luminescence_group).replace("'",'').replace('[','').replace(']','')
                                                                 )
 
         generate_plot_computed_multiple_computed(main_method_optimization="",
@@ -330,15 +340,6 @@ def main(generate_plots, store_data):
                                                 output_dir=output_dir_plots,
                                                 output_filebasename="CC2_ref")
         
-    all_tables = "all_tables.tex"
-    tex_files = sorted(f for f in os.listdir(output_dir) if f.endswith('.tex') and f != all_tables)
-    with open(os.path.join(output_dir, all_tables), 'w') as outfile:
-        for fname in tex_files:
-            filepath = os.path.join(output_dir, fname)
-            outfile.write(f"\\input{{{filepath}}}\n")
-            outfile.write("\\newpage\n")
-    print(f"All tables have been compiled into {all_tables}.")
-
     # Print unique warning messages
     seen_warnings = set()
     for warning in warnings_list:

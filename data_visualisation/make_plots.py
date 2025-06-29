@@ -1,4 +1,4 @@
-from matplotlib import axis
+import re
 import numpy as np
 import os
 import matplotlib
@@ -203,7 +203,9 @@ def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filen
     except OSError as e:
         print(f"Error: Unable to create or access the directory '{output_dir}'. Please check the path and permissions.")
         raise
-    output_filename= f"{output_filename.lstrip('_').rstrip('_').replace(' ', '_').replace('__','_').replace('_-','_').replace('ABS@','').replace('FLUO@','')}"
+    output_filename = output_filename.replace('None', '').replace(' ', '_').replace('ABS@', '').replace('FLUO@', '').replace('_-','_')
+    output_filename = re.sub(r'_+', '_', output_filename)
+    output_filename = output_filename.strip('_')
     try:
         plt.savefig(f"{output_dir}/{output_filename}.pdf", format='pdf')
         print(f"Plot saved to {output_dir}/{output_filename} in format pdf and png")
@@ -328,7 +330,7 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
                     x_label=f"Experimental {label_text}",
                     y_label=f"Computed {label_text}",
                     output_dir=output_dir,
-                    output_filename=f"{luminescence_type}_{prop}_{method_optimization}_{method_luminescence}_{output_filebasename}",
+                    output_filename=f"{luminescence_type}_{prop}_{gauge}_{dissymmetry_variant}_{method_optimization}_{display_lum}_{output_filebasename}",
                     molecule_handles=molecule_handles,
                     axes_label_size=axes_label_size
 
@@ -408,8 +410,9 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
                 molecule_legend_done = True
             method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
 
+    output_filename=f"{luminescence_type}_multiple_exp_{prop}_{gauge}_{dissymmetry_variant}_{output_filebasename}"
     if not all_calculated or not all_experimental:
-        print("No data to plot.")
+        print(f"No data to plot for {output_filename}.")
         plt.close()
         return
 
@@ -420,7 +423,7 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
         x_label=f"Experimental {label_text}",
         y_label=f"Computed {label_text}",
         output_dir=output_dir,
-        output_filename=f"{luminescence_type}_multiple_exp_{prop}_{output_filebasename}",
+        output_filename=output_filename,
         molecule_handles=molecule_handles,
         method_handles=method_handles,
         axes_label_size=axes_label_size
@@ -516,8 +519,9 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
             method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
                     
                 
+    output_filename=f"{luminescence_type}_multiple_computed_{prop}_{gauge}_{dissymmetry_variant}_{output_filebasename}"
     if not all_calculated or not all_experimental:
-        print("No data to plot.")
+        print(f"No data to plot for {output_filename}.")
         plt.close()
         return
     
@@ -530,7 +534,7 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
         x_label=f"{label_x} {label_text}",
         y_label=f"Computed {label_text}",
         output_dir=output_dir,
-        output_filename=f"{luminescence_type}_multiple_computed_{prop}_{output_filebasename}",
+        output_filename=output_filename,
         molecule_handles=molecule_handles,
         method_handles=method_handles,
         axes_label_size=axes_label_size
