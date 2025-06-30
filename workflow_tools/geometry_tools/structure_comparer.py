@@ -432,15 +432,6 @@ def main():
         print("🔄 Structures are ENANTIOMERS (mirror images)")
         print("   - Same connectivity and bond lengths")
         print("   - Opposite chirality/handedness")
-    elif rmsd_after < 0.1:
-        print("✓✓ Structures are essentially identical")
-    elif rmsd_after < 1:
-        print("✓ Structures are very similar")
-    elif rmsd_after < 5:
-        print("~ Structures are moderately similar")
-    else:
-        print("✗ Structures show significant differences")
-    
     
     if args.store:
         # Build the name of the output_file
