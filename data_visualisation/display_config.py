@@ -11,6 +11,8 @@ It then prints two LaTeX tables:
 import os
 import argparse
 from re import M
+
+from sympy import comp
 from data_visualisation.experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
 from get_properties.electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
 from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
@@ -92,7 +94,7 @@ METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY = [f"FLUO@{method}" for method in POSTHF_
 METHODS_LUMINESCENCE_FLUO_GROUPS = [METHODS_LUMINESCENCE_FLUO_HYBRID, METHODS_LUMINESCENCE_FLUO_RS_META, METHODS_LUMINESCENCE_FLUO_POSTHF_LIGHT, METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY]
 
 
-def main(generate_plots, store_data):
+def main(generate_plots, compute_data):
     """Main function to coordinate data collection and LaTeX table generation."""
     warnings_list = [] # Store the warning messages
 
@@ -100,7 +102,7 @@ def main(generate_plots, store_data):
     # Data storage structure: molecule -> method -> calculation type -> {energy, wavelength, oscillator}
     dic_abs = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_ABS} for method_optimization in METHODS_OPTIMIZATION_GROUND} for data in MOLECULES_DATA}
     dic_fluo = {data["name"]: {method_optimization: {method_luminescence: {} for method_luminescence in METHODS_LUMINESCENCE_FLUO} for method_optimization in METHODS_OPTIMIZATION_EXCITED} for data in MOLECULES_DATA}
-    if store_data:
+    if compute_data:
         # Generate new data if store_data is True
         print("Collecting computational data...")
         for data in MOLECULES_DATA:
@@ -353,7 +355,7 @@ if __name__ == "__main__":
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Generate LaTeX tables and optionally plots for computational chemistry data.")
     parser.add_argument("--plots", "-p", action="store_true", default=False, help="Generate plots alongside LaTeX tables.")
-    parser.add_argument("--store_data", "-s", action="store_true", default=False, help="Store collected data in JSON files.")
+    parser.add_argument("--compute_data", "-c", action="store_true", default=False, help="Compute data and store in JSON files instead of getting them directly from these files.")
     args = parser.parse_args()
-    main(generate_plots=args.plots, store_data=args.store_data)
+    main(generate_plots=args.plots, compute_data=args.compute_data)
     print("Done.")
