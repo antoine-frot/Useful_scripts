@@ -10,9 +10,6 @@ It then prints two LaTeX tables:
 
 import os
 import argparse
-from re import M
-
-from sympy import comp
 from data_visualisation.experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
 from get_properties.electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
 from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
@@ -142,19 +139,17 @@ def main(generate_plots, compute_data):
             dic_abs = json.load(f)
         with open(f"{json_file}_fluo.json", "r") as f:
             dic_fluo = json.load(f)
-
-    # Remove all .tex file in the output directory
+    # for molecule in DENIS_MOLECULES:
+    #     print(f"Processing molecule: {molecule}")
+    #     for method_luminescence in METHODS_LUMINESCENCE_ABS_PRESENTED:
+    #         print(method_luminescence)
+    #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_strength_velocity"])
+    #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_vector_velocity"])
+    #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_strength_length"])
+    #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_vector_length"])
+    
     output_dir = "latex_tables"
-    #if not os.path.exists(output_dir):
-    #    os.makedirs(output_dir)
-    #for f in os.listdir(output_dir):
-    #    if f.endswith('.tex'):
-    #        os.remove(os.path.join(output_dir, f))
     output_dir_plots = "plot_comparison"
-    #if generate_plots:
-    #    for f in os.listdir(output_dir_plots):
-    #        if f.endswith('.pdf'):
-    #            os.remove(os.path.join(output_dir_plots, f))
 
     METHODS_ABS = {'': METHODS_LUMINESCENCE_ABS, '_ACCURATE': METHODS_LUMINESCENCE_ABS_ACCURATE}
     METHODS_FLUO = {'': METHODS_LUMINESCENCE_FLUO, '_ACCURATE': METHODS_LUMINESCENCE_FLUO_ACCURATE}
