@@ -287,8 +287,8 @@ def main(generate_plots, store_data):
                                                     gauge=gauge,
                                                     dissymmetry_variant=dissymmetry_variant,
                                                     prop=prop,
+                                                    output_dir=f"{output_dir_plots}/{prop}",
                                                     molecules=DENIS_MOLECULES,
-                                                    output_dir=output_dir_plots,
                                                     )
                         for method_optimization in methods_optimization:
                             generate_plot_experiment_multiple_computed(exp_data=exp_data,
@@ -300,7 +300,7 @@ def main(generate_plots, store_data):
                                                             dissymmetry_variant=dissymmetry_variant,
                                                             prop=prop,
                                                             molecules=DENIS_MOLECULES,
-                                                            output_dir=output_dir_plots,
+                                                            output_dir=f"{output_dir_plots}/{prop}",
                                                             output_filebasename="all"
                                                             )
                             methods_luminescence_groups = METHODS_LUMINESCENCE_ABS_GROUPS if luminescence_type == 'Absorption' else METHODS_LUMINESCENCE_FLUO_GROUPS
@@ -314,8 +314,8 @@ def main(generate_plots, store_data):
                                                                 dissymmetry_variant=dissymmetry_variant,
                                                                 prop=prop,
                                                                 molecules=DENIS_MOLECULES,
-                                                                output_dir=output_dir_plots,
-                                                                output_filebasename="_".join(methods_luminescence_group).replace("'",'').replace('[','').replace(']','')
+                                                                output_dir=f"{output_dir_plots}/{prop}",
+                                                                output_filebasename=method_optimization + "_" + "_".join(methods_luminescence_group).replace("'",'').replace('[','').replace(']','')
                                                                 )
 
         generate_plot_computed_multiple_computed(main_method_optimization="",
@@ -326,7 +326,7 @@ def main(generate_plots, store_data):
                                                 methods_luminescence=METHODS_LUMINESCENCE_ABS_PRESENTED,
                                                 prop='energy',
                                                 molecules=DENIS_MOLECULES,
-                                                output_dir=output_dir_plots,
+                                                output_dir=f"{output_dir_plots}/energy",
                                                 output_filebasename="CC2_ref")
 
         generate_plot_computed_multiple_computed(main_method_optimization="",
@@ -337,7 +337,7 @@ def main(generate_plots, store_data):
                                                 methods_luminescence=METHODS_LUMINESCENCE_FLUO_PRESENTED,
                                                 prop='energy',
                                                 molecules=DENIS_MOLECULES,
-                                                output_dir=output_dir_plots,
+                                                output_dir=f"{output_dir_plots}/energy",
                                                 output_filebasename="CC2_ref")
         
     # Print unique warning messages
