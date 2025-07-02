@@ -28,7 +28,7 @@ import re
 import os
 import warnings
 import numpy as np
-from constants import nm_to_eV, au_to_cgs_charge_length, eV_to_au, fine_strucure_constant
+from constants import nm_to_eV, au_to_cgs_charge_length, eV_to_au, fine_structure_constant, h_cgs, pi, elementary_charge_cgs, m_e_cgs, eV_to_cgs
 
 def parse_file(molecule: str, method_optimization: str, method_luminescence: str, solvant_correction: float=0, working_dir=None) -> dict:
     """
@@ -268,12 +268,15 @@ def parse_turbomole_format(filename: str, solvant_correction: float=0):
         warnings.warn(f"⚠️ Missing data in {filename}: {', '.join(missing_fields)}", UserWarning)
     if not any(field in missing_fields for field in ['DX', 'DY', 'DZ']):
         data['D2'] = data['DX']**2 + data['DY']**2 + data['DZ']**2
-        data['dipole_strength_length'] = data['D2'] * au_to_cgs_charge_length**2
+        #data['dipole_strength_length'] = data['D2'] * au_to_cgs_charge_length**2
     if not any(field in missing_fields for field in ['PX', 'PY', 'PZ']):
         data['P2'] = data['PX']**2 + data['PY']**2 + data['PZ']**2
-        data['dipole_strength_velocity'] = data['P2'] * au_to_cgs_charge_length**2
+        #data['dipole_strength_velocity'] = data['P2'] * au_to_cgs_charge_length**2
     if not any(field in missing_fields for field in ['MX', 'MY', 'MZ']):
         data['M2'] = data['MX']**2 + data['MY']**2 + data['MZ']**2
+    if not any(field in missing_fields for field in ['oscillator_strength_length', 'oscillator_strength_velocity']):
+        data['dipole_strength_length'] = 3 * h_cgs**2 * elementary_charge_cgs**2 / (8 * pi**2 * m_e_cgs * eV_to_cgs * data['energy']) * data['oscillator_strength_length'] * 1e40
+        data['dipole_strength_velocity'] = (3 * h_cgs**2 * elementary_charge_cgs**2) / (8 * pi**2 * m_e_cgs * eV_to_cgs * data['energy']) * data['oscillator_strength_velocity'] * 1e40
     return data
 
 def get_solvatation_correction(molecule: str, method_optimization: str, method_luminescence: str, warnings_list: list, working_dir=None) -> float:
@@ -332,5 +335,5 @@ def generate_CD(data: dict):
 
                 data[f'angle_{gauge}'] = np.degrees(np.arccos(cos_angle))
                 # Dissymmetry factor calculation based on vector components
-                data[f'dissymmetry_factor_vector_{gauge}'] = 4 * sqrt(m2_val) * cos_angle / sqrt(e2_val) * 1e4 * (-fine_strucure_constant) # Miss a /2 and I don't know why there is a minus sign
+                data[f'dissymmetry_factor_vector_{gauge}'] = 4 * sqrt(m2_val) * cos_angle / sqrt(e2_val) * 1e4 * (-fine_structure_constant) # Miss a /2 and I don't know why there is a minus sign
     return
