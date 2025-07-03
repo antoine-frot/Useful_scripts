@@ -8,11 +8,12 @@ It then prints two LaTeX tables:
  - A metrics summary table comparing computed energies to experimental values
 """
 
+from operator import ge
 import os
 import argparse
 from data_visualisation.experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
 from get_properties.electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
-from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed
+from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed, generate_plot_experiment_multiple_computed_rapport
 from data_visualisation.latex_table import generate_latex_table, generate_latex_metrics_table
 import json
 
@@ -260,6 +261,39 @@ def main(generate_plots, compute_data):
             outfile.write("\\newpage\n")
     print(f"All tables have been compiled into {all_tables}.")
 
+    generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                    luminescence_type='Absorption',
+                                                    computed_data=dic_abs,
+                                                    methods_optimization=[""],
+                                                    methods_luminescence=METHODS_LUMINESCENCE_ABS_PRESENTED,
+                                                    prop='energy',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    output_filebasename="",
+                                                    last_molecule="Boranil_CH3+RBINOL_H",
+                                                    banned_molecule="Boranil_NO2+RBINOL_H",
+                                                    ylegend=3.85,
+                                                    xlegend=3.665,
+                                                    va_bottom=['wB97X-D3tddft', 'CAM-B3LYPtddft', 'CISD', 'CC2_COSMO'],
+                                                    xylim=[2.5719557, 3.9144953])
+
+    generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                    luminescence_type='Fluorescence',
+                                                    computed_data=dic_fluo,
+                                                    methods_optimization=["-OPTES@wB97X-D3tddft"],
+                                                    methods_luminescence=METHODS_LUMINESCENCE_FLUO_PRESENTED,
+                                                    prop='energy',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    output_filebasename="",
+                                                    last_molecule="Boranil_I+RBINOL_H",
+                                                    banned_molecule="Boranil_NO2+RBINOL_CN",
+                                                    ylegend=3.2,
+                                                    xlegend=3.285,
+                                                    va_bottom=['wB97X-D3tddft', 'CAM-B3LYPtddft', 'CISD'],
+                                                    va_center=['ADC2_COSMO'],
+                                                    xylim=[1.7917793, 3.3666677000000003]
+    )
     if generate_plots: 
         print("Generating plots...")
         for luminescence_type in ['Absorption', 'Fluorescence']:
