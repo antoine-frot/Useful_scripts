@@ -713,12 +713,33 @@ def generate_plot_experiment_multiple_computed_rapport(
                 molecule_legend_done = True
             method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
 
-    plt.text(method_x, ylegend, # type: ignore
-        s="\\textbf{{Method}} (MAE, R²)",
-        size=size, # type: ignore
-        color='black',
-        ha='left', va='bottom'
-        )
+    if xlegend is None:
+        plt.text(method_x, ylegend, # type: ignore
+            s="\\textbf{{Method}} (MAE, r²)",
+            size=size, # type: ignore
+            color='black',
+            ha='left', va='bottom'
+            )
+    elif xlegend == "auto":
+        plt.text(method_x, ylegend, # type: ignore
+            s=f"\\makebox[{max_len_method_name*0.7}em][l]{{\\textbf{{Method}}}} (MAE, $r^2$)",
+            size=size, # type: ignore
+            color='black',
+            ha='left', va='bottom'
+            )
+    else:
+        plt.text(method_x, ylegend, # type: ignore
+            s="\\textbf{{Method}}",
+            size=size, # type: ignore
+            color='black',
+            ha='left', va='bottom'
+            )
+        plt.text(xlegend, ylegend, # type: ignore
+            s="(MAE, R²)",
+            size=size, # type: ignore
+            color='black',
+            ha='right', va='bottom'
+            )
 
     output_filename=f"Trend_{luminescence_type}_multiple_exp_{prop}_{gauge}_{dissymmetry_variant}_{output_filebasename}"
     if not all_calculated or not all_experimental:

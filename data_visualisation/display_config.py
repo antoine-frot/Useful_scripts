@@ -274,7 +274,8 @@ def main(generate_plots, compute_data):
                                                     banned_molecule="Boranil_NO2+RBINOL_H",
                                                     ylegend=3.85,
                                                     xlegend="auto",
-                                                    va_bottom=['wB97X-D3tddft', 'CAM-B3LYPtddft', 'CISD', 'CC2_COSMO'],
+                                                    va_bottom=['CAM-B3LYPtddft', 'CISD', 'CC2_COSMO'],
+                                                    va_center=['wB97X-D3tddft'],
                                                     xylim=[2.5719557, 3.9144953])
 
     generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
