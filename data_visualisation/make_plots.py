@@ -118,7 +118,6 @@ visual_method_attributes = {
         "color": "#b68ed1",
     },
 }
-                   
 
 def add_diagonal_reference_line(data_x, data_y, xylim=None):
     """
@@ -603,7 +602,7 @@ def generate_plot_experiment_multiple_computed_rapport(
     va_bottom : list
         List of method names for which the annotation vertical alignment should be 'bottom'.
     xlegend : float, optional
-        X-coordinate for the statistics annotation (if separate from method name).
+        X-coordinate for the statistics annotation (if separate from method name). If "auto", the annotation is automatically aligned.
     va_center : list, optional
         List of method names for which the annotation vertical alignment should be 'center'.
     output_filebasename : str, optional
@@ -635,6 +634,7 @@ def generate_plot_experiment_multiple_computed_rapport(
     method_handles = []
     molecule_handles = []
     molecule_legend_done = False
+    max_len_method_name = max([len(visual_method_attributes[method_lum.split('@')[1]]['name']) if not method_lum.split('@')[1] == "wB97X-D3tddft" else 8  for method_lum in methods_luminescence])
     for method_opt in methods_optimization:
         for method_lum in methods_luminescence:
             calculated = []
@@ -689,6 +689,12 @@ def generate_plot_experiment_multiple_computed_rapport(
             if xlegend is None: 
                 plt.text(method_x, method_y, # type: ignore
                     s=f"\\textbf{{{visual_method_attributes[display_lum]['name']}}} ({MAE:.2f}, {R2:.2f})",
+                    size=size,
+                    color=visual_method_attributes[display_lum]["color"],
+                    ha='left', va=va)
+            elif xlegend == "auto":
+                plt.text(method_x, method_y, # type: ignore
+                    s = f"\\makebox[{max_len_method_name*0.7}em][l]{{\\textbf{{{visual_method_attributes[display_lum]['name']}}}}} ({MAE:.2f}, {R2:.2f})",
                     size=size,
                     color=visual_method_attributes[display_lum]["color"],
                     ha='left', va=va)

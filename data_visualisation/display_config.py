@@ -273,7 +273,7 @@ def main(generate_plots, compute_data):
                                                     last_molecule="Boranil_CH3+RBINOL_H",
                                                     banned_molecule="Boranil_NO2+RBINOL_H",
                                                     ylegend=3.85,
-                                                    xlegend=3.665,
+                                                    xlegend="auto",
                                                     va_bottom=['wB97X-D3tddft', 'CAM-B3LYPtddft', 'CISD', 'CC2_COSMO'],
                                                     xylim=[2.5719557, 3.9144953])
 
@@ -289,7 +289,7 @@ def main(generate_plots, compute_data):
                                                     last_molecule="Boranil_I+RBINOL_H",
                                                     banned_molecule="Boranil_NO2+RBINOL_CN",
                                                     ylegend=3.2,
-                                                    xlegend=3.285,
+                                                    xlegend="auto",
                                                     va_bottom=['wB97X-D3tddft', 'CAM-B3LYPtddft', 'CISD'],
                                                     va_center=['ADC2_COSMO'],
                                                     xylim=[1.7917793, 3.3666677000000003]
