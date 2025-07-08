@@ -226,7 +226,7 @@ def _common_save_plot(x_data, y_data, x_label, y_label, output_dir, output_filen
     plt.close()
 
 
-def get_label(prop, gauge=None):
+def get_label(prop, luminescence_type, gauge=None):
     """
     Get the label for the plot based on the property and the gauge.
     Parameters:
@@ -240,17 +240,20 @@ def get_label(prop, gauge=None):
     str
         The label for the plot.
     """
+    label = luminescence_type
     if prop == 'energy':
-        label = 'Energy (eV)'
+        label += ' Energy (eV)'
         axes_label_size = 26
     elif prop == 'dissymmetry_factor':
-        if gauge == 'length':
-            label = 'dissymmetry factor in length gauge (g)'
-        elif gauge == 'velocity':
-            label = 'dissymmetry factor in velocity gauge (g)'
-        else:
+        if gauge not in ['length', 'velocity']:
             raise ValueError(f"Unknown gauge: {gauge}. Please set gauge to 'length' or 'velocity'.")
-        axes_label_size = 20
+        label += f" Dissymmetry Factor in {gauge.capitalize()} Gauge"
+        if luminescence_type == 'Absorption':
+            label += r" ($\mathbf{g_{abs}}$"
+        else:
+            label += r" ($\mathbf{g_{fluo}}$"
+        label += r", $\mathbf{\times 10^{-4}}$)"
+        axes_label_size = 18
     else:
         raise ValueError(f"Unknown property: {prop}. Please set prop to 'energy' or 'dissymmetry_factor'.")
     return label, axes_label_size
@@ -335,7 +338,7 @@ def generate_plot_experiment_computed(exp_data: dict, luminescence_type: str, co
             
             # Complete and save the plot if we have data
             if calculated:
-                label_text, axes_label_size = get_label(prop, gauge)
+                label_text, axes_label_size = get_label(prop, luminescence_type, gauge)
                 _common_save_plot(
                     x_data=experimental,
                     y_data=calculated,
@@ -428,7 +431,7 @@ def generate_plot_experiment_multiple_computed(exp_data: dict, luminescence_type
         plt.close()
         return
 
-    label_text, axes_label_size = get_label(prop, gauge)
+    label_text, axes_label_size = get_label(prop, luminescence_type, gauge)
     _common_save_plot(
         x_data=all_experimental,
         y_data=all_calculated,
@@ -538,8 +541,8 @@ def generate_plot_computed_multiple_computed(main_method_optimization: str, main
         print(f"No data to plot for {output_filename}.")
         plt.close()
         return
-    
-    label_text, axes_label_size = get_label(prop, gauge)
+
+    label_text, axes_label_size = get_label(prop, luminescence_type, gauge)
     display_main_lum = main_method_luminescence.split('@')[1] if '@' in main_method_luminescence else main_method_luminescence
     label_x = visual_method_attributes[display_main_lum]["name"]
     _common_save_plot(
@@ -563,16 +566,17 @@ def generate_plot_experiment_multiple_computed_rapport(
     prop: str,
     last_molecule,
     ylegend,
-    va_bottom,
-    xlegend=None,
+    padding=0.05,
+    va_bottom=[""],
     va_center=[""],
+    xlegend=None,
     output_filebasename="",
     output_dir="plot_comparison",
     gauge=None,
     dissymmetry_variant=None,
     molecules=None,
     xylim=None,
-    banned_molecule=None
+    banned_molecule=[""]
 ):
     """
     Generate a comparison plot of experimental vs computed data for multiple methods, with trend lines and annotated statistics.
@@ -617,7 +621,7 @@ def generate_plot_experiment_multiple_computed_rapport(
         List of molecules to include in the plot. If None, all molecules from exp_data will be used.
     xylim : tuple, optional
         Tuple specifying (min, max) for axis limits.
-    banned_molecule : str, optional
+    banned_molecule : list[str], optional
         Molecule to exclude from plotting for B3LYP and PBE0.
 
     Returns
@@ -628,6 +632,9 @@ def generate_plot_experiment_multiple_computed_rapport(
     # Handle default arguments
     if molecules is None:
         molecules = list(exp_data.keys()) 
+    if last_molecule in banned_molecule:
+        print(f"Error: {last_molecule} is in the banned molecules list.")
+        return
 
     all_calculated = []
     all_experimental = []
@@ -664,13 +671,13 @@ def generate_plot_experiment_multiple_computed_rapport(
                 all_calculated.append(calculated_data)
                 experimental.append(experimental_data)
                 all_experimental.append(experimental_data)
-                if molecule == banned_molecule and (display_lum == 'B3LYPtddft' or display_lum == 'PBE0tddft'):
-                    continue
-                if molecule == last_molecule:
-                    method_x, method_y = experimental_data + 0.05, calculated_data
-                _plot(experimental_data, calculated_data, molecule, display_lum)
                 if not molecule_legend_done:
                     make_molecule_legend_handle(molecule_handles, molecule, 'black')
+                if molecule in banned_molecule and (display_lum == 'B3LYPtddft' or display_lum == 'PBE0tddft'):
+                    continue
+                if molecule == last_molecule:
+                    method_x, method_y = experimental_data + padding, calculated_data
+                _plot(experimental_data, calculated_data, molecule, display_lum)
             MAE = mean_absolute_error(experimental, calculated)
             pearson_result = pearsonr(experimental, calculated)
             R2 = pearson_result[0] ** 2 # type: ignore
@@ -747,7 +754,7 @@ def generate_plot_experiment_multiple_computed_rapport(
         plt.close()
         return
 
-    label_text, axes_label_size = get_label(prop, gauge)
+    label_text, axes_label_size = get_label(prop, luminescence_type, gauge)
     _common_save_plot(
         x_data=all_experimental,
         y_data=all_calculated,
