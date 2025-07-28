@@ -8,9 +8,13 @@ It then prints two LaTeX tables:
  - A metrics summary table comparing computed energies to experimental values
 """
 
+from math import cos, exp
 from operator import ge
 import os
 import argparse
+from re import M
+from statistics import mean
+from tkinter import W
 from data_visualisation.experimental_data import MOLECULES_DATA, exp_data, MOLECULE_NAME_MAPPING, DENIS_MOLECULES  # Experimental data
 from get_properties.electronic_transition_parser import parse_file, get_solvatation_correction # Parsing functions
 from data_visualisation.make_plots import generate_plot_experiment_computed, generate_plot_experiment_multiple_computed, generate_plot_computed_multiple_computed, generate_plot_experiment_multiple_computed_rapport
@@ -66,6 +70,8 @@ HYBRID_FUNCTIONALS = ["B3LYPtddft", "PBE0tddft"]
 RS_META_FUNCTIONALS = ["wB97X-D3tddft", "CAM-B3LYPtddft", "MO62Xtddft"]
 POSTHF_LIGHT = ["CISD", "B2PLYPtddft"] 
 POSTHF_HEAVY = ["CC2_COSMO", "ADC2_COSMO"]
+CD_FUNCTIONALS_WITH_HYBRIDS = ["CC2_COSMO", "B3LYPtddft", "PBE0tddft", "wB97X-D3tddft", "CAM-B3LYPtddft", "MO62Xtddft", "B2PLYPtddft", "ADC2_COSMO"]
+CD_FUNCTIONALS = ["wB97X-D3tddft", "CAM-B3LYPtddft", "MO62Xtddft", "B2PLYPtddft", "CC2_COSMO", "ADC2_COSMO"]
 
 METHODS_LUMINESCENCE_ABS = [f"ABS@{method}" for method in ALL_FUNCTIONALS]
 METHODS_LUMINESCENCE_ABS_ACCURATE = [f"ABS@{method}" for method in ACCURATE_FUNCTIONALS]
@@ -77,7 +83,9 @@ METHODS_LUMINESCENCE_ABS_HYBRID = [f"ABS@{method}" for method in HYBRID_FUNCTION
 METHODS_LUMINESCENCE_ABS_RS_META = [f"ABS@{method}" for method in RS_META_FUNCTIONALS]
 METHODS_LUMINESCENCE_ABS_POSTHF_LIGHT = [f"ABS@{method}" for method in POSTHF_LIGHT]
 METHODS_LUMINESCENCE_ABS_POSTHF_HEAVY = [f"ABS@{method}" for method in POSTHF_HEAVY]
-METHODS_LUMINESCENCE_ABS_GROUPS = [METHODS_LUMINESCENCE_ABS_HYBRID, METHODS_LUMINESCENCE_ABS_RS_META, METHODS_LUMINESCENCE_ABS_POSTHF_LIGHT, METHODS_LUMINESCENCE_ABS_POSTHF_HEAVY]
+METHODS_LUMINESCENCE_ABS_CD = [f"ABS@{method}" for method in CD_FUNCTIONALS]
+METHODS_LUMINESCENCE_ABS_CD_WITH_HYBRIDS = [f"ABS@{method}" for method in CD_FUNCTIONALS_WITH_HYBRIDS]
+METHODS_LUMINESCENCE_ABS_GROUPS = [METHODS_LUMINESCENCE_ABS_HYBRID, METHODS_LUMINESCENCE_ABS_RS_META, METHODS_LUMINESCENCE_ABS_POSTHF_LIGHT, METHODS_LUMINESCENCE_ABS_POSTHF_HEAVY, METHODS_LUMINESCENCE_ABS_CD, METHODS_LUMINESCENCE_ABS_CD_WITH_HYBRIDS]
 
 METHODS_LUMINESCENCE_FLUO = [f"FLUO@{method}" for method in ALL_FUNCTIONALS]
 METHODS_LUMINESCENCE_FLUO_ACCURATE = [f"FLUO@{method}" for method in ACCURATE_FUNCTIONALS]
@@ -89,7 +97,9 @@ METHODS_LUMINESCENCE_FLUO_HYBRID = [f"FLUO@{method}" for method in HYBRID_FUNCTI
 METHODS_LUMINESCENCE_FLUO_RS_META = [f"FLUO@{method}" for method in RS_META_FUNCTIONALS]
 METHODS_LUMINESCENCE_FLUO_POSTHF_LIGHT = [f"FLUO@{method}" for method in POSTHF_LIGHT]
 METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY = [f"FLUO@{method}" for method in POSTHF_HEAVY]
-METHODS_LUMINESCENCE_FLUO_GROUPS = [METHODS_LUMINESCENCE_FLUO_HYBRID, METHODS_LUMINESCENCE_FLUO_RS_META, METHODS_LUMINESCENCE_FLUO_POSTHF_LIGHT, METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY]
+METHODS_LUMINESCENCE_FLUO_CD = [f"FLUO@{method}" for method in CD_FUNCTIONALS]
+METHODS_LUMINESCENCE_FLUO_CD_WITH_HYBRID = [f"FLUO@{method}" for method in CD_FUNCTIONALS_WITH_HYBRIDS]
+METHODS_LUMINESCENCE_FLUO_GROUPS = [METHODS_LUMINESCENCE_FLUO_HYBRID, METHODS_LUMINESCENCE_FLUO_RS_META, METHODS_LUMINESCENCE_FLUO_POSTHF_LIGHT, METHODS_LUMINESCENCE_FLUO_POSTHF_HEAVY, METHODS_LUMINESCENCE_FLUO_CD, METHODS_LUMINESCENCE_FLUO_CD_WITH_HYBRID]
 
 
 def main(generate_plots, compute_data):
@@ -148,7 +158,6 @@ def main(generate_plots, compute_data):
     #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_vector_velocity"])
     #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_strength_length"])
     #         print(dic_abs[molecule][''][method_luminescence]["dissymmetry_factor_vector_length"])
-    
     output_dir = "latex_tables"
     output_dir_plots = "plot_comparison"
 
@@ -260,8 +269,99 @@ def main(generate_plots, compute_data):
             outfile.write(f"\\input{{{filepath}}}\n")
             outfile.write("\\newpage\n")
     print(f"All tables have been compiled into {all_tables}.")
+    # change ABS by FLUO in DIC
+    DIC=['ABS@B3LYPtddft', 'ABS@PBE0tddft', 'ABS@wB97X-D3tddft', 'ABS@CAM-B3LYPtddft', 'ABS@MO62Xtddft', 'ABS@CISD', 'ABS@B2PLYPtddft', 'ABS@CC2_COSMO', 'ABS@ADC2_COSMO']
+    print(DENIS_MOLECULES)
 
     generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                    luminescence_type='Absorption',
+                                                    computed_data=dic_abs,
+                                                    methods_optimization=[""],
+                                                    methods_luminescence=['ABS@wB97X-D3tddft'],
+                                                    prop='dissymmetry_factor',
+                                                    gauge='length',
+                                                    dissymmetry_variant='strength',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    va_above=['CAM-B3LYPtddft', 'B3LYPtddft', 'B2PLYPtddft'],
+                                                    va_below=["MO62Xtddft", 'PBE0tddft'],
+                                                    padding=0.5,
+                                                    method_padding=1.2,
+                                                    output_filebasename="presentation",
+                                                    xylim=(-22, 13.5),
+                                                    )
+
+    return
+    generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                luminescence_type='Fluorescence',
+                                                computed_data=dic_fluo,
+                                                methods_optimization=["-OPTES@wB97X-D3tddft"],
+                                                methods_luminescence=['FLUO@CISD', 'FLUO@CC2_COSMO', 'FLUO@ADC2_COSMO'],
+                                                prop='energy',
+                                                molecules=DENIS_MOLECULES,
+                                                output_dir=output_dir_plots,
+                                                output_filebasename="",
+                                                va_above=['CAM-B3LYPtddft', 'CISD'],
+                                                va_below=['MO62Xtddft', 'CC2_COSMO'],
+                                                method_padding=0.05,
+                                                xylim=[1.7917793, 3.3666677000000003],
+    )
+    
+    generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                    luminescence_type='Absorption',
+                                                    computed_data=dic_abs,
+                                                    methods_optimization=[""],
+                                                    methods_luminescence=['ABS@wB97X-D3tddft', 'ABS@CC2_COSMO', 'ABS@ADC2_COSMO'],
+                                                    prop='energy',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    output_filebasename="",
+                                                    va_above=['CAM-B3LYPtddft', 'CC2_COSMO', 'wB97X-D3tddft'],
+                                                    va_below=['MO62Xtddft','B2PLYPtddft'],
+                                                    method_padding=0.05,
+                                                    xylim=(2.5719557, 3.9144953),
+    )
+
+    generate_plot_experiment_multiple_computed_rapport(exp_data=dic_abs,
+                                                main_method_optimization="",
+                                                main_method_luminescence="ABS@wB97X-D3tddft",
+                                                luminescence_type='Absorption',
+                                                computed_data=dic_fluo,
+                                                methods_optimization=["-OPTES@wB97X-D3tddft"],
+                                                methods_luminescence=["FLUO@wB97X-D3tddft"],
+                                                molecules=DENIS_MOLECULES,
+                                                output_dir=output_dir_plots,
+                                                output_filebasename="gabs_gfluo",
+                                                xylim=(-12, 6),
+                                                prop='dissymmetry_factor',
+                                                gauge='length',
+                                                dissymmetry_variant='strength',
+                                                banned_molecule=["Boranil_NO2+RBINOL_CN"],
+                                                Do_metrics=False,
+                                                       )
+
+    generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                    luminescence_type='Absorption',
+                                                    computed_data=dic_abs,
+                                                    methods_optimization=[""],
+                                                    methods_luminescence=DIC,
+                                                    prop='dissymmetry_factor',
+                                                    gauge='velocity',
+                                                    dissymmetry_variant='strength',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    banned_molecule=["Boranil_NO2+RBINOL_H", "Boranil_NH2+RBINOL_CN"],
+                                                    va_above=['B3LYPtddft', 'B2PLYPtddft', 'wB97X-D3tddft'],
+                                                    va_below=['PBE0tddft', 'MO62Xtddft', 'CC2_COSMO'],
+                                                    padding=0.5,
+                                                    method_padding=1.2,
+                                                    output_filebasename="presentation",
+                                                    xylim=(-22, 13.5),
+                                                    )
+
+    generate_plot_experiment_multiple_computed_rapport(exp_data=dic_abs,
+                                                    main_method_optimization="",
+                                                    main_method_luminescence="ABS@CC2_COSMO",
                                                     luminescence_type='Absorption',
                                                     computed_data=dic_abs,
                                                     methods_optimization=[""],
@@ -269,14 +369,12 @@ def main(generate_plots, compute_data):
                                                     prop='energy',
                                                     molecules=DENIS_MOLECULES,
                                                     output_dir=output_dir_plots,
-                                                    output_filebasename="",
-                                                    last_molecule="Boranil_CH3+RBINOL_H",
-                                                    banned_molecule="Boranil_NO2+RBINOL_H",
-                                                    ylegend=3.85,
-                                                    xlegend="auto",
-                                                    va_bottom=['CAM-B3LYPtddft', 'CISD', 'CC2_COSMO'],
-                                                    va_center=['wB97X-D3tddft'],
-                                                    xylim=[2.5719557, 3.9144953])
+                                                    output_filebasename="CC2_ref",
+                                                    banned_molecule="Boranil_NO2+RBINOL_CN",
+                                                    va_above=['CC2_COSMO', "ADC2_COSMO", "B2PLYPtddft"],
+                                                    va_below=['MO62Xtddft', "PBE0tddft", "B3LYPtddft"],
+                                                    method_padding=0.05,
+    )
 
     generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
                                                     luminescence_type='Fluorescence',
@@ -287,14 +385,44 @@ def main(generate_plots, compute_data):
                                                     molecules=DENIS_MOLECULES,
                                                     output_dir=output_dir_plots,
                                                     output_filebasename="",
-                                                    last_molecule="Boranil_I+RBINOL_H",
                                                     banned_molecule="Boranil_NO2+RBINOL_CN",
-                                                    ylegend=3.2,
-                                                    xlegend="auto",
-                                                    va_bottom=['wB97X-D3tddft', 'CAM-B3LYPtddft', 'CISD'],
-                                                    va_center=['ADC2_COSMO'],
-                                                    xylim=[1.7917793, 3.3666677000000003]
+                                                    va_above=['CAM-B3LYPtddft', 'CISD'],
+                                                    va_below=['MO62Xtddft', 'CC2_COSMO'],
+                                                    method_padding=0.05,
     )
+
+    generate_plot_experiment_multiple_computed_rapport(exp_data=exp_data,
+                                                    luminescence_type='Fluorescence',
+                                                    computed_data=dic_fluo,
+                                                    methods_optimization=[""],
+                                                    methods_luminescence=METHODS_LUMINESCENCE_FLUO_PRESENTED,
+                                                    prop='energy',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    output_filebasename="OPTESM062X",
+                                                    banned_molecule="",
+                                                    va_above=['CAM-B3LYPtddft'],
+                                                    va_below=['MO62Xtddft', 'B3LYPtddft', 'B2PLYPtddft', 'PBE0tddft'],
+                                                    method_padding=0.05,
+    )
+
+    generate_plot_experiment_multiple_computed_rapport(exp_data=dic_fluo,
+                                                    main_method_optimization="-OPTES@wB97X-D3tddft",
+                                                    main_method_luminescence="FLUO@CC2_COSMO",
+                                                    luminescence_type='Fluorescence',
+                                                    computed_data=dic_fluo,
+                                                    methods_optimization=["-OPTES@wB97X-D3tddft"],
+                                                    methods_luminescence=METHODS_LUMINESCENCE_FLUO_PRESENTED,
+                                                    prop='energy',
+                                                    molecules=DENIS_MOLECULES,
+                                                    output_dir=output_dir_plots,
+                                                    output_filebasename="CC2_ref",
+                                                    banned_molecule="Boranil_NO2+RBINOL_CN",
+                                                    va_above=['CC2_COSMO', "ADC2_COSMO", "B2PLYPtddft"],
+                                                    va_below=['MO62Xtddft', "PBE0tddft", "B3LYPtddft"],
+                                                    method_padding=0.05,
+    )
+    
     if generate_plots: 
         print("Generating plots...")
         for luminescence_type in ['Absorption', 'Fluorescence']:

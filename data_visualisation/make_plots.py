@@ -1,7 +1,10 @@
+from ast import main
+from math import exp
 import re
 import numpy as np
 import os
 import matplotlib
+from scipy import special
 matplotlib.use('Agg')  # Set non-interactive backend before importing pyplot
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -87,35 +90,35 @@ visual_method_attributes = {
     },
     "PBE0tddft": {
         "name": "PBE0",
-        "color": "#86c5e9",
+        "color": "#17becf",
     },
     "wB97X-D3tddft": {
         "name": r"$\boldsymbol{\omega}$B97X-D3",
-        "color": "#2ca02c",
+        "color": "#1a9850",
     },
     "CAM-B3LYPtddft": {
         "name": "CAM-B3LYP",
-        "color": "#5cb85c",
+        "color": "#a6d854",
     },
     "MO62Xtddft": {
         "name": "M06-2X",
-        "color": "#94d494",
+        "color": "#8C564b",
     },
     "CISD": {
         "name": "CIS(D)",
-        "color": "#ff7f0e",
+        "color": "#9467bd",
     },
     "B2PLYPtddft": {
         "name": "B2PLYP",
-        "color": "#ffab4f",
+        "color": "#e377c2",
     },
     "ADC2_COSMO": {
         "name": "ADC(2)",
-        "color": "#9467bd",
+        "color": "#ff7f0e",
     },
     "CC2_COSMO": {
         "name": "CC2",
-        "color": "#b68ed1",
+        "color": "#d62728",
     },
 }
 
@@ -152,13 +155,16 @@ def add_diagonal_reference_line(data_x, data_y, xylim=None):
 
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
-    # print(f"X axis limits: {axis_min} to {axis_max}")
-    if axis_max - max(data_x) >= min(data_x) - axis_min:
-        loc= 'right'
-    else:
-        loc= 'left'
-    return loc
-    
+    try:
+        if axis_max - max(data_x) >= min(data_x) - axis_min:
+            loc= 'right'
+        else:
+            loc= 'left'
+        return loc
+    except Exception as e:
+        print(f"Error determining location: {e}, defaulting to 'left'")
+        return 'left'
+
 def _plot(x, y, molecule, method):
     color = visual_method_attributes[method]["color"]
     if visual_molecule_attributes[molecule]["filled"]:
@@ -564,19 +570,21 @@ def generate_plot_experiment_multiple_computed_rapport(
     methods_optimization: list,
     methods_luminescence: list,
     prop: str,
-    last_molecule,
-    ylegend,
+    main_method_optimization: str="",
+    main_method_luminescence: str="",
     padding=0.05,
-    va_bottom=[""],
-    va_center=[""],
-    xlegend=None,
+    method_padding=0.1,
+    va_above=[""],
+    va_below=[""],
     output_filebasename="",
     output_dir="plot_comparison",
     gauge=None,
     dissymmetry_variant=None,
     molecules=None,
+    banned_molecule=[""],
     xylim=None,
-    banned_molecule=[""]
+    Do_metrics=True,
+    special_molecule=None,
 ):
     """
     Generate a comparison plot of experimental vs computed data for multiple methods, with trend lines and annotated statistics.
@@ -599,10 +607,6 @@ def generate_plot_experiment_multiple_computed_rapport(
         List of luminescence methods used in the computations.
     prop : str
         Property to be plotted (e.g., 'energy', 'dissymmetry_factor').
-    last_molecule : str
-        Name of the molecule to use for placing the method annotation.
-    ylegend : float
-        Y-coordinate for the legend header text.
     va_bottom : list
         List of method names for which the annotation vertical alignment should be 'bottom'.
     xlegend : float, optional
@@ -619,8 +623,6 @@ def generate_plot_experiment_multiple_computed_rapport(
         Variant used in the dissymmetry factor calculations ('strength' or 'vector').
     molecules : list, optional
         List of molecules to include in the plot. If None, all molecules from exp_data will be used.
-    xylim : tuple, optional
-        Tuple specifying (min, max) for axis limits.
     banned_molecule : list[str], optional
         Molecule to exclude from plotting for B3LYP and PBE0.
 
@@ -632,16 +634,17 @@ def generate_plot_experiment_multiple_computed_rapport(
     # Handle default arguments
     if molecules is None:
         molecules = list(exp_data.keys()) 
-    if last_molecule in banned_molecule:
-        print(f"Error: {last_molecule} is in the banned molecules list.")
-        return
 
     all_calculated = []
     all_experimental = []
+    all_method_y = []
     method_handles = []
     molecule_handles = []
     molecule_legend_done = False
-    max_len_method_name = max([len(visual_method_attributes[method_lum.split('@')[1]]['name']) if not method_lum.split('@')[1] == "wB97X-D3tddft" else 8  for method_lum in methods_luminescence])
+    max_len_method_name = max(max([len(visual_method_attributes[method_lum.split('@')[1]]['name']) if not method_lum.split('@')[1] == "wB97X-D3tddft" else 8  for method_lum in methods_luminescence]), 6)  # 6 is the length of 'Methods'
+    max_len_method_name = 9
+    method_x = None
+    method_luminescence_name = main_method_luminescence.split('@')[1] if '@' in main_method_luminescence else main_method_luminescence
     for method_opt in methods_optimization:
         for method_lum in methods_luminescence:
             calculated = []
@@ -649,8 +652,9 @@ def generate_plot_experiment_multiple_computed_rapport(
             display_lum = method_lum.split('@')[1] if '@' in method_lum else method_lum
             for molecule in molecules:
                 adjusted_prop = get_adjusted_prop(prop, gauge, dissymmetry_variant)
-                # if molecule == banned_molecule and (display_lum == 'B3LYPtddft' or display_lum == 'PBE0tddft'): to test the good axis limits of the plot
-                    # continue
+                if not molecule_legend_done:
+                    legend_color = '#E95329' if special_molecule and molecule in special_molecule else 'black'
+                    make_molecule_legend_handle(molecule_handles, molecule, legend_color)
                 if (molecule in computed_data and 
                     method_opt in computed_data[molecule] and 
                     method_lum in computed_data[molecule][method_opt] and
@@ -660,92 +664,77 @@ def generate_plot_experiment_multiple_computed_rapport(
                 else:
                     continue
 
-                if (molecule in exp_data and 
-                    luminescence_type in exp_data[molecule] and 
-                    prop in exp_data[molecule][luminescence_type]):
-                    experimental_data = exp_data[molecule][luminescence_type][prop]
+                if main_method_luminescence == "":
+                    if (molecule in exp_data and 
+                        luminescence_type in exp_data[molecule] and 
+                        prop in exp_data[molecule][luminescence_type]):
+                        experimental_data = exp_data[molecule][luminescence_type][prop]
+                    else:
+                        continue
                 else:
-                    continue
+                    if (molecule in exp_data and 
+                    main_method_optimization in exp_data[molecule] and 
+                    main_method_luminescence in exp_data[molecule][main_method_optimization] and
+                    adjusted_prop in exp_data[molecule][main_method_optimization][main_method_luminescence] and
+                    not np.isnan(exp_data[molecule][main_method_optimization][main_method_luminescence][adjusted_prop])):
+                        experimental_data = exp_data[molecule][main_method_optimization][main_method_luminescence][adjusted_prop]
+                    else:
+                        continue
 
-                calculated.append(calculated_data)
-                all_calculated.append(calculated_data)
-                experimental.append(experimental_data)
-                all_experimental.append(experimental_data)
-                if not molecule_legend_done:
-                    make_molecule_legend_handle(molecule_handles, molecule, 'black')
-                if molecule in banned_molecule and (display_lum == 'B3LYPtddft' or display_lum == 'PBE0tddft'):
+                if molecule in banned_molecule: #and (display_lum == 'B3LYPtddft' or display_lum == 'PBE0tddft'):
+                    print(calculated_data, experimental_data, molecule, display_lum)
                     continue
-                if molecule == last_molecule:
-                    method_x, method_y = experimental_data + padding, calculated_data
+                calculated.append(calculated_data)
+                experimental.append(experimental_data)
+                all_calculated.append(calculated_data)
+                all_experimental.append(experimental_data)
                 _plot(experimental_data, calculated_data, molecule, display_lum)
-            MAE = mean_absolute_error(experimental, calculated)
-            pearson_result = pearsonr(experimental, calculated)
-            R2 = pearson_result[0] ** 2 # type: ignore
-            model = LinearRegression().fit(np.array(experimental).reshape(-1, 1), np.array(calculated).reshape(-1, 1))
-            # print(display_lum, model.coef_)
-            trend = model.predict(np.array(experimental).reshape(-1, 1))
-            if display_lum in va_bottom:
-                va = 'bottom'
-            elif display_lum in va_center:
-                va = 'center'
-            else:
-                va = 'top'
-            plt.plot(experimental, trend, linewidth=2,
-                color=visual_method_attributes[display_lum]["color"])
-            size = 20
-            if xlegend is None: 
-                plt.text(method_x, method_y, # type: ignore
-                    s=f"\\textbf{{{visual_method_attributes[display_lum]['name']}}} ({MAE:.2f}, {R2:.2f})",
-                    size=size,
-                    color=visual_method_attributes[display_lum]["color"],
-                    ha='left', va=va)
-            elif xlegend == "auto":
-                plt.text(method_x, method_y, # type: ignore
+
+            if Do_metrics and not(method_lum == main_method_luminescence):
+                MAE = mean_absolute_error(experimental, calculated)
+                pearson_result = pearsonr(experimental, calculated)
+                R2 = pearson_result[0] ** 2 # type: ignore
+                if not (prop == 'dissymmetry_factor' and (display_lum == 'B3LYPtddft' or display_lum == 'PBE0tddft')):
+                    model = LinearRegression().fit(np.array(experimental).reshape(-1, 1), np.array(calculated).reshape(-1, 1))
+                else:
+                    #return the index of the maximum and minimum value of experimental and remove the value correponding to this index from calculated and experimental
+                    calculated = [x for i, x in enumerate(calculated) if i not in [i for i, x in enumerate(experimental) if x == max(experimental) or x == min(experimental)]]
+                    experimental = [x for i, x in enumerate(experimental) if i not in [i for i, x in enumerate(experimental) if x == max(experimental) or x == min(experimental)]]
+                    i = [i for i, x in enumerate(experimental) if x == max(experimental) or x == min(experimental)]
+                    model = LinearRegression().fit(np.array(experimental).reshape(-1, 1), np.array(calculated).reshape(-1, 1))
+                trend = model.predict(np.array(experimental).reshape(-1, 1))
+                plt.plot(experimental, trend, linewidth=2,
+                    color=visual_method_attributes[display_lum]["color"])
+                size = 20
+                if method_x is None:
+                    method_x = max(experimental) + padding
+                if model.coef_[0][0] > 0:
+                    method_y = max(trend)
+                else:
+                    method_y = min(trend)
+                all_method_y.append(method_y)
+                if display_lum in va_above:
+                    va = 'bottom'
+                elif display_lum in va_below:
+                    va = 'top'
+                else:
+                    va = 'center'
+                plt.text(method_x, method_y,
                     s = f"\\makebox[{max_len_method_name*0.7}em][l]{{\\textbf{{{visual_method_attributes[display_lum]['name']}}}}} ({MAE:.2f}, {R2:.2f})",
                     size=size,
                     color=visual_method_attributes[display_lum]["color"],
                     ha='left', va=va)
-            else:
-                plt.text(method_x, method_y, # type: ignore
-                    s=f"\\textbf{{{visual_method_attributes[display_lum]['name']}}}",
-                    size=size,
-                    color=visual_method_attributes[display_lum]["color"],
-                    ha='left', va=va)
-                plt.text(xlegend, method_y, # type: ignore
-                    s=f"({MAE:.2f}, {R2:.2f})",
-                    size=size,
-                    color=visual_method_attributes[display_lum]["color"],
-                    ha='right', va=va)
-            if not molecule_legend_done:
-                molecule_legend_done = True
-            method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
+                if not molecule_legend_done:
+                    molecule_legend_done = True
+                method_handles.append(Line2D([0], [0], color=visual_method_attributes[display_lum]["color"], lw=4, label=fr"\textbf{{{visual_method_attributes[display_lum]['name']}}}"))
 
-    if xlegend is None:
-        plt.text(method_x, ylegend, # type: ignore
-            s="\\textbf{{Method}} (MAE, r²)",
-            size=size, # type: ignore
-            color='black',
-            ha='left', va='bottom'
-            )
-    elif xlegend == "auto":
+    if Do_metrics:
+        ylegend = max(all_method_y) + method_padding
         plt.text(method_x, ylegend, # type: ignore
             s=f"\\makebox[{max_len_method_name*0.7}em][l]{{\\textbf{{Method}}}} (MAE, $r^2$)",
             size=size, # type: ignore
             color='black',
             ha='left', va='bottom'
-            )
-    else:
-        plt.text(method_x, ylegend, # type: ignore
-            s="\\textbf{{Method}}",
-            size=size, # type: ignore
-            color='black',
-            ha='left', va='bottom'
-            )
-        plt.text(xlegend, ylegend, # type: ignore
-            s="(MAE, R²)",
-            size=size, # type: ignore
-            color='black',
-            ha='right', va='bottom'
             )
 
     output_filename=f"Trend_{luminescence_type}_multiple_exp_{prop}_{gauge}_{dissymmetry_variant}_{output_filebasename}"
@@ -753,17 +742,21 @@ def generate_plot_experiment_multiple_computed_rapport(
         print(f"No data to plot for {output_filename}.")
         plt.close()
         return
-
+    
+    if method_luminescence_name in visual_method_attributes:
+        xlabel = visual_method_attributes[method_luminescence_name]["name"]
+    else:
+        xlabel = "Experimental"
     label_text, axes_label_size = get_label(prop, luminescence_type, gauge)
     _common_save_plot(
         x_data=all_experimental,
         y_data=all_calculated,
-        x_label=f"Experimental {label_text}",
+        x_label=f"{xlabel} {label_text}",
         y_label=f"Computed {label_text}",
         output_dir=output_dir,
         output_filename=output_filename,
         molecule_handles=molecule_handles,
         axes_label_size=axes_label_size,
-        xylim=xylim,
-        loc='upper left'
+        loc='upper left',
+        xylim=xylim
     )
