@@ -278,4 +278,5 @@ for data in MOLECULES_DATA:
             'dissymmetry_factor': data["exp_glum"]
         },
         '0-0': (nm_to_eV / data["fluorescence_wavelength"] + nm_to_eV / data["absorption_wavelength"])/2,
+        'Stokes_shift': nm_to_eV / data["absorption_wavelength"] - nm_to_eV / data["fluorescence_wavelength"],
     }
