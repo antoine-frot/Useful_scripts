@@ -18,14 +18,6 @@ mcp()
     echo "${*:2}" | xargs -n 1 cp $1
 }
 
-exp_molecules() {
-    python3 -c "import sys; sys.path.append('$path_to_git/data_visualisation'); from experimental_data import MOLECULES_DATA; print(*[molecule['name'] for molecule in MOLECULES_DATA], sep='\n')"
-}
-
-denis_molecules() {
-    python3 -c "import sys; sys.path.append('$path_to_git/data_visualisation'); from experimental_data import DENIS_MOLECULES; print(*[molecule for molecule in DENIS_MOLECULES], sep='\n')"
-}
-
 goto() {
     if [[ $# -ne 1 || "$1" != *"-"* ]]; then
         echo "Usage: goto molecule-method" >&2
