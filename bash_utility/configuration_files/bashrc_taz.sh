@@ -25,3 +25,6 @@ if [ -d ~/.bashrc.d ]; then
 fi
 
 unset rc
+
+INPUTS="INCAR POSCAR POTCAR KPOINTS vasp.6.5.0-zen2.job"
+local=afrot@coloquinte.d5.icgm.fr:/home/afrot
