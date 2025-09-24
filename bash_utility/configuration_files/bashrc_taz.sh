@@ -28,3 +28,5 @@ unset rc
 
 INPUTS="INCAR POSCAR POTCAR KPOINTS vasp.6.5.0-zen2.job"
 local=afrot@coloquinte.d5.icgm.fr:/home/afrot
+alias activate="source virtual_env_python/bin/activate"
+activate
