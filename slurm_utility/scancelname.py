@@ -60,10 +60,9 @@ def cancel_jobs(patterns):
         for pattern in patterns:
             if fnmatch.fnmatchcase(job_name, pattern):
                 matches.append((job_id, job_name))
-                break  # No need to check other patterns if matched
     
     if not matches:
-        print("No matching jobs found.")
+        print(f"No matching jobs found for {patterns}.")
         return
 
     # Show jobs to be cancelled
@@ -91,8 +90,6 @@ def cancel_jobs(patterns):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <job_name_pattern> [<pattern2> ...]")
-        print("Example: ./scancelname.py 'myjob*' 'test_job?'")
-        sys.exit(1)
-    
-    cancel_jobs(sys.argv[1:])
+        cancel_jobs([os.path.basename(os.getcwd())])
+    else:
+        cancel_jobs(sys.argv[1:])
