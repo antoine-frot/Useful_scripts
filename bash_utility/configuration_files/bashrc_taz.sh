@@ -26,7 +26,7 @@ fi
 
 unset rc
 
-INPUTS="INCAR POSCAR POTCAR KPOINTS vasp.6.5.0-zen2.job"
+INPUTS="INCAR POSCAR POTCAR KPOINTS"
 local=afrot@coloquinte.d5.icgm.fr:/home/afrot
 alias activate="source $HOME/virtual_env_python/bin/activate"
 activate
