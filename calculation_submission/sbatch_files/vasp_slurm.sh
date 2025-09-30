@@ -40,7 +40,7 @@ mpirun -bootstrap slurm /home/sol/Vasp/Vasp6/vasp.6.5.0-impi/bin/vasp_std &
 vasp_pid=$!
 
 # Loop during the calculation
-submitted_file="$HOME/Submited.txt"
+submitted_file="$HOME/Submitted.txt"
 advice_pattern="> ADVICE to this user running VASP <"
 warning_pattern="W    W   A  A   R    R  NN   N  II  NN   N  G    G  !!!"
 advice_found=0
