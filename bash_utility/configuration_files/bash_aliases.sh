@@ -7,6 +7,7 @@ alias cputime="sreport -t Hour cluster AccountUtilizationByUser Start=2025-01-01
 alias terrorisme="sreport -t Hour cluster AccountUtilizationByUser Start=2025-01-01 Users=$USER"
 alias ls='ls --color'
 alias glog='git log --all --decorate --oneline --graph'
+alias Submitted='vim ~/Submitted.txt'
 
 # Aliases for scripts in the git repository
 alias get_chiroptic="python3 $path_to_git/data_visualisation/get_chiroptic.py"
