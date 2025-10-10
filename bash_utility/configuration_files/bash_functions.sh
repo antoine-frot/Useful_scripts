@@ -34,3 +34,23 @@ goto() {
         return 1
     fi
 }
+
+back_to_main() {
+	# Change direcoty to the closest directory containing MAIN_DIR
+	current_dir=$(pwd)
+	main_dir=""
+	temp_dir="$current_dir"
+	while [ "$temp_dir" != "/" ]; do
+	    if [ -f "$temp_dir/MAIN_DIR" ]; then
+		main_dir="$temp_dir"
+		break
+	    fi
+	    temp_dir=$(dirname "$temp_dir")
+	done
+
+	if [ -z "$main_dir" ]; then
+	    echo "Error: MAIN_DIR not found in any parent directory. Go not go back to previous main directory" >&2
+	else
+	    cd $main_dir
+	fi
+}
