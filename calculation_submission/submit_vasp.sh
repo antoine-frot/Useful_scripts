@@ -15,10 +15,11 @@ get_job_name () {
 
     if [ -z "$closest_dir" ]; then
         echo "Error: MAIN_DIR not found in any parent directory." >&2
-        exit 1
+        echo 1
     fi
 
     relative_path=$(realpath --relative-to="$closest_dir" "$current_dir") # Extract the path segments from closest_dir to current_dir
+    echo $relative_path
     if [[ "$relative_path" == *-* ]]; then
         echo "Error: The directory '$(basename "$current_dir")' contains a hyphen (-)." >&2
         exit 1
@@ -26,6 +27,9 @@ get_job_name () {
     job_name=$(echo "$relative_path" | tr '/' '-') # Replace slashes with hyphens
     echo $job_name
 }
+if ! job_name=$(get_job_name); then
+    exit 1
+fi
 
 ### VASP_version
 VASP_version_file=VASP_version.txt
@@ -53,5 +57,4 @@ else
     echo $vasp_version > $VASP_version_file
 fi
 export vasp_version
-job_name=$(get_job_name)
 sbatch --job-name=$job_name /home/afrot/Useful_scripts/calculation_submission/sbatch_files/vasp_slurm.sh
