@@ -24,6 +24,7 @@ import sys
 import subprocess
 import fnmatch
 import os
+import argparse
 
 def get_current_user():
     """Get current username"""
@@ -89,7 +90,31 @@ def cancel_jobs(patterns):
         sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        cancel_jobs([os.path.basename(os.getcwd())])
+    parser = argparse.ArgumentParser(
+        description="Cancel Slurm jobs by name pattern with confirmation.",
+        epilog="""
+Examples:
+  %(prog)s "myjob*"                    Cancel jobs with names starting with 'myjob'
+  %(prog)s "preprocess*" "train_?"     Cancel jobs matching multiple patterns
+  %(prog)s                             Cancel job running in the current working directory
+
+Features:
+  - Supports Unix-style wildcards (*, ?, [seq]) in job names
+  - Lists jobs to be cancelled before prompting for confirmation
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    
+    parser.add_argument(
+        'patterns',
+        nargs='*',
+        help='Job name patterns to match (supports wildcards). If no patterns provided, uses default job name from environment.'
+    )
+    
+    args = parser.parse_args()
+    
+    if not args.patterns:
+        result = subprocess.run("source $path_to_git/calculation_submission/submit_vasp.sh; get_job_name", shell=True, capture_output=True, text=True, executable="/bin/bash")
+        cancel_jobs([result.stdout.strip()])
     else:
-        cancel_jobs(sys.argv[1:])
+        cancel_jobs(args.patterns)
