@@ -7,23 +7,25 @@
 #SBATCH --partition=main
 
 start=$(date +%s)
-echo "START_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
+echo -e "START_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
 
-echo " "
+echo ""
 echo "===== SLURM JOB INFORMATION ====="
 echo "Job ID: $SLURM_JOB_ID"
 echo "Job Name: $SLURM_JOB_NAME"
 echo "Node List: $SLURM_JOB_NODELIST"
 echo "Number of Nodes: $SLURM_JOB_NUM_NODES"
-echo "Number of Tasks: $SLURM_NTASKS"
-echo "Number of CPUs per Task: $SLURM_CPUS_PER_TASK"
-echo "Memory Requested per Node: $SLURM_MEM_PER_NODE"
-echo "Memory Requested per CPU: $SLURM_MEM_PER_CPU"
+#echo "Number of Tasks: $SLURM_NTASKS"
+#echo "Number of CPUs per Task: $SLURM_CPUS_PER_TASK"
+#echo "Memory Requested per Node: $SLURM_MEM_PER_NODE"
+#echo "Memory Requested per CPU: $SLURM_MEM_PER_CPU"
 echo "Partition: $SLURM_JOB_PARTITION"
 echo "Submit Directory: $SLURM_SUBMIT_DIR"
 echo "Submit Host: $SLURM_SUBMIT_HOST"
+echo "Vasp version: $vasp_version"
 #echo "Allocated GPUs: $SLURM_GPUS"
 echo "================================="
+echo ""
 
 # From icgm file
 ulimit -s unlimited
@@ -32,11 +34,10 @@ export I_MPI_PIN=on
 export UCX_RC_MLX5_TX_NUM_GET_BYTES=256k
 export UCX_RC_MLX5_MAX_GET_ZCOPY=32k
 
-# Submit calculation
 echo " "
 echo "### Calling VASP command ..."
 echo " "
-mpirun -bootstrap slurm /home/sol/Vasp/Vasp6/vasp.6.5.0-impi/bin/vasp_std &
+mpirun -bootstrap slurm /home/sol/Vasp/$vasp_version/bin/vasp_std &
 vasp_pid=$!
 
 # Loop during the calculation
@@ -46,8 +47,10 @@ warning_pattern="W    W   A  A   R    R  NN   N  II  NN   N  G    G  !!!"
 advice_found=0
 warning_found=0
 
+waiting_time=1
+loop_counter=0
 while kill -0 "$vasp_pid" 2>/dev/null; do
-  sleep 10
+  sleep $waiting_time
   if [ "$advice_found" -eq 0 ] && grep -qF "$advice_pattern" OUTCAR; then
     echo "ADVICE: $SLURM_JOB_NAME" >> $submitted_file
     advice_found=1
@@ -55,6 +58,11 @@ while kill -0 "$vasp_pid" 2>/dev/null; do
   if [ "$warning_found" -eq 0 ] && grep -qF "$warning_pattern" OUTCAR; then
     echo "WARNING: $SLURM_JOB_NAME" >> $submitted_file
     warning_found=1
+  fi
+  if [ $loop_counter -eq 180 ]; then
+	  waiting_time=10
+  else
+	  (( loop_counter++ ))
   fi
 done
 

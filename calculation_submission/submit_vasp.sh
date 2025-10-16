@@ -1,5 +1,6 @@
 #!/bin/bash
 
+### Jobname
 # Function to check if any directory in the path contains a hyphen
 check_for_hyphen() {
     local path="$1"
@@ -35,5 +36,24 @@ if [[ "$relative_path" == *-* ]]; then
     exit 1
 fi
 job_name=$(echo "$relative_path" | tr '/' '-') # Replace slashes with hyphens
+
+### VASP_version
+echo "Which VASP version?"
+available_versions=("6.5.0-impi" "6.4.3-gf-impi" "6.4.1" "6.3.2" "6.1.1_patched" "5.4.4-opt2")
+select version in "${available_versions[@]}"; do
+    case $REPLY in
+        1|2|3|4|5)
+	    export vasp_version=Vasp6/vasp.$version
+            break
+            ;;
+        6)
+	    export vasp_version=Vasp5/vasp.$version
+            break
+            ;;
+        *)
+            echo "Invalid choice. Try again."
+            ;;
+    esac
+done
 
 sbatch --job-name=$job_name /home/afrot/Useful_scripts/calculation_submission/sbatch_files/vasp_slurm.sh
