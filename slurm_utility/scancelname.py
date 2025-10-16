@@ -114,7 +114,15 @@ Features:
     args = parser.parse_args()
     
     if not args.patterns:
-        result = subprocess.run("source $path_to_git/calculation_submission/submit_vasp.sh; get_job_name", shell=True, capture_output=True, text=True, executable="/bin/bash")
+        path_to_git = os.getenv("path_to_git")
+        if not path_to_git:
+            print("Error: The environment variable 'path_to_git' is not set.")
+            sys.exit(1)
+        cmd = f"source {path_to_git}/calculation_submission/get_job_name.sh; get_job_name"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, executable="/bin/bash")
+        if result.returncode != 0:
+            print(f"Error running get_job_name: {result.stderr.strip()}")
+            sys.exit(1)
         cancel_jobs([result.stdout.strip()])
     else:
         cancel_jobs(args.patterns)

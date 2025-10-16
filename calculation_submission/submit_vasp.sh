@@ -1,35 +1,7 @@
 #!/bin/bash
 
-get_job_name () {
-    current_dir=$(pwd)
-    closest_dir=""
-    temp_dir="$current_dir"
-# Navigate up and find the closest directory containing MAIN_DIR
-    while [ "$temp_dir" != "/" ]; do
-        if [ -f "$temp_dir/MAIN_DIR" ]; then
-            closest_dir="$temp_dir"
-            break
-        fi
-        temp_dir=$(dirname "$temp_dir")
-    done
-
-    if [ -z "$closest_dir" ]; then
-        echo "Error: MAIN_DIR not found in any parent directory." >&2
-        echo 1
-    fi
-
-    relative_path=$(realpath --relative-to="$closest_dir" "$current_dir") # Extract the path segments from closest_dir to current_dir
-    echo $relative_path
-    if [[ "$relative_path" == *-* ]]; then
-        echo "Error: The directory '$(basename "$current_dir")' contains a hyphen (-)." >&2
-        exit 1
-    fi
-    job_name=$(echo "$relative_path" | tr '/' '-') # Replace slashes with hyphens
-    echo $job_name
-}
-if ! job_name=$(get_job_name); then
-    exit 1
-fi
+source ${path_to_git}/calculation_submission/get_job_name.sh
+job_name=$(get_job_name) || exit 1
 
 ### VASP_version
 VASP_version_file=VASP_version.txt
