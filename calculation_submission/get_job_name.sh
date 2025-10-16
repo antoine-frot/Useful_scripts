@@ -25,7 +25,6 @@ get_job_name () {
     fi
 
     relative_path=$(realpath --relative-to="$closest_dir" "$current_dir") # Extract the path segments from closest_dir to current_dir
-    echo $relative_path
     if [[ "$relative_path" == *-* ]]; then
         echo "Error: The directory '$(basename "$current_dir")' contains a hyphen (-)." >&2
         return 1

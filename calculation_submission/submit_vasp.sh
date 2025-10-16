@@ -29,4 +29,4 @@ else
     echo $vasp_version > $VASP_version_file
 fi
 export vasp_version
-sbatch --job-name=$job_name /home/afrot/Useful_scripts/calculation_submission/sbatch_files/vasp_slurm.sh
+sbatch --job-name=$job_name $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh
