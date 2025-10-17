@@ -26,7 +26,7 @@ fi
 
 unset rc
 
-export INPUTS="INCAR POSCAR POTCAR KPOINTS"
+export INPUTS="INCAR POSCAR POTCAR KPOINTS VASP_version.txt"
 local=afrot@coloquinte.d5.icgm.fr:/home/afrot
 alias activate="source $HOME/virtual_env_python/bin/activate"
 activate
