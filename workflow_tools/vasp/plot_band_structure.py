@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import argparse
 
-def main(input_file):
+def main(input_file, min_energy, max_energy):
     # Load the BAND.dat file (skip the header lines) 
     data = np.loadtxt(input_file, skiprows=3) 
 
@@ -13,8 +13,8 @@ def main(input_file):
 
     # Create figure with scientific styling 
     plt.figure(figsize=(7, 5), dpi=300) 
-    plt.plot(k_path, band_up, label="Spin Up", color="blue", linewidth=2) 
-    plt.plot(k_path, band_down, label="Spin Down", color="red", linewidth=2) 
+    plt.plot(k_path, band_up, label="Spin Up", color="blue", linewidth=0.5) 
+    plt.plot(k_path, band_down, label="Spin Down", color="red", linewidth=0.5) 
 
     # Add Fermi level as a horizontal dashed line 
     plt.axhline(0, color="black", linestyle="--", linewidth=1.5, label="Fermi Level") 
@@ -29,7 +29,11 @@ def main(input_file):
     plt.grid(True, linestyle="--", alpha=0.5) 
     plt.tick_params(axis='both', which='major', labelsize=12) 
     plt.xlim(min(k_path), max(k_path))  # Adjust x-axis limits 
-    plt.ylim(min(band_down) * 1.1, max(band_up) * 1.1)  # Adjust y-axis limits 
+    if min_energy is None:
+        min_energy = min(band_down) * 1.1
+    if max_energy is None:
+        max_energy = max(band_up) * 1.1
+    plt.ylim(min_energy, max_energy)
 
     # Save the figure as a high-quality PNG 
     plt.savefig("BAND_Scientific.png", format="png", dpi=300, bbox_inches="tight") 
@@ -40,5 +44,7 @@ def main(input_file):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot VASP band structure from BAND.dat")
     parser.add_argument("--input", default="BAND.dat", help="Input BAND.dat file")
+    parser.add_argument("--min_energy", type=float, default=None, help="Minimum energy for y-axis")
+    parser.add_argument("--max_energy", type=float, default=None, help="Maximum energy for y-axis")
     args = parser.parse_args()
-    main(args.input)
+    main(args.input, args.min_energy, args.max_energy)
