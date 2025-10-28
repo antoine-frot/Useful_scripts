@@ -1,3 +1,4 @@
+#!/bin/bash
 # Go to the directory you want to copy on the other hosts and run this script
 dir=$(pwd)
 main_dir=$(dirname "$dir")

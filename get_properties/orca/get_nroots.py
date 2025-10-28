@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 def get_nroots(file_path):
     """Extract nroots value from file containing '> nroots' pattern"""
     try:

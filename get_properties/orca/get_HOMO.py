@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import re
 
 def get_HOMO(file_path):
