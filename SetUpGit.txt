@@ -9,5 +9,4 @@ git remote set-url origin git@github.com:antoine-frot/Useful_scripts
 cp ~/.bashrc bash_utility/configuration_files/bashrc_name_of_the_machine
 for configuration_file in (bashrc bash_profile bash_logout vimrc); do
     cp bash_utility/configuration_files/$configuration_file ~/.$configuration_file
-.bashrc: Change the name of the specific bashrc of this environment
-.bash_profile: Change path_to_git
+.bashrc: Change the path to this git AND the name of the specific bashrc of this environment

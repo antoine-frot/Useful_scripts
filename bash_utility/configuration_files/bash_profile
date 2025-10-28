@@ -1,4 +1,9 @@
-# .bash_profile to set up for every environment
-export path_to_git="$HOME/Useful_scripts" # TO CHANGE: Path to this git not this directory
-export configuration_files="$path_to_git/bash_utility/configuration_files"
-source $configuration_files/bash_profile.sh
+#!/bin/bash
+# Source global definitions
+# if [ -f /etc/bashrc ]; then
+#  	. /etc/bashrc
+# fi
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+mesg y

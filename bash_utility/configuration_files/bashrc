@@ -1,3 +1,5 @@
 # .bashrc to set up for every environment
+path_to_git="$HOME/Useful_scripts" # TO CHANGE to set the path to this git
+configuration_files="$path_to_git/bash_utility/configuration_files"
 source $configuration_files/bashrc_particular_to_the_environment.sh # TO CHANGE according to your environment
 source $configuration_files/bashrc_general.sh
