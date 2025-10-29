@@ -51,11 +51,11 @@ waiting_time=1
 loop_counter=0
 while kill -0 "$vasp_pid" 2>/dev/null; do
   sleep $waiting_time
-  if [ "$advice_found" -eq 0 ] && grep -qF "$advice_pattern" OUTCAR; then
+  if [ "$advice_found" -eq 0 ] && grep -qF "$advice_pattern" OUTCAR 2>/dev/null; then
     echo "ADVICE: $SLURM_JOB_NAME" >> $submitted_file
     advice_found=1
   fi
-  if [ "$warning_found" -eq 0 ] && grep -qF "$warning_pattern" OUTCAR; then
+  if [ "$warning_found" -eq 0 ] && grep -qF "$warning_pattern" OUTCAR 2>/dev/null; then
     echo "WARNING: $SLURM_JOB_NAME" >> $submitted_file
     warning_found=1
   fi
