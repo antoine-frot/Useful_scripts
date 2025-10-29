@@ -12,14 +12,14 @@ export PYTHONPATH="$path_to_git:$PYTHONPATH"
 export EDITOR=vim # the default EDITOR is set to vim
 Submitted="$HOME/Submitted.txt"
 python_env () {
-    if [ -n $VIRTUAL_ENV ]; then
-        echo "[${VIRTUAL_ENV##*/}]"
+    if [ -n "$VIRTUAL_ENV" ]; then
+        echo "[${VIRTUAL_ENV##*/}] "
     else
-        echo''
+        echo ""
     fi
 }
 if [ -f ~/.git-prompt.sh ]; then
   source ~/.git-prompt.sh
 fi
-PS1='$(python_env)$(__git_ps1 " (%s)") \h:\w\$ '
+PS1='\h:\w$(python_env)$(__git_ps1 " (%s)")\$ '
 # PS1='\u@\h:\w$(__git_ps1 " (%s)")$(python_env)$ '
