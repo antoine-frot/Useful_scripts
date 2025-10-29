@@ -13,7 +13,7 @@ export EDITOR=vim # the default EDITOR is set to vim
 Submitted="$HOME/Submitted.txt"
 python_env () {
     if [ -n "$VIRTUAL_ENV" ]; then
-        echo "[${VIRTUAL_ENV##*/}] "
+        echo " [${VIRTUAL_ENV##*/}]"
     else
         echo ""
     fi
