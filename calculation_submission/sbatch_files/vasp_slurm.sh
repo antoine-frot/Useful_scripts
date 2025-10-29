@@ -50,14 +50,15 @@ warning_found=0
 
 waiting_time=1
 loop_counter=0
+displayed_name="$SLURM_JOB_NAME ($SLURM_JOB_ID)"
 while kill -0 "$vasp_pid" 2>/dev/null; do
   sleep $waiting_time
   if [ "$advice_found" -eq 0 ] && grep -qF "$advice_pattern" OUTCAR 2>/dev/null; then
-    echo "ADVICE: $SLURM_JOB_NAME" >> $submitted_file
+    echo "ADVICE: $displayed_name" >> $submitted_file
     advice_found=1
   fi
   if [ "$warning_found" -eq 0 ] && grep -qF "$warning_pattern" OUTCAR 2>/dev/null; then
-    echo "WARNING: $SLURM_JOB_NAME" >> $submitted_file
+    echo "WARNING: $displayed_name" >> $submitted_file
     warning_found=1
   fi
   if [ $loop_counter -eq 180 ]; then
@@ -75,10 +76,10 @@ echo "VASP exit code: $vasp_exit_code"
 # Check if the calculation terminated normally and write it in the ouput and Submited file
 hurray_pattern="General timing and accounting informations for this job:"
 if grep -iq "$hurray_pattern" OUTCAR; then
-    echo "HURRAY: $SLURM_JOB_NAME" >> $submitted_file
+    echo "HURRAY: $displayed_name" >> $submitted_file
     echo "Calculation terminated normally."
 else
-    echo "ERROR: $SLURM_JOB_NAME" >> $submitted_file
+    echo "ERROR: $displayed_name" >> $submitted_file
     echo "Calculation terminated ABnormally."
 fi
 
