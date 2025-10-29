@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the directory where this script is actually located (resolve symlinks)
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 
 cp AECCAR0 AECCAR0_init
 cp AECCAR2 AECCAR02_init
