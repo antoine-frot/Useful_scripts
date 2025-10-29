@@ -1,4 +1,25 @@
 #!/bin/bash
+#==============================================================================
+# do_bader.sh - VASP Bader Charge Analysis Workflow
+#==============================================================================
+# DESCRIPTION:
+#   Performs complete Bader charge analysis on VASP charge density files.
+#   This script orchestrates the entire workflow from preprocessing VASP
+#   output files to generating final analysis results.
+#
+# USAGE:
+#   do_bader
+#
+# REQUIREMENTS:
+#   - VASP output files in current directory: AECCAR0, AECCAR2, CHGCAR, CONTCAR
+#   - Auxiliary tools: bader, chgsplit, chgsum.pl, Bader_analyse.py
+#
+# OUTPUT FILES:
+#   - ACF_chg.dat: Bader charges for total density
+#   - ACF_mag.dat: Bader charges for magnetic density
+#   - Bader_analyse: Summary analysis report
+#
+#==============================================================================
 set -e
 
 # Get the directory where this script is actually located (resolve symlinks)
