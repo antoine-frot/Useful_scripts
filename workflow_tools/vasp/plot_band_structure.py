@@ -10,6 +10,7 @@ def main(input_file, min_energy, max_energy):
     k_path = data[:, 0]  # K-Path (1/Å) 
     band_up = data[:, 1]  # Spin-Up Band structure (eV) 
     band_down = data[:, 2]  # Spin-Down Band structure (eV) 
+    print(data[175:186,:])
 
     # Create figure with scientific styling 
     plt.figure(figsize=(7, 5), dpi=300) 
