@@ -42,7 +42,8 @@ vasp_pid=$!
 
 # Loop during the calculation
 submitted_file="$HOME/Submitted.txt"
-advice_pattern="> ADVICE to this user running VASP <"
+#advice_pattern="> ADVICE to this user running VASP <"
+advice_pattern="ADVICE"
 warning_pattern="W    W   A  A   R    R  NN   N  II  NN   N  G    G  !!!"
 advice_found=0
 warning_found=0
