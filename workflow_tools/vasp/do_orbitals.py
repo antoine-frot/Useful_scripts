@@ -94,8 +94,14 @@ def main():
     for kpoint in args.kpoints:
         for band in args.bands:
             current += 1
-            print(f"Processing combination {current}/{total_combinations}: kpoint={kpoint}, band={band}")
+            # Progress bar
+            progress = int(50 * current / total_combinations)
+            bar = '█' * progress + '░' * (50 - progress)
+            percent = 100 * current / total_combinations
+            print(f"\rProcessing combination {current}/{total_combinations}: kpoint {kpoint}, band {band}\n[{bar}] {percent:.1f}% ({current}/{total_combinations})", end='', flush=True)
             run_vaspkit_command(kpoint, band)
+    
+    print(f"\nCompleted processing {total_combinations} combinations")
 
 if __name__ == "__main__":
     main()
