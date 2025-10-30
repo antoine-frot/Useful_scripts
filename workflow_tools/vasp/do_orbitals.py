@@ -98,7 +98,19 @@ def main():
             progress = int(50 * current / total_combinations)
             bar = '█' * progress + '░' * (50 - progress)
             percent = 100 * current / total_combinations
-            print(f"\rProcessing combination {current}/{total_combinations}: kpoint {kpoint}, band {band}\n[{bar}] {percent:.1f}% ({current}/{total_combinations})", end='', flush=True)
+            if current == 1:
+                # first print: emit two lines
+                print(f"kpoint {kpoint}, band {band}")
+                print(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})")
+            else:
+                # update the same two lines in-place using ANSI escapes
+                # move cursor up 2 lines, clear line, then print updated lines
+                sys.stdout.write("\033[2A")   # move cursor up 2 lines
+                sys.stdout.write("\033[2K")   # clear entire line
+                sys.stdout.write(f"kpoint {kpoint}, band {band}\n")
+                sys.stdout.write("\033[2K")   # clear entire line
+                sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
+                sys.stdout.flush()
             run_vaspkit_command(kpoint, band)
     
     print(f"\nCompleted processing {total_combinations} combinations")
