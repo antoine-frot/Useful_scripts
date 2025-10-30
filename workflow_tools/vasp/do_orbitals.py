@@ -68,7 +68,7 @@ def main():
                        type=int, 
                        nargs='*', 
                        default=list(range(1, nbands + 1)),
-                       help=f'List of band numbers (default: 1 to {nbands})')
+                       help=f'List of band numbers (default: 1 to NBANDS ({nbands} here))')
     
     parser.add_argument('-k', '--kpoints', 
                        type=int, 
@@ -85,7 +85,7 @@ def main():
 
     print(f"NBANDS extracted from OUTCAR: {nbands}")
     print(f"Processing bands: {args.bands}")
-    print(f"Processing kpoints: {args.kpoints}")
+    print(f"Processing kpoints: {args.kpoints}\n")
     
     # Process each combination of kpoint and band
     total_combinations = len(args.kpoints) * len(args.bands)
@@ -94,10 +94,8 @@ def main():
     for kpoint in args.kpoints:
         for band in args.bands:
             current += 1
-            print(f"\nProcessing combination {current}/{total_combinations}: kpoint={kpoint}, band={band}")
+            print(f"Processing combination {current}/{total_combinations}: kpoint={kpoint}, band={band}")
             run_vaspkit_command(kpoint, band)
-    
-    print(f"\nCompleted processing {total_combinations} combinations")
 
 if __name__ == "__main__":
     main()
