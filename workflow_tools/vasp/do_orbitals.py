@@ -126,17 +126,10 @@ def main():
         print(f"\nRuntime: {minutes} minutes and {seconds:.2f} seconds")
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
-
-    # Launch VESTA if requested
-    if args.vesta:
-        print("\nLaunching VESTA with generated orbitals...")
-        try:
-            vesta_command = "VESTA $(printf \"WF_REAL_B%04d_K0001_UP.vasp \" {1..12})"
-            subprocess.run(vesta_command, shell=True, check=True)
-        except subprocess.CalledProcessError:
-            print("Warning: Failed to launch VESTA")
-        except FileNotFoundError:
-            print("Warning: VESTA command not found")
+            
+    vesta_command = "VESTA $(printf \"WF_REAL_B%04d_K0001_UP.vasp \" {1..12}) &"
+    print("Run the following command to launch VESTA with generated orbitals:")
+    print(vesta_command)
 
 if __name__ == "__main__":
     main()
