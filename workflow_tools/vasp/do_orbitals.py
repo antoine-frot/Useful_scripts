@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""
+Script to generate orbital files using vaspkit from a VASP calculation.
+"""
+
+import argparse
+import re
+import subprocess
+import sys
+import os
+
+def extract_nbands_and_nkpts_from_outcar(filename="OUTCAR"):
+    """Extract NBANDS and NKPTS values from OUTCAR file."""
+    try:
+        with open(filename, 'r') as f:
+            content = f.read()
+            # Search for NBANDS pattern in OUTCAR
+            match = re.search(r'NBANDS\s*=\s*(\d+)', content)
+            if match:
+                nbands = int(match.group(1))
+            else:
+                print(f"Error: NBANDS not found in {filename}")
+                sys.exit(1)
+
+            match = re.search(r'NKPTS\s*=\s*(\d+)', content)
+            if match:
+                nkpts = int(match.group(1))
+            else:
+                print(f"Error: NKPTS not found in {filename}")
+                sys.exit(1)
+
+            return nbands, nkpts
+    except FileNotFoundError:
+        print(f"Error: {filename} file not found")
+        sys.exit(1)
+
+def run_vaspkit_command(kpoint, band):
+    """Run vaspkit command with specified kpoint and band."""
+    try:
+        # Prepare input for vaspkit: 51, 511, kpoint, band
+        input_data = f"51\n511\n{kpoint}\n{band}\n"
+        
+        # Run vaspkit command
+        process = subprocess.Popen(['vaspkit'], 
+                                 stdin=subprocess.PIPE, 
+                                 stdout=subprocess.PIPE, 
+                                 stderr=subprocess.PIPE,
+                                 text=True)
+        
+        stdout, stderr = process.communicate(input=input_data)
+        
+        if process.returncode != 0:
+            print(f"Warning: vaspkit failed for kpoint {kpoint}, band {band}")
+            print(f"Error: {stderr}")
+            sys.exit(1)
+            
+    except FileNotFoundError:
+        print("Error: vaspkit command not found. Make sure it's in your PATH.")
+        sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(description="Make orbitals using vaspkit from a VASP calculation.")
+    
+    # Extract NBANDS first to set default for bands
+    nbands, nkpts = extract_nbands_and_nkpts_from_outcar()
+    
+    parser.add_argument('-b', '--bands', 
+                       type=int, 
+                       nargs='*', 
+                       default=list(range(1, nbands + 1)),
+                       help=f'List of band numbers (default: 1 to {nbands})')
+    
+    parser.add_argument('-k', '--kpoints', 
+                       type=int, 
+                       nargs='*', 
+                       default=[1],
+                       help=r"List of kpoint numbers (default: \gamma point (1))")
+
+    args = parser.parse_args()
+
+    # Verify that provided kpoints are within range 1 to NKPTS
+    if not all(1 <= kpoint <= nkpts for kpoint in args.kpoints):
+        print(f"Error: KPOINTS must be between 1 and {nkpts}")
+        sys.exit(1)
+
+    print(f"NBANDS extracted from OUTCAR: {nbands}")
+    print(f"Processing bands: {args.bands}")
+    print(f"Processing kpoints: {args.kpoints}")
+    
+    # Process each combination of kpoint and band
+    total_combinations = len(args.kpoints) * len(args.bands)
+    current = 0
+    
+    for kpoint in args.kpoints:
+        for band in args.bands:
+            current += 1
+            print(f"\nProcessing combination {current}/{total_combinations}: kpoint={kpoint}, band={band}")
+            run_vaspkit_command(kpoint, band)
+    
+    print(f"\nCompleted processing {total_combinations} combinations")
+
+if __name__ == "__main__":
+    main()
