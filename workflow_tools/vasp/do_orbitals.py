@@ -77,6 +77,10 @@ def main():
                        default=[1],
                        help=r"List of kpoint numbers (default: \gamma point (1))")
 
+    parser.add_argument('-v', '--vesta', 
+                       action='store_true',
+                       help="Launch VESTA with generated orbitals after processing")
+
     args = parser.parse_args()
 
     # Verify that provided kpoints are within range 1 to NKPTS
@@ -122,6 +126,17 @@ def main():
         print(f"\nRuntime: {minutes} minutes and {seconds:.2f} seconds")
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
+
+    # Launch VESTA if requested
+    if args.vesta:
+        print("\nLaunching VESTA with generated orbitals...")
+        try:
+            vesta_command = "VESTA $(printf \"WF_REAL_B%04d_K0001_UP.vasp \" {1..12}) &"
+            subprocess.run(vesta_command, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            print("Warning: Failed to launch VESTA")
+        except FileNotFoundError:
+            print("Warning: VESTA command not found")
 
 if __name__ == "__main__":
     main()
