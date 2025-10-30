@@ -77,10 +77,6 @@ def main():
                        default=[1],
                        help=r"List of kpoint numbers (default: \gamma point (1))")
 
-    parser.add_argument('-v', '--vesta', 
-                       action='store_true',
-                       help="Launch VESTA with generated orbitals after processing")
-
     args = parser.parse_args()
 
     # Verify that provided kpoints are within range 1 to NKPTS
@@ -127,7 +123,10 @@ def main():
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
             
-    vesta_command = "VESTA $(printf \"WF_REAL_B%04d_K0001_UP.vasp \" {1..12}) &"
+    orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp" 
+                           for kpoint in args.kpoints 
+                           for band in args.bands])
+    vesta_command = f"VESTA {orbital_files} &"
     print("Run the following command to launch VESTA with generated orbitals:")
     print(vesta_command)
 
