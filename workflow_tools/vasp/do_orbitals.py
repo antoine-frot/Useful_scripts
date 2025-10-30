@@ -59,6 +59,7 @@ def run_vaspkit_command(kpoint, band):
         sys.exit(1)
 
 def main():
+    starting_time = os.times()
     parser = argparse.ArgumentParser(description="Make orbitals using vaspkit from a VASP calculation.")
     
     # Extract NBANDS first to set default for bands
@@ -112,8 +113,15 @@ def main():
                 sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
                 sys.stdout.flush()
             run_vaspkit_command(kpoint, band)
-    
-    print(f"\nCompleted processing {total_combinations} combinations")
+
+    ending_time = os.times()
+    runtime = ending_time[4] - starting_time[4]
+    if runtime >= 60:
+        minutes = int(runtime // 60)
+        seconds = runtime % 60
+        print(f"\n Runtime: {minutes} minutes and {seconds:.2f} seconds")
+    else:
+        print(f"\n Runtime: {runtime:.2f} seconds")
 
 if __name__ == "__main__":
     main()
