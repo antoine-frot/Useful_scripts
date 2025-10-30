@@ -119,9 +119,9 @@ def main():
     if runtime >= 60:
         minutes = int(runtime // 60)
         seconds = runtime % 60
-        print(f"\n Runtime: {minutes} minutes and {seconds:.2f} seconds")
+        print(f"\nRuntime: {minutes} minutes and {seconds:.2f} seconds")
     else:
-        print(f"\n Runtime: {runtime:.2f} seconds")
+        print(f"\nRuntime: {runtime:.2f} seconds")
 
 if __name__ == "__main__":
     main()
