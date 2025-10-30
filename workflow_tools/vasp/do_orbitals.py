@@ -131,10 +131,11 @@ def main():
     if args.vesta:
         print("\nLaunching VESTA with generated orbitals...")
         try:
-            vesta_command = "VESTA $(printf \"WF_REAL_B%04d_K0001_UP.vasp \" {1..12}) &"
+            vesta_command = "nohup VESTA $(printf \"WF_REAL_B%04d_K0001_UP.vasp \" {1..12}) > /dev/null 2>&1 &"
             subprocess.run(vesta_command, shell=True, check=True)
+            print("VESTA launched in background")
         except subprocess.CalledProcessError:
-            print("Warning: Failed to launch VESTA")
+            print("Warning: Failed to launch VESTA - check if DISPLAY is set and X11 forwarding is enabled")
         except FileNotFoundError:
             print("Warning: VESTA command not found")
 
