@@ -415,4 +415,6 @@ def main():
 
 
 if __name__ == '__main__':
+    print("Still issues and not very usefull as the isovalue can not be well estimated.")
+    sys.exit(0)
     main()
