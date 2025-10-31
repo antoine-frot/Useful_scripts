@@ -154,14 +154,24 @@ def main():
                 sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
                 sys.stdout.flush()
             run_vaspkit_command(kpoint, band)
+            
+            # Handle file naming based on whether kpoint has a custom name
+            original_up_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
+            original_dw_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_DW.vasp"
+            
             if kpoint_name != str(kpoint):
-                shutil.move(f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp",
-                            f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp")
-                shutil.move(f"WF_REAL_B{band:04d}_K{kpoint:04d}_DW.vasp",
-                            f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp")
-                orbital_files.append(f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp")
+                # Rename files to use kpoint name
+                new_up_file = f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp"
+                new_dw_file = f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp"
+                
+                if os.path.exists(original_up_file):
+                    shutil.move(original_up_file, new_up_file)
+                if os.path.exists(original_dw_file):
+                    shutil.move(original_dw_file, new_dw_file)
+                    
+                orbital_files.append(new_up_file)
             else:
-                orbital_files.append(f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp")
+                orbital_files.append(original_up_file)
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
