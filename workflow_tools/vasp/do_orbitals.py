@@ -11,17 +11,27 @@ import sys
 import os
 
 def extract_kpoints_names(kpoints, filename="KPOINTS"):
-    """Extract kpoint names from KPOINTS file."""
-    kpoint_names = [str(kpoint) for kpoint in kpoints]
+    """Extract kpoint names from KPOINTS file for the selected kpoints."""
+    kpoint_names = []
     try:
         with open(filename, 'r') as f:
             lines = f.readlines()
-            # Skip the first 4 lines (header)
-            for i, line in enumerate(lines[3:]):
-                parts = line.split()
-                # ensure there is a 5th column (index 4) before accessing it
-                if len(parts) >= 5:
-                    kpoint_names[i] = str(parts[4])
+            # Skip the first 3 lines (header for manually set KPOINTS) 
+            # and read all kpoint lines
+            kpoint_lines = lines[3:]
+            
+            for kpoint in kpoints:
+                # kpoint is 1-indexed, but array is 0-indexed
+                line_index = kpoint - 1
+                if line_index < len(kpoint_lines):
+                    parts = kpoint_lines[line_index].split()
+                    # Check if there is a 5th column (index 4) with kpoint name
+                    if len(parts) >= 5:
+                        kpoint_names.append(str(parts[4]))
+                    else:
+                        kpoint_names.append(str(kpoint))
+                else:
+                    kpoint_names.append(str(kpoint))
     except FileNotFoundError:
         print(f"Error: {filename} file not found")
         sys.exit(1)
