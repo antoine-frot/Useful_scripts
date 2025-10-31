@@ -90,12 +90,22 @@ def main():
                        help=f'List of band numbers (default: 1 to NBANDS ({nbands} here))')
     
     parser.add_argument('-k', '--kpoints', 
-                       type=int, 
                        nargs='*', 
                        default=[1],
-                       help=r"List of kpoint numbers (default: \gamma point (1))")
+                       help=r"List of kpoint numbers or 'all' for all kpoints (default: \gamma point (1))")
 
     args = parser.parse_args()
+
+    # Handle 'all' keyword for kpoints
+    if args.kpoints == ['all']:
+        args.kpoints = list(range(1, nkpts + 1))
+    else:
+        # Convert to integers
+        try:
+            args.kpoints = [int(k) for k in args.kpoints]
+        except ValueError:
+            print("Error: kpoints must be integers or 'all'")
+            sys.exit(1)
 
     # Verify that provided kpoints are within range 1 to NKPTS
     if not all(1 <= kpoint <= nkpts for kpoint in args.kpoints):
