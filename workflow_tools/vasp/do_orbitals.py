@@ -92,7 +92,7 @@ def main():
     parser.add_argument('-k', '--kpoints', 
                        nargs='*', 
                        default=[1],
-                       help=r"List of kpoint numbers or 'all' for all kpoints (default: \gamma point (1))")
+                       help=r"List of kpoint numbers or 'all' for all kpoints (default: gamma point (1))")
 
     args = parser.parse_args()
 
