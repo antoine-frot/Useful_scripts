@@ -9,6 +9,8 @@ import subprocess
 import sys
 import os
 
+from workflow_tools.vasp import wfvasp2vesta
+
 def extract_nbands_and_nkpts_from_outcar(filename="OUTCAR"):
     """Extract NBANDS and NKPTS values from OUTCAR file."""
     try:
@@ -113,6 +115,15 @@ def main():
                 sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
                 sys.stdout.flush()
             run_vaspkit_command(kpoint, band)
+            orbital_output_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
+            # invoke wfvasp2vesta.py using the current Python interpreter
+            wfvasp2vesta=os.path.join('workflow_tools', 'vasp', 'wfvasp2vesta.py')
+            try:
+                subprocess.run([sys.executable, wfvasp2vesta, orbital_output_file], check=True)
+            except FileNotFoundError:
+                print(f"Warning: {wfvasp2vesta} not found or Python interpreter missing.")
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: {wfvasp2vesta} failed for {orbital_output_file} (exit {e.returncode})")
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
@@ -123,7 +134,7 @@ def main():
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
             
-    orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp" 
+    orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vesta" 
                            for kpoint in args.kpoints 
                            for band in args.bands])
     vesta_command = f"VESTA {orbital_files} 2>/dev/null &"
