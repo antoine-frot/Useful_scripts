@@ -5,11 +5,29 @@ Script to generate orbital files using vaspkit from a VASP calculation.
 
 import argparse
 import re
+import shutil
 import subprocess
 import sys
 import os
 
-def extract_nbands_and_nkpts_from_outcar(filename="OUTCAR"):
+def extract_kpoints_names(kpoints, filename="KPOINTS"):
+    """Extract kpoint names from KPOINTS file."""
+    kpoint_names = [str(kpoint) for kpoint in kpoints]
+    try:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            # Skip the first 4 lines (header)
+            for i, line in enumerate(lines[4:]):
+                parts = line.split()
+                # ensure there is a 6th column (index 5) before accessing it
+                if len(parts) >= 5:
+                    kpoint_names[i] = str(parts[4])
+    except FileNotFoundError:
+        print(f"Error: {filename} file not found")
+        sys.exit(1)
+    return kpoint_names
+
+def extract_nbands_and_nkpts(filename="OUTCAR"):
     """Extract NBANDS and NKPTS values from OUTCAR file."""
     try:
         with open(filename, 'r') as f:
@@ -63,7 +81,7 @@ def main():
     parser = argparse.ArgumentParser(description="Make orbitals using vaspkit from a VASP calculation.")
     
     # Extract NBANDS first to set default for bands
-    nbands, nkpts = extract_nbands_and_nkpts_from_outcar()
+    nbands, nkpts = extract_nbands_and_nkpts()
     
     parser.add_argument('-b', '--bands', 
                        type=int, 
@@ -84,15 +102,17 @@ def main():
         print(f"Error: KPOINTS must be between 1 and {nkpts}")
         sys.exit(1)
 
+    kpoint_names = extract_kpoints_names(args.kpoints)
+
     print(f"NBANDS extracted from OUTCAR: {nbands}")
     print(f"Processing bands: {args.bands}")
-    print(f"Processing kpoints: {args.kpoints}\n")
+    print(f"Processing kpoints: {kpoint_names}\n")
     
     # Process each combination of kpoint and band
     total_combinations = len(args.kpoints) * len(args.bands)
     current = 0
-    
-    for kpoint in args.kpoints:
+
+    for kpoint, kpoint_name in zip(args.kpoints, kpoint_names):
         for band in args.bands:
             current += 1
             # Progress bar
@@ -101,18 +121,22 @@ def main():
             percent = 100 * current / total_combinations
             if current == 1:
                 # first print: emit two lines
-                print(f"kpoint {kpoint}, band {band}")
+                print(f"kpoint {kpoint_name}, band {band}")
                 print(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})")
             else:
                 # update the same two lines in-place using ANSI escapes
                 # move cursor up 2 lines, clear line, then print updated lines
                 sys.stdout.write("\033[2A")   # move cursor up 2 lines
                 sys.stdout.write("\033[2K")   # clear entire line
-                sys.stdout.write(f"kpoint {kpoint}, band {band}\n")
+                sys.stdout.write(f"kpoint {kpoint_name}, band {band}\n")
                 sys.stdout.write("\033[2K")   # clear entire line
                 sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
                 sys.stdout.flush()
             run_vaspkit_command(kpoint, band)
+            if kpoint_name != str(kpoint):
+                shutil.move(f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp",
+                            f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp")
+                
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
