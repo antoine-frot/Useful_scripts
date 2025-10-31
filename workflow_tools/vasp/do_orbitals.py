@@ -17,9 +17,9 @@ def extract_kpoints_names(kpoints, filename="KPOINTS"):
         with open(filename, 'r') as f:
             lines = f.readlines()
             # Skip the first 4 lines (header)
-            for i, line in enumerate(lines[4:]):
+            for i, line in enumerate(lines[3:]):
                 parts = line.split()
-                # ensure there is a 6th column (index 5) before accessing it
+                # ensure there is a 5th column (index 4) before accessing it
                 if len(parts) >= 5:
                     kpoint_names[i] = str(parts[4])
     except FileNotFoundError:
@@ -112,6 +112,7 @@ def main():
     total_combinations = len(args.kpoints) * len(args.bands)
     current = 0
 
+    orbital_files=[]
     for kpoint, kpoint_name in zip(args.kpoints, kpoint_names):
         for band in args.bands:
             current += 1
@@ -136,7 +137,11 @@ def main():
             if kpoint_name != str(kpoint):
                 shutil.move(f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp",
                             f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp")
-                
+                shutil.move(f"WF_REAL_B{band:04d}_K{kpoint:04d}_DW.vasp",
+                            f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp")
+                orbital_files.append(f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp")
+            else:
+                orbital_files.append(f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp")
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
@@ -147,11 +152,8 @@ def main():
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
             
-    orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp" 
-                           for kpoint in args.kpoints 
-                           for band in args.bands])
-    vesta_command = f"VESTA {orbital_files} 2>/dev/null &"
     print("Run the following command to launch VESTA with generated orbitals:")
+    vesta_command = "VESTA " + " ".join(orbital_files) + " 2>/dev/null &"
     print(vesta_command)
 
 if __name__ == "__main__":
