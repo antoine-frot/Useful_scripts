@@ -73,11 +73,91 @@ import numpy as np
 # ---------------------- User-tweakable template values ---------------------
 # These values below are taken from the maximal .vesta template you pasted.
 TEMPLATE_BOUND = (-0.49, 1.49, -0.49, 1.49, -0.49, 1.49)
-TEMPLATE_ISOVALUE = 7.09285e-06
+TEMPLATE_ISOVALUE = None  # Will be calculated automatically from orbital data
 TEMPLATE_ISOCOLOR = (255, 255, 0)
 TEMPLATE_ISOOPACITY = (127, 255)
 TEMPLATE_BG = (255, 255, 255)
 # End of user-tweakable block
+
+
+def calculate_default_isovalue(inp_path):
+    """Calculate default isovalue from orbital data, similar to VESTA's logic.
+    
+    Reads the volumetric data and calculates an appropriate isovalue based on
+    the data distribution (typically a small percentage of the maximum value).
+    """
+    try:
+        with open(inp_path, 'r') as f:
+            lines = f.readlines()
+        
+        # Find where the grid data starts (after coordinates)
+        data_start = 0
+        coord_mode_found = False
+        atom_count = 0
+        
+        for i, line in enumerate(lines):
+            if line.strip().upper().startswith(('DIRECT', 'CARTESIAN')):
+                coord_mode_found = True
+                continue
+            
+            if coord_mode_found and not atom_count:
+                # Count atoms from species line
+                try:
+                    counts_line = list(map(int, lines[6].split()))
+                    atom_count = sum(counts_line)
+                except:
+                    print("Warning: Could not parse atom counts for isovalue calculation")
+                    sys.exit(1)
+                continue
+            
+            if coord_mode_found and atom_count > 0:
+                # Skip coordinate lines
+                atom_count -= 1
+                if atom_count == 0:
+                    # Next line should be grid dimensions
+                    data_start = i + 2
+                    break
+        
+        if data_start == 0:
+            raise ValueError("Could not find grid data start")
+        
+        # Read volumetric data
+        data_values = []
+        for line in lines[data_start:]:
+            values = line.strip().split()
+            for val in values:
+                try:
+                    data_values.append(abs(float(val)))  # Use absolute values
+                except ValueError:
+                    continue
+        
+        if not data_values:
+            raise ValueError("No valid data values found")
+        
+        data_array = np.array(data_values)
+        
+        # Calculate isovalue similar to VESTA's default logic:
+        # Use a small percentage of maximum value, but ensure it's reasonable
+        max_val = np.max(data_array)
+        mean_val = np.mean(data_array)
+        std_val = np.std(data_array)
+        
+        # VESTA-like calculation: typically 1-5% of max, but adjusted by statistics
+        candidate_iso = max_val * 0.02  # 2% of maximum
+        
+        # Adjust based on data distribution
+        if candidate_iso < mean_val + 2 * std_val:
+            candidate_iso = mean_val + 2 * std_val
+        
+        # Ensure it's not too small
+        if candidate_iso < max_val * 1e-6:
+            candidate_iso = max_val * 1e-4
+        
+        return candidate_iso
+        
+    except Exception as e:
+        print(f"Warning: Could not calculate isovalue from {inp_path}: {e}")
+        sys.exit(1)
 
 
 def parse_poscar_header(lines):
@@ -173,7 +253,7 @@ def cartesian_to_fractional(coords_cart, a, b, c):
     return [[float(x) for x in pt] for pt in fracs]
 
 
-def generate_vesta_content(parsed, inp_basename):
+def generate_vesta_content(parsed, inp_basename, inp_path=None):
     """Generate the .vesta content string using the template blocks.
     The template mirrors the maximal VESTA file you provided with substitutions.
     """
@@ -262,7 +342,14 @@ def generate_vesta_content(parsed, inp_basename):
     lines.append("FORMP\n  1  1.0   0   0   0\nATOMP\n 24  24   0  50  2.0   0\nBONDP\n  1  16  0.250  2.000 127 127 127\nPOLYP\n 204 1  1.000 180 180 180\n")
 
     lines.append("ISURF\n")
-    lines.append(f"  1   0 {TEMPLATE_ISOVALUE:.8e} {TEMPLATE_ISOCOLOR[0]} {TEMPLATE_ISOCOLOR[1]}   {TEMPLATE_ISOCOLOR[2]} {TEMPLATE_ISOOPACITY[0]} {TEMPLATE_ISOOPACITY[1]}\n  0   0   0   0\n")
+    
+    # Calculate isovalue if not provided as template constant
+    if TEMPLATE_ISOVALUE is None and inp_path:
+        isovalue = calculate_default_isovalue(inp_path)
+    else:
+        isovalue = TEMPLATE_ISOVALUE or 7.09285e-06
+    
+    lines.append(f"  1   0 {isovalue:.8e} {TEMPLATE_ISOCOLOR[0]} {TEMPLATE_ISOCOLOR[1]}   {TEMPLATE_ISOCOLOR[2]} {TEMPLATE_ISOOPACITY[0]} {TEMPLATE_ISOOPACITY[1]}\n  0   0   0   0\n")
     lines.append("TEX3P\n  1  0.00000E+00  1.00000E+00\n")
     lines.append("SECTP\n  1 -9.12572E-06  1.68851E-05  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00\n")
     lines.append("CONTR\n 0.1 -1 1 1 10 -1 2 5\n 2 1 2 1\n   0   0   0\n   0   0   0\n   0   0   0\n   0   0   0\n")
@@ -304,7 +391,7 @@ def convert_file(inp_path, out_path=None, coords_cartesian=False):
     if not out_path:
         out_path = os.path.splitext(inp_path)[0] + '.vesta'
 
-    content = generate_vesta_content(parsed, inp_basename)
+    content = generate_vesta_content(parsed, inp_basename, inp_path)
     with open(out_path, 'w') as f:
         f.write(content)
 
