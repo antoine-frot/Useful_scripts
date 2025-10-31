@@ -9,8 +9,6 @@ import subprocess
 import sys
 import os
 
-from workflow_tools.vasp import wfvasp2vesta
-
 def extract_nbands_and_nkpts_from_outcar(filename="OUTCAR"):
     """Extract NBANDS and NKPTS values from OUTCAR file."""
     try:
@@ -135,7 +133,7 @@ def main():
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
             
-    orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vesta" 
+    orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp" 
                            for kpoint in args.kpoints 
                            for band in args.bands])
     vesta_command = f"VESTA {orbital_files} 2>/dev/null &"
