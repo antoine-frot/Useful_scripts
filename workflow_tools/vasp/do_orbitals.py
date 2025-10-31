@@ -54,16 +54,6 @@ def run_vaspkit_command(kpoint, band):
             print(f"Error: {stderr}")
             sys.exit(1)
         
-        # Convert generated orbital file to VESTA format
-        orbital_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
-        if os.path.exists(orbital_file):
-            try:
-                wfvasp2vesta.convert_file(orbital_file)
-            except Exception as e:
-                print(f"Warning: Failed to convert {orbital_file} to VESTA format: {e}")
-        else:
-            print(f"Warning: Expected orbital file {orbital_file} not found")
-            
     except FileNotFoundError:
         print("Error: vaspkit command not found. Make sure it's in your PATH.")
         sys.exit(1)
