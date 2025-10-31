@@ -132,7 +132,6 @@ def main():
     total_combinations = len(args.kpoints) * len(args.bands)
     current = 0
 
-    orbital_files=[]
     for kpoint, kpoint_name in zip(args.kpoints, kpoint_names):
         for band in args.bands:
             current += 1
@@ -156,26 +155,22 @@ def main():
             run_vaspkit_command(kpoint, band)
             
             # Handle file naming based on whether kpoint has a custom name
-            original_up_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
-            original_dw_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_DW.vasp"
-            
+            original_real_up_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
+            original_real_dw_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_DW.vasp"
+            original_imag_up_file = f"WF_IMAG_B{band:04d}_K{kpoint:04d}_UP.vasp"
+            original_imag_dw_file = f"WF_IMAG_B{band:04d}_K{kpoint:04d}_DW.vasp"
+
             if kpoint_name != str(kpoint):
                 # Rename files to use kpoint name
-                new_up_file = f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp"
-                new_dw_file = f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp"
-                
-                if os.path.exists(original_up_file):
-                    os.rename(original_up_file, new_up_file)
-                    if os.path.exists(original_up_file):
-                        os.remove(original_up_file)
-                if os.path.exists(original_dw_file):
-                    os.rename(original_dw_file, new_dw_file)
-                    if os.path.exists(original_dw_file):
-                        os.remove(original_dw_file)
-                    
-                orbital_files.append(new_up_file)
-            else:
-                orbital_files.append(original_up_file)
+                new_real_up_file = f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp"
+                new_real_dw_file = f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp"
+                new_imag_up_file = f"WF_IMAG_B{band:04d}_{kpoint_name}_UP.vasp"
+                new_imag_dw_file = f"WF_IMAG_B{band:04d}_{kpoint_name}_DW.vasp"
+
+                shutil.move(original_real_up_file, new_real_up_file)
+                shutil.move(original_real_dw_file, new_real_dw_file)
+                shutil.move(original_imag_up_file, new_imag_up_file)
+                shutil.move(original_imag_dw_file, new_imag_dw_file)
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
@@ -185,10 +180,6 @@ def main():
         print(f"\nRuntime: {minutes} minutes and {seconds:.2f} seconds")
     else:
         print(f"\nRuntime: {runtime:.2f} seconds")
-            
-    print("Run the following command to launch VESTA with generated orbitals:")
-    vesta_command = "VESTA " + " ".join(orbital_files) + " 2>/dev/null &"
-    print(vesta_command)
 
 if __name__ == "__main__":
     main()
