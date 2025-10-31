@@ -55,6 +55,16 @@ def run_vaspkit_command(kpoint, band):
             print(f"Warning: vaspkit failed for kpoint {kpoint}, band {band}")
             print(f"Error: {stderr}")
             sys.exit(1)
+        
+        # Convert generated orbital file to VESTA format
+        orbital_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
+        if os.path.exists(orbital_file):
+            try:
+                wfvasp2vesta.convert_file(orbital_file)
+            except Exception as e:
+                print(f"Warning: Failed to convert {orbital_file} to VESTA format: {e}")
+        else:
+            print(f"Warning: Expected orbital file {orbital_file} not found")
             
     except FileNotFoundError:
         print("Error: vaspkit command not found. Make sure it's in your PATH.")
@@ -115,15 +125,6 @@ def main():
                 sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
                 sys.stdout.flush()
             run_vaspkit_command(kpoint, band)
-            orbital_output_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
-            # invoke wfvasp2vesta.py using the current Python interpreter
-            wfvasp2vesta=os.path.join('workflow_tools', 'vasp', 'wfvasp2vesta.py')
-            try:
-                subprocess.run([sys.executable, wfvasp2vesta, orbital_output_file], check=True)
-            except FileNotFoundError:
-                print(f"Warning: {wfvasp2vesta} not found or Python interpreter missing.")
-            except subprocess.CalledProcessError as e:
-                print(f"Warning: {wfvasp2vesta} failed for {orbital_output_file} (exit {e.returncode})")
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
