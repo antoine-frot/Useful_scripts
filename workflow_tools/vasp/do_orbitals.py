@@ -126,7 +126,7 @@ def main():
     orbital_files = " ".join([f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp" 
                            for kpoint in args.kpoints 
                            for band in args.bands])
-    vesta_command = f"VESTA {orbital_files} &"
+    vesta_command = f"VESTA {orbital_files} 2>/dev/null &"
     print("Run the following command to launch VESTA with generated orbitals:")
     print(vesta_command)
 
