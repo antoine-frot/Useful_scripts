@@ -165,9 +165,9 @@ def main():
                 new_dw_file = f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp"
                 
                 if os.path.exists(original_up_file):
-                    shutil.move(original_up_file, new_up_file)
+                    os.rename(original_up_file, new_up_file)
                 if os.path.exists(original_dw_file):
-                    shutil.move(original_dw_file, new_dw_file)
+                    os.rename(original_dw_file, new_dw_file)
                     
                 orbital_files.append(new_up_file)
             else:
