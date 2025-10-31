@@ -63,3 +63,7 @@ back_to_main() {
     local main_dir=$(get_main_dir) || exit 1
     cd $main_dir
 }
+
+VEST(){
+    VESTA $@ >/dev/null 2>&1 &
+}
