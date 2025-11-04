@@ -4,12 +4,33 @@ Script to generate orbital files using vaspkit from a VASP calculation.
 """
 
 import argparse
+from hmac import new
 import re
 import shutil
 import subprocess
 import sys
 import os
 
+def is_spin_polarized(filename="OUTCAR"):
+    """Check if the VASP calculation is spin-polarized by reading OUTCAR."""
+    try:
+        with open(filename, 'r') as f:
+            content = f.read()
+            # Search for ISPIN pattern in OUTCAR
+            match = re.search(r'ISPIN\s*=\s*(\d+)', content)
+            if match:
+                ispin = int(match.group(1))
+                if ispin == 2:
+                    return True
+                else:
+                    return False
+            else:
+                print(f"Error: ISPIN not found in {filename}")
+                sys.exit(1)
+    except FileNotFoundError:
+        print(f"Error: {filename} file not found")
+        sys.exit(1)
+        
 def extract_kpoints_names(kpoints, filename="KPOINTS"):
     """Extract kpoint names from KPOINTS file for the selected kpoints."""
     kpoint_names = []
@@ -31,7 +52,10 @@ def extract_kpoints_names(kpoints, filename="KPOINTS"):
                     else:
                         kpoint_names.append(str(kpoint))
                 else:
-                    kpoint_names.append(str(kpoint))
+                    if kpoint == 1:
+                        kpoint_names.append("GAMMA")
+                    else:
+                        kpoint_names.append(str(kpoint))
     except FileNotFoundError:
         print(f"Error: {filename} file not found")
         sys.exit(1)
@@ -62,12 +86,9 @@ def extract_nbands_and_nkpts(filename="OUTCAR"):
         print(f"Error: {filename} file not found")
         sys.exit(1)
 
-def run_vaspkit_command(kpoint, band):
+def run_vaspkit_command(kpoint, band, input_data):
     """Run vaspkit command with specified kpoint and band."""
     try:
-        # Prepare input for vaspkit: 51, 511, kpoint, band
-        input_data = f"51\n511\n{kpoint}\n{band}\n"
-        
         # Run vaspkit command
         process = subprocess.Popen(['vaspkit'], 
                                  stdin=subprocess.PIPE, 
@@ -104,6 +125,14 @@ def main():
                        default=[1],
                        help=r"List of kpoint numbers or 'all' for all kpoints (default: gamma point (1))")
 
+    parser.add_argument('-s', '--squared',
+                        action='store_true',
+                        help="Generate squared wavefunction files instead of real and imaginary parts.")
+
+    parser.add_argument('-c', '-cube',
+                        action='store_true',
+                        help="Generate cube files instead of VASP files.")
+    
     args = parser.parse_args()
 
     # Handle 'all' keyword for kpoints
@@ -152,25 +181,52 @@ def main():
                 sys.stdout.write("\033[2K")   # clear entire line
                 sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
                 sys.stdout.flush()
-            run_vaspkit_command(kpoint, band)
-            
-            # Handle file naming based on whether kpoint has a custom name
-            original_real_up_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp"
-            original_real_dw_file = f"WF_REAL_B{band:04d}_K{kpoint:04d}_DW.vasp"
-            original_imag_up_file = f"WF_IMAG_B{band:04d}_K{kpoint:04d}_UP.vasp"
-            original_imag_dw_file = f"WF_IMAG_B{band:04d}_K{kpoint:04d}_DW.vasp"
 
-            if kpoint_name != str(kpoint):
-                # Rename files to use kpoint name
-                new_real_up_file = f"WF_REAL_B{band:04d}_{kpoint_name}_UP.vasp"
-                new_real_dw_file = f"WF_REAL_B{band:04d}_{kpoint_name}_DW.vasp"
-                new_imag_up_file = f"WF_IMAG_B{band:04d}_{kpoint_name}_UP.vasp"
-                new_imag_dw_file = f"WF_IMAG_B{band:04d}_{kpoint_name}_DW.vasp"
+            new_names = None
+            if args.squared:
+                if args.cube:
+                    input_data = f"51\n516\n{kpoint}\n{band}\n"
+                    if is_spin_polarized():
+                        generated_files = [f"WFN_SQUARED_B{band:04d}_K{kpoint:04d}_{spin}.vasp.cube" for spin in ['UP', 'DW']]
+                    else:
+                        generated_files = [f"WFN_SQUARED_B{band:04d}_K{kpoint:04d}.vasp.cube"]
+                else:
+                    input_data = f"51\n515\n{kpoint}\n{band}\n"
+                    if is_spin_polarized():
+                        generated_files = [f"WF_SQUARED_B{band:04d}_K{kpoint:04d}_{spin}.vasp" 
+                                           for spin in ['UP', 'DW']]
+                    else:
+                        generated_files = [f"WFN_SQUARED_B{band:04d}_K{kpoint:04d}.vasp"]
+            else:
+                if args.cube:
+                    input_data = f"51\n512\n{kpoint}\n{band}\n"
+                    if is_spin_polarized():
+                        generated_files = [f"WFN_{part}_B{band:04d}_K{kpoint:04d}_{spin}.vasp.cube" 
+                                           for spin in ['UP', 'DW'] for part in ['REAL', 'IMAG']]
+                    else:
+                        generated_files = [f"WFN_REAL_B{band:04d}_K{kpoint:04d}_UP.vasp.cube", # Probably an error in vaspkit naming 
+                                           f"WFN_IMAG_B{band:04d}_K{kpoint:04d}.vasp.cube"] 
+                        new_names = [f"WFN_REAL_B{band:04d}_{kpoint_name}.vasp.cube",
+                                     f"WFN_IMAG_B{band:04d}_{kpoint_name}.vasp.cube"]
+                else:
+                    input_data = f"51\n511\n{kpoint}\n{band}\n"
+                    if is_spin_polarized():
+                        generated_files = [f"WF_{part}_B{band:04d}_K{kpoint:04d}_{spin}.vasp" 
+                                           for spin in ['UP', 'DW'] for part in ['REAL', 'IMAG']]
+                    else:
+                        generated_files = [f"WFN_{part}_B{band:04d}_K{kpoint:04d}.vasp" 
+                                           for part in ['REAL', 'IMAG']]
+            run_vaspkit_command(kpoint, band, input_data)
 
-                shutil.move(original_real_up_file, new_real_up_file)
-                shutil.move(original_real_dw_file, new_real_dw_file)
-                shutil.move(original_imag_up_file, new_imag_up_file)
-                shutil.move(original_imag_dw_file, new_imag_dw_file)
+            if not new_names:
+                new_names = [generated_file.replace(f"K{kpoint:04d}", kpoint_name) for generated_file in generated_files]
+
+            for generated_file, new_name in zip(generated_files, new_names):
+                if generated_file != new_name:
+                    try:
+                        shutil.move(generated_file, new_name)
+                    except FileNotFoundError:
+                        print(f"Warning: Generated file {generated_file} not found, cannot rename to {new_name}")
 
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
