@@ -36,8 +36,6 @@ def rename_files(files, directory=".", dry_run=False):
         print("No PARCHG files found matching the pattern.")
         return
     
-    print(f"Found {len(files)} PARCHG files to rename:")
-    
     for filename in files:
         old_path = os.path.join(directory, filename)
         new_filename = f"{filename}.vasp"
