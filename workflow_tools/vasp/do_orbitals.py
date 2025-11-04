@@ -50,12 +50,12 @@ def extract_kpoints_names(kpoints, filename="KPOINTS"):
                     if len(parts) >= 5:
                         kpoint_names.append(str(parts[4]))
                     else:
-                        kpoint_names.append(str(kpoint))
+                        if kpoint == 1:
+                            kpoint_names.append("GAMMA")
+                        else:
+                            kpoint_names.append(str(kpoint))
                 else:
-                    if kpoint == 1:
-                        kpoint_names.append("GAMMA")
-                    else:
-                        kpoint_names.append(str(kpoint))
+                    kpoint_names.append(str(kpoint))
     except FileNotFoundError:
         print(f"Error: {filename} file not found")
         sys.exit(1)
@@ -129,7 +129,7 @@ def main():
                         action='store_true',
                         help="Generate squared wavefunction files instead of real and imaginary parts.")
 
-    parser.add_argument('-c', '-cube',
+    parser.add_argument('-c', '--cube',
                         action='store_true',
                         help="Generate cube files instead of VASP files.")
     
