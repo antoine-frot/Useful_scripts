@@ -23,8 +23,14 @@
 set -e
 
 # Get the directory where this script is actually located (resolve symlinks)
-SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
-SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+SOURCE="${BASH_SOURCE[0]}"
+# Resolve $SOURCE until the file is no longer a symlink
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # Transform $SOURCE into an absolute path
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
 cp AECCAR0 AECCAR0_init
 cp AECCAR2 AECCAR02_init
