@@ -32,6 +32,14 @@ while [ -L "$SOURCE" ]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
+for file in AECCAR0 AECCAR2 CHGCAR CONTCAR; do
+  if [ ! -f "$file" ]; then
+    echo "Error: Required VASP output file ($file) not found in the current directory."
+    echo "Files required: AECCAR0, AECCAR2, CHGCAR, CONTCAR."
+    exit 1
+  fi
+done
+
 cp AECCAR0 AECCAR0_init
 cp AECCAR2 AECCAR02_init
 cp CHGCAR CHGCAR_init
