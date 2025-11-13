@@ -1,4 +1,16 @@
 #!/usr/bin/python3
+"""
+Bader Charge Analysis Results Processor
+
+This script analyzes the results from VASP Bader charge analysis calculations.
+It reads structure information from CONTCAR/POSCAR files and Bader analysis 
+results from ACF files, then calculates and displays:
+- Average Bader charges per atom type
+- Magnetic moments per atom type  
+- Statistical information (min, max, standard deviation)
+
+The script automatically falls back to POSCAR if CONTCAR is missing or corrupted.
+"""
 
 import os
 import statistics

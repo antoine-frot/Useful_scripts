@@ -1,17 +1,18 @@
 #!/bin/bash
 #==============================================================================
-# do_bader.sh - VASP Bader Charge Analysis Workflow (VASP5 + VASP6 compatible)
+# do_bader.sh - VASP Bader Charge Analysis Workflow
 #==============================================================================
 # DESCRIPTION:
 #   Performs complete Bader charge analysis on VASP charge density files.
 #   Automatically detects VASP version and selects the correct AECCAR files.
 #
 # USAGE:
-#   do_bader
+#   Run in directory containing: AECCAR*, CHGCAR, CONTCAR/POSCAR, VASP_version.txt
+#   ./do_bader.sh
 #
-# REQUIREMENTS:
-#   - AECCAR*, CHGCAR, VASP_version.txt
-#   - Tools: bader, chgsum.pl, chgsplit, Bader_analyse.py
+# OUTPUT:
+#   - ACF_chg.dat, ACF_mag.dat (raw Bader results)
+#   - Bader_analyse (summary report)
 #==============================================================================
 set -e
 
