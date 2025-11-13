@@ -1,66 +1,87 @@
 #!/bin/bash
 #==============================================================================
-# do_bader.sh - VASP Bader Charge Analysis Workflow
+# do_bader.sh - VASP Bader Charge Analysis Workflow (VASP5 + VASP6 compatible)
 #==============================================================================
 # DESCRIPTION:
 #   Performs complete Bader charge analysis on VASP charge density files.
-#   This script orchestrates the entire workflow from preprocessing VASP
-#   output files to generating final analysis results.
+#   Automatically detects VASP version and selects the correct AECCAR files.
 #
 # USAGE:
 #   do_bader
 #
 # REQUIREMENTS:
-#   - VASP output files in current directory: AECCAR0, AECCAR2, CHGCAR, CONTCAR
-#   - Auxiliary tools: bader, chgsplit, chgsum.pl, Bader_analyse.py
-#
-# OUTPUT FILES:
-#   - ACF_chg.dat: Bader charges for total density
-#   - ACF_mag.dat: Bader charges for magnetic density
-#   - Bader_analyse: Summary analysis report
-#
+#   - AECCAR*, CHGCAR, CONTCAR, VASP_version.txt
+#   - Tools: bader, chgsum.pl, chgsplit, Bader_analyse.py
 #==============================================================================
 set -e
 
-# Get the directory where this script is actually located (resolve symlinks)
+# Get script directory (resolve symlinks)
 SOURCE="${BASH_SOURCE[0]}"
-# Resolve $SOURCE until the file is no longer a symlink
 while [ -L "$SOURCE" ]; do
   DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
   SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # Transform $SOURCE into an absolute path
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
-for file in AECCAR0 AECCAR2 CHGCAR CONTCAR; do
+# Detect VASP version
+if [ ! -f "VASP_version.txt" ]; then
+  echo "Error: VASP_version.txt not found. Please include this file."
+  exit 1
+fi
+
+# Select AECCAR files depending on version
+if grep -q "Vasp6" VASP_version.txt; then
+  AECCAR_CORE="AECCAR0"
+  AECCAR_TOTAL="AECCAR2"
+elif grep -q "Vasp5" VASP_version.txt; then
+  AECCAR_CORE="AECCAR0"
+  AECCAR_TOTAL="AECCAR1"
+else
+  echo "Warning: Unknown VASP version '$VASP_VERSION'"
+  exit 1
+fi
+
+# Check required files exist
+for file in "$AECCAR_CORE" "$AECCAR_TOTAL" CHGCAR CONTCAR; do
   if [ ! -f "$file" ]; then
-    echo "Error: Required VASP output file ($file) not found in the current directory."
-    echo "Files required: AECCAR0, AECCAR2, CHGCAR, CONTCAR."
+    echo "Error: Required file ($file) not found in current directory."
+    echo "Make sure AECCAR*, CHGCAR, and CONTCAR are present."
     exit 1
   fi
 done
 
-cp AECCAR0 AECCAR0_init
-cp AECCAR2 AECCAR02_init
+# Backup and preprocessing
+cp "$AECCAR_CORE" "${AECCAR_CORE}_init"
+cp "$AECCAR_TOTAL" "${AECCAR_TOTAL}_init"
 cp CHGCAR CHGCAR_init
-#awk '{if(NR!=6) print $0}' AECCAR0 > A0
-#awk '{if(NR!=6) print $0}' AECCAR2 > A2
-#awk '{if(NR!=6) print $0}' CHGCAR > A3
-awk '{if ((NR!=6)||($1 ~ /[0-9]+/)) print $0}' AECCAR2 > A2
+
+# Clean sixth line format issues
+awk '{if ((NR!=6)||($1 ~ /[0-9]+/)) print $0}' "$AECCAR_CORE" > A0
+awk '{if ((NR!=6)||($1 ~ /[0-9]+/)) print $0}' "$AECCAR_TOTAL" > A2
 awk '{if ((NR!=6)||($1 ~ /[0-9]+/)) print $0}' CHGCAR > A3
-awk '{if ((NR!=6)||($1 ~ /[0-9]+/)) print $0}' AECCAR0 > A0
-mv A0 AECCAR0
-mv A2 AECCAR2
+mv A0 "$AECCAR_CORE"
+mv A2 "$AECCAR_TOTAL"
 mv A3 CHGCAR
-perl "$SCRIPT_DIR/chgsum.pl" AECCAR0 AECCAR2
+
+# Combine AECCAR files (core + total/all-electron)
+perl "$SCRIPT_DIR/chgsum.pl" "$AECCAR_CORE" "$AECCAR_TOTAL"
+
+# Run Bader analysis on total charge
 "$SCRIPT_DIR/bader" CHGCAR -ref CHGCAR_sum
 cp ACF.dat ACF_chg.dat
+
+# Run Bader analysis on magnetic charge density
 "$SCRIPT_DIR/chgsplit" CHGCAR
 "$SCRIPT_DIR/bader" CHGCAR_mag.vasp
 cp ACF.dat ACF_mag.dat
-mv AECCAR0_init AECCAR0
-mv AECCAR02_init AECCAR2
+
+# Restore backups and clean up
+mv "${AECCAR_CORE}_init" "$AECCAR_CORE"
+mv "${AECCAR_TOTAL}_init" "$AECCAR_TOTAL"
 mv CHGCAR_init CHGCAR
 rm CHGCAR_up* CHGCAR_down*
-python3 "$SCRIPT_DIR/Bader_analyse.py" > Bader_analyse
 
+# Post-processing: summary
+python3 "$SCRIPT_DIR/Bader_analyse.py" > Bader_analyse
+echo "Bader charge analysis completed. Results in Bader_analyse."
