@@ -10,7 +10,7 @@
 #   do_bader
 #
 # REQUIREMENTS:
-#   - AECCAR*, CHGCAR, CONTCAR, VASP_version.txt
+#   - AECCAR*, CHGCAR, VASP_version.txt
 #   - Tools: bader, chgsum.pl, chgsplit, Bader_analyse.py
 #==============================================================================
 set -e
@@ -43,10 +43,10 @@ else
 fi
 
 # Check required files exist
-for file in "$AECCAR_CORE" "$AECCAR_TOTAL" CHGCAR CONTCAR; do
+for file in "$AECCAR_CORE" "$AECCAR_TOTAL" CHGCAR; do
   if [ ! -f "$file" ]; then
     echo "Error: Required file ($file) not found in current directory."
-    echo "Make sure AECCAR*, CHGCAR, and CONTCAR are present."
+    echo "Make sure AECCAR* and CHGCAR are present."
     exit 1
   fi
 done
