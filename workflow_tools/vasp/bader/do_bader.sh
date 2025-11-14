@@ -17,20 +17,21 @@
 #==============================================================================
 set -e
 
-choose_vasp_version() {
-  while true; do 
-    read -p "Please enter VASP version (5 or 6): " user_vasp_version
-    if [ "$user_vasp_version" = "6" ]; then
-      echo "Vasp6"
-      return
-    elif [ "$user_vasp_version" = "5" ]; then
-      echo "Vasp5"
-      return
-    else
-      echo "Error: Invalid VASP version entered. Please enter 5 or 6."
-    fi
-  done
-}
+#choose_vasp_version() {
+#  while true; do 
+#    read -p "Please enter VASP version (5 or 6): " user_vasp_version
+#    if [ "$user_vasp_version" = "6" ]; then
+#      echo "Vasp6"
+#      return
+#    elif [ "$user_vasp_version" = "5" ]; then
+#      echo "Vasp5"
+#      return
+#    else
+#      echo "Error: Invalid VASP version entered. Please enter 5 or 6."
+#    fi
+#  done
+#}
+
 # Get script directory (resolve symlinks)
 SOURCE="${BASH_SOURCE[0]}"
 while [ -L "$SOURCE" ]; do
@@ -39,13 +40,6 @@ while [ -L "$SOURCE" ]; do
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
-
-# Make AECCAR files VESTA readable
-for AECCAR in AECCAR0 AECCAR1 AECCAR2; do
-  if [ -f "$AECCAR" ]; then
-    cp "$AECCAR" "${AECCAR}.vasp"
-  fi
-done
 
 # Select AECCAR files depending on version
 if [ ! -f "VASP_version.txt" ]; then
@@ -60,7 +54,13 @@ else
 fi
 
 if [ -z "$VASP_VERSION" ]; then
-  VASP_VERSION=$(choose_vasp_version)
+  if [ -f "AECCAR2" ]; then
+    echo "Detected AECCAR2 file, assuming VASP version 6."
+    VASP_VERSION="Vasp6"
+  else
+    echo "No AECCAR2 file, assuming VASP version 5."
+    VASP_VERSION="Vasp5"
+  fi
 fi
 
 if [ "$VASP_VERSION" = "Vasp6" ]; then
@@ -77,6 +77,13 @@ for file in "$AECCAR_CORE" "$AECCAR_TOTAL" CHGCAR; do
     echo "Error: Required file ($file) not found in current directory."
     echo "Make sure AECCAR* and CHGCAR are present."
     exit 1
+  fi
+done
+
+# Make AECCAR files VESTA readable
+for AECCAR in AECCAR0 AECCAR1 AECCAR2; do
+  if [ -f "$AECCAR" ]; then
+    cp "$AECCAR" "${AECCAR}.vasp"
   fi
 done
 
