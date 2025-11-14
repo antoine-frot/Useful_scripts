@@ -79,8 +79,8 @@ column_5chg_values = []
 column_5mag_values = []
 try:
     with open("ACF_chg.dat", "r") as file:
-        # Lire les lignes du fichier à partir de la troisième ligne
-        lines = file.readlines()[2:]
+        # Lire les lignes du fichier à partir de la cinquième ligne à cause de l'en-tête ajouté
+        lines = file.readlines()[4:]
         for line in lines:
             elements = line.split()
             if len(elements)==1:
@@ -94,12 +94,12 @@ except Exception as e:
 
 try:
     with open("ACF_mag.dat", "r") as file:
-        lines = file.readlines()[2:]
+        lines = file.readlines()[4:]
         for line in lines:
             elements = line.split()
             if len(elements)==1:
                 break
-            column_5mag_value = float(elements[4])  # Convertir en float si nécessaire
+            column_5mag_value = float(elements[4])
             column_5mag_values.append(column_5mag_value)
 
 except Exception as e:
