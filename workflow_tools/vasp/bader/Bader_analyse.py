@@ -111,6 +111,15 @@ for NB in NB_at:
      nb_at_maille=nb_at_maille+NB
 print("Nombre d'atomes par maille :",nb_at_maille)
 
+# Validate that we have the expected number of atoms in ACF files
+if len(column_5chg_values) != nb_at_maille:
+    print(f"Error: Expected {nb_at_maille} atoms from structure file, but found {len(column_5chg_values)} in ACF_chg.dat")
+    sys.exit(1)
+
+if len(column_5mag_values) != nb_at_maille:
+    print(f"Error: Expected {nb_at_maille} atoms from structure file, but found {len(column_5mag_values)} in ACF_mag.dat")
+    sys.exit(1)
+
 # Calculer et afficher les valeurs moyennes des charges et moments magnétiques par atome
 print("") 
 print("------------------------------") 
@@ -119,10 +128,23 @@ print("------------------------------")
 index_nb=0
 index_typ=0
 for NB in NB_at:
-    print(TYP_at[index_typ],sum(column_5chg_values[index_nb:index_nb+NB])/NB)
-    print("Bader Min :", min(column_5chg_values[index_nb:index_nb+NB]))
-    print("Bader Max :", max(column_5chg_values[index_nb:index_nb+NB]))
-    print("RMSD :", statistics.stdev(column_5chg_values[index_nb:index_nb+NB]))
+    # Check if we have enough data for this atom type
+    if index_nb + NB > len(column_5chg_values):
+        print(f"Error: Not enough charge data for atom type {TYP_at[index_typ]}")
+        sys.exit(1)
+    
+    atom_charges = column_5chg_values[index_nb:index_nb+NB]
+    if not atom_charges:  # Additional safety check
+        print(f"Error: No charge data for atom type {TYP_at[index_typ]}")
+        sys.exit(1)
+    
+    print(TYP_at[index_typ], sum(atom_charges)/NB)
+    print("Bader Min :", min(atom_charges))
+    print("Bader Max :", max(atom_charges))
+    if len(atom_charges) > 1:
+        print("RMSD :", statistics.stdev(atom_charges))
+    else:
+        print("RMSD : N/A (only one atom)")
     print("-------------------------------") 
     index_typ=index_typ+1
     index_nb=index_nb+NB
@@ -134,10 +156,23 @@ print("------------------------------")
 index_nb=0
 index_typ=0
 for NB in NB_at:
-    print(TYP_at[index_typ],sum(column_5mag_values[index_nb:index_nb+NB])/NB)
-    print("MagM Min :", min(column_5mag_values[index_nb:index_nb+NB]))
-    print("MagM Max :", max(column_5mag_values[index_nb:index_nb+NB]))
-    print("RMSD :", statistics.stdev(column_5mag_values[index_nb:index_nb+NB]))
+    # Check if we have enough data for this atom type
+    if index_nb + NB > len(column_5mag_values):
+        print(f"Error: Not enough magnetic data for atom type {TYP_at[index_typ]}")
+        sys.exit(1)
+    
+    atom_mag = column_5mag_values[index_nb:index_nb+NB]
+    if not atom_mag:  # Additional safety check
+        print(f"Error: No magnetic data for atom type {TYP_at[index_typ]}")
+        sys.exit(1)
+    
+    print(TYP_at[index_typ], sum(atom_mag)/NB)
+    print("MagM Min :", min(atom_mag))
+    print("MagM Max :", max(atom_mag))
+    if len(atom_mag) > 1:
+        print("RMSD :", statistics.stdev(atom_mag))
+    else:
+        print("RMSD : N/A (only one atom)")
     print("-------------------------------")
 
     index_typ=index_typ+1
