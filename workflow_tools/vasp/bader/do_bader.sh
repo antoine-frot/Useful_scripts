@@ -106,16 +106,26 @@ perl "$SCRIPT_DIR/chgsum.pl" "$AECCAR_CORE" "$AECCAR_TOTAL" # create CHGCAR_sum
 # Run Bader analysis on total charge
 "$SCRIPT_DIR/bader" CHGCAR -ref CHGCAR_sum
 mv ACF.dat ACF_chg.dat
-printf ' %0.s-' {1..81} | cat - ACF_chg.dat > tmp && mv tmp ACF_chg.dat
-sed -i '1i # Bader Analysis of Charge Density' ACF_chg.dat
+tmpfile="$(mktemp)"
+{
+  echo "# Bader Analysis of Charge Density"
+  printf '%0.s-' {1..81}
+  echo
+  cat ACF_chg.dat
+} > "$tmpfile" && mv "$tmpfile" ACF_chg.dat
 
 # Run Bader analysis on magnetic charge density
 "$SCRIPT_DIR/chgsplit" CHGCAR
 "$SCRIPT_DIR/bader" CHGCAR_mag.vasp
 mv ACF.dat ACF_mag.dat
-printf ' %0.s-' {1..81} | cat - ACF_mag.dat > tmp && mv tmp ACF_mag.dat
-sed -i '1i # Bader Analysis of Magnetization Density' ACF_mag.dat
-sed -i 's/CHARGE/MAGNET/g' ACF_mag.dat
+tmpfile="$(mktemp)"
+{
+  echo "# Bader Analysis of Magnetization Density"
+  printf '%0.s-' {1..81}
+  echo
+  cat ACF_mag.dat
+} > "$tmpfile" && mv "$tmpfile" ACF_mag.dat
+sed -i 's/CHARGE/MAGNET/' ACF_mag.dat
 sed -i 's/NUMBER OF ELECTRONS/TOTAL MAGNETIZATION/' ACF_mag.dat
 
 # Restore backups and clean up
