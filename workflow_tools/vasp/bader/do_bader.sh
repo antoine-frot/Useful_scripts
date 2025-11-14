@@ -136,8 +136,12 @@ mv CHGCAR_mag.vasp CHGCAR_mag
 rm CHGCAR_up* CHGCAR_down* CHGCAR_sum
 
 # Post-processing: summary
-python3 "$SCRIPT_DIR/Bader_analyse.py" > Bader_analyse
 echo ""
+if ! python3 "$SCRIPT_DIR/Bader_analyse.py" > Bader_analyse; then
+    echo "ERROR: Bader analysis failed during post-processing."
+    echo "Check the Bader_analyse file for error details."
+    echo "Raw Bader results are still available in ACF_chg.dat and ACF_mag.dat"
+fi
 echo "Files generated: " 
 echo "ACF_chg.dat charge density Bader analysis"
 echo "ACF_mag.dat magnetic charge density Bader analysis"
