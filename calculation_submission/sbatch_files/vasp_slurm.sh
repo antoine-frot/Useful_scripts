@@ -51,6 +51,7 @@ warning_found=0
 waiting_time=1
 loop_counter=0
 displayed_name="$SLURM_JOB_NAME ($SLURM_JOB_ID)"
+echo "RUNNING: $displayed_name" >> $submitted_file
 while kill -0 "$vasp_pid" 2>/dev/null; do
   sleep $waiting_time
   if [ "$advice_found" -eq 0 ] && grep -qF "$advice_pattern" OUTCAR 2>/dev/null; then
@@ -82,6 +83,8 @@ else
     echo "ERROR: $displayed_name" >> $submitted_file
     echo "Calculation terminated ABnormally."
 fi
+# Delete RUNNING entry from Submitted file
+sed -i "/RUNNING: ${displayed_name//\//\\/}/d" $submitted_file
 
 # Get time of the calculation
 end=$(date +%s)
