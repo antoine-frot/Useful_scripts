@@ -21,5 +21,8 @@ python_env () {
 if [ -f ~/.git-prompt.sh ]; then
   source ~/.git-prompt.sh
 fi
-PS1='\h:\w$(python_env)$(__git_ps1 " (%s)")\$ '
-# PS1='\u@\h:\w$(__git_ps1 " (%s)")$(python_env)$ '
+if [ -z ${__git_ps1} ]; then
+    PS1='\h:\w$(python_env)\$ '
+else
+    PS1='\h:\w$(python_env)$(__git_ps1 " (%s)")\$ '
+fi
