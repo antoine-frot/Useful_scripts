@@ -52,7 +52,7 @@ waiting_time=1
 loop_counter=0
 displayed_name="$SLURM_JOB_NAME ($SLURM_JOB_ID)"
 # Remove entry from previous job for this calculation if exists
-sed -i "/${SLURM_JOB_NAME}/d" $submitted_file
+sed -i "/ ${SLURM_JOB_NAME} /d" $submitted_file
 echo "RUNNING: $displayed_name" >> $submitted_file
 while kill -0 "$vasp_pid" 2>/dev/null; do
   sleep $waiting_time
