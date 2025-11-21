@@ -1,18 +1,18 @@
 #!/bin/bash
 
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <directory>"
-    echo "Example: $0 directory_to_deprecate"
+    echo "Usage: $0 <file_or_directory> [file_or_directory...]"
+    echo "Example: $0 directory_to_deprecate file_to_deprecate.txt"
     exit 1
 fi
 
-for target_dir in "$@"; do
-    if [ ! -d "$target_dir" ]; then
-        echo "Error: '$target_dir' is not a valid directory."
+for target in "$@"; do
+    if [ ! -e "$target" ]; then
+        echo "Error: '$target' does not exist."
         continue
     fi
 
-    TARGET_REALPATH=$(realpath "$target_dir")
+    TARGET_REALPATH=$(realpath "$target")
     HOME_REALPATH=$(realpath "$HOME")
     
     if [ "$TARGET_REALPATH" = "$HOME_REALPATH" ]; then
@@ -23,7 +23,7 @@ for target_dir in "$@"; do
     case "$TARGET_REALPATH" in
         "$HOME_REALPATH"/*) ;;
         *)
-            echo "Error: Directory '$target_dir' is not inside the home directory."
+            echo "Error: '$target' is not inside the home directory."
             continue
             ;;
     esac
@@ -37,4 +37,6 @@ for target_dir in "$@"; do
         echo "Error: Failed to move '$TARGET_REALPATH' to '$DEPRECATED_PATH'."
         continue
     fi
+    
+    echo "Successfully moved '$TARGET_REALPATH' to '$DEPRECATED_PATH'"
 done
