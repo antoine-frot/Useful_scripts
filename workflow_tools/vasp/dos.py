@@ -177,7 +177,6 @@ ax = plotter.get_plot()  # Get Axis object
 lines = ax.get_lines()
 # Customize colors and line widths
 for line in lines:
-    print(line)
     label = line.get_label()
     if label.startswith('_'):
         y_values = line.get_ydata()
