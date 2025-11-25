@@ -195,6 +195,9 @@ for line in lines:
     elif label == 'Total DOS':
         line.set_color('#000000')
     line.set_linewidth(1)
+# Remove extra white space
+ax.margins(0)
+ax.autoscale_view()
 # Remove duplicate labels in legend for spin polarized DOS
 handles, labels = ax.get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
