@@ -177,13 +177,29 @@ ax = plotter.get_plot()  # Get Axis object
 lines = ax.get_lines()
 # Customize colors and line widths
 for line in lines:
+    print(line)
     label = line.get_label()
+    if label.startswith('_'):
+        y_values = line.get_ydata()
+        
+        # We use a small epsilon (1e-5) to handle potential floating point errors.
+        if all(abs(y) < 1e-5 for y in y_values):
+            line.remove()  # Deletes the line from the plot
+        else:
+            line.set_color('black')
+            line.set_linestyle('--')
+            line.set_linewidth(0.5)
+            
+        continue
     if label in vesta_colors:
         line.set_color(vesta_colors[label])
     elif label == 'Total DOS':
         line.set_color('#000000')
     line.set_linewidth(1)
-
+# Remove duplicate labels in legend for spin polarized DOS
+handles, labels = ax.get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+ax.legend(by_label.values(), by_label.keys(), fontsize='x-large')
 plt.savefig("dos.png")  # Save figure
 fig = plt.gcf()        # Get current figure
 enable_scroll_zoom(fig)
