@@ -11,7 +11,7 @@ set noerrorbells
 syntax on
  
 " Set colorscheme
-colorscheme default
+" colorscheme default
  
 " Enable file type detection and plugin support
 filetype plugin indent on
@@ -53,7 +53,7 @@ if has("persistent_undo")
 endif
  
 " Show a visual line to indicate the 80-character limit (good for coding style)
-set colorcolumn=80
+" set colorcolumn=80
  
 " Enable auto-completion menu
 set completeopt=menuone,noinsert,noselect
@@ -82,16 +82,16 @@ set foldlevelstart=99
 " ----------------------------
  
 " Map space as the leader key
-" let mapleader=" "
+let mapleader=" "
  
 " Quickly save with <leader>w
-" nnoremap <leader>w :w<CR>
+nnoremap <leader>w :w<CR>
  
 " Quit with <leader>q
-" nnoremap <leader>q :q<CR>
+nnoremap <leader>q :q<CR>
  
 " Quickly save and quit with <leader>x
-" nnoremap <leader>x :wq<CR>
+nnoremap <leader>x :wq<CR>
  
 " Toggle line numbers with <leader>n
 " nnoremap <leader>n :set nu!<CR>
@@ -104,3 +104,17 @@ nnoremap <C-h> <C-w>h
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-l> <C-w>l
+
+" My personnal shortcut
+function! ToggleBoolean()
+  let l:line = getline('.')
+  let l:col = col('.')
+  if l:line =~ '\.FALSE\.'
+    execute "s/\\.FALSE\\./.TRUE./"
+  elseif l:line =~ '\.TRUE\.'
+    execute "s/\\.TRUE\\./.FALSE./"
+  endif
+  call cursor(line('.'), l:col)
+endfunction
+
+nnoremap <leader>b :call ToggleBoolean()<CR>
