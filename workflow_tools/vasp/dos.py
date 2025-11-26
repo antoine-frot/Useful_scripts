@@ -1,7 +1,10 @@
 #! /home/afrot/virtual_env_python/bin/python3
+import matplotlib.pyplot as plt
+import warnings
+# Filter out the specific networkx warning occuring on taz
+warnings.filterwarnings("ignore", message="networkx backend defined more than once: nx-loopback")
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.plotter import DosPlotter
-import matplotlib.pyplot as plt
 
 vesta_colors = {
     "H":   "#ffcccc",

@@ -1,11 +1,14 @@
 #! /home/afrot/virtual_env_python/bin/python3
-from pymatgen.io.vasp.outputs import Vasprun
-from pymatgen.electronic_structure.plotter import BSPlotter
 import matplotlib.pyplot as plt
 import os
 import sys
 import shutil
 import filecmp
+import warnings
+# Filter out the specific networkx warning occuring on taz
+warnings.filterwarnings("ignore", message="networkx backend defined more than once: nx-loopback")
+from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.electronic_structure.plotter import BSPlotter
 
 def get_band_structure_properties(band_structure):
     """
@@ -27,6 +30,7 @@ def get_band_structure_properties(band_structure):
 
 source_path = os.path.abspath(sys.argv[0])
 dest_path = os.path.join(os.getcwd(), os.path.basename(sys.argv[0]))
+print() # New line for better readability if the script is run in background
 if os.path.exists(dest_path):
     # Compare files content
     if not filecmp.cmp(source_path, dest_path, shallow=False):
@@ -43,8 +47,6 @@ except Exception as e:
 # Load band structure from vasprun.xml
 vasprun = Vasprun("vasprun.xml")
 bs = vasprun.get_band_structure()
-print()
-print(bs.get_direct_band_gap_dict())
 print("".join(get_band_structure_properties(bs)))
 with open("band_structure_properties.txt", "w") as f:
     f.writelines(get_band_structure_properties(bs))
