@@ -1,4 +1,4 @@
-print("\nInteractive plot enabled:")
+print("Interactive plot enabled:")
 def enable_scroll_zoom(figure):
     """
     Adds advanced scroll-to-zoom functionality to a matplotlib figure.
