@@ -24,7 +24,7 @@ def get_band_structure_properties(band_structure):
         else:
             lines.append(f"Indirect band gap of {band_gap['energy']:.4f} eV for transition {band_gap['transition']}\n")
             direct_gap = band_structure.get_direct_band_gap()
-            lines.append(f"Smallest Direct Gap: {direct_gap:.4f} eV\n")
+            lines.append(f"Direct Gap: {direct_gap:.4f} eV\n")
             
     return lines
 
