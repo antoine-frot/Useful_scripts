@@ -28,8 +28,9 @@ def get_band_structure_properties(band_structure):
             
     return lines
 
-source_path = os.path.abspath(sys.argv[0])
-dest_path = os.path.join(os.getcwd(), os.path.basename(sys.argv[0]))
+source_path = os.path.realpath(sys.argv[0])
+dest_path = os.path.join(os.getcwd(), os.path.basename(source_path))
+print(source_path, "->", dest_path)
 print() # New line for better readability if the script is run in background
 if os.path.exists(dest_path):
     # Compare files content
@@ -53,7 +54,6 @@ with open("band_structure_properties.txt", "w") as f:
 
 plotter = BSPlotter(bs)
 ax = plotter.get_plot(vbm_cbm_marker=True) # Plot with VBM and CBM markers
-plt.savefig("band_structure.png") 
 fig_bs = plt.gcf()
 from python_utility.matplotlib_helper_functions import enable_scroll_zoom, enable_keyboard_pan
 enable_scroll_zoom(fig_bs)
