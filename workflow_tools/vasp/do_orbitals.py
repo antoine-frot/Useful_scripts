@@ -115,17 +115,17 @@ def main():
     nbands, nkpts = extract_nbands_and_nkpts()
     
     parser.add_argument('-b', '--bands', 
-                       type=int, 
+                       type=str, 
                        nargs='*', 
-                       default=list(range(1, nbands + 1)),
-                       help=f'List of band numbers (default: 1 to NBANDS ({nbands} here))')
+                       default=[f"1-{nbands}"],
+                       help=f'List of band numbers, can be defined as single integers (5 8 10) or ranges (10-13) (default: all bands ({nbands}))')
     
     parser.add_argument('-k', '--kpoints', 
                        nargs='*', 
                        default=[1],
                        help=r"List of kpoint numbers or 'all' for all kpoints (default: gamma point (1))")
 
-    parser.add_argument('-s', '--squared',
+    parser.add_argument('--squared',
                         action='store_true',
                         help="Generate squared wavefunction files instead of real and imaginary parts.")
 
@@ -133,7 +133,27 @@ def main():
                         action='store_true',
                         help="Generate cube files instead of VASP files.")
     
+    parser.add_argument('-s', '--spin',
+                        type=str,
+                        choices=['UP', 'DW'],
+                        help="Specify spin channel (UP or DW) for spin-polarized calculations. If not provided, both spins will be processed.")
+    
+    parser.add_argument('-i', '--imag',
+                        action='store_true',
+                        default=False,
+                        help="Generate only real part files if not set (only relevant if --squared is not set).")
+    
     args = parser.parse_args()
+
+    # Allow that bands can be defined as 31-38 for 31 32 33 34 35 36 37 38
+    expanded_bands = []
+    for band in args.bands:
+        if '-' in band:
+            start, end = map(int, band.split('-'))
+            expanded_bands.extend(range(start, end + 1))
+        else:
+            expanded_bands.append(int(band))
+    args.bands = expanded_bands
 
     # Handle 'all' keyword for kpoints
     if args.kpoints == ['all']:
@@ -161,6 +181,7 @@ def main():
     total_combinations = len(args.kpoints) * len(args.bands)
     current = 0
 
+    orbital_files = []
     for kpoint, kpoint_name in zip(args.kpoints, kpoint_names):
         for band in args.bands:
             current += 1
@@ -222,12 +243,21 @@ def main():
                 new_names = [generated_file.replace(f"K{kpoint:04d}", kpoint_name) for generated_file in generated_files]
 
             for generated_file, new_name in zip(generated_files, new_names):
+                if args.spin is None or not args.spin in generated_file:
+                    os.remove(generated_file)
+                    continue
+                if not args.imag and 'IMAG' in generated_file:
+                    os.remove(generated_file)
+                    continue
                 if generated_file != new_name:
                     try:
                         shutil.move(generated_file, new_name)
                     except FileNotFoundError:
                         print(f"Warning: Generated file {generated_file} not found, cannot rename to {new_name}")
+                orbital_files.append(new_name)
 
+    print("\nRun the following command to visualize the generated orbitals in VESTA:")
+    print("VEST " + " ".join(orbital_files)) # With my own alias VEST -> VESTA 2>/dev/null &
     ending_time = os.times()
     runtime = ending_time[4] - starting_time[4]
     if runtime >= 60:
