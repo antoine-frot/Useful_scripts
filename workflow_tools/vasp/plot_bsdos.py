@@ -9,7 +9,7 @@ from pymatgen.electronic_structure.plotter import BSDOSPlotter
 # Suppress matplotlib font warnings
 import logging
 logging.getLogger('matplotlib.font_manager').disabled = True
-from workflow_tools.vasp.vesta_colors import vesta_colors
+from python_utility.vesta_colors import vesta_colors
 
 vasprun_bs = Vasprun("bandstructure/vasprun.xml", parse_projected_eigen=True)
 bs = vasprun_bs.get_band_structure()

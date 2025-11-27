@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings("ignore", message="networkx backend defined more than once: nx-loopback")
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.plotter import DosPlotter
-from workflow_tools.vasp.vesta_colors import vesta_colors
+from python_utility.vesta_colors import vesta_colors
 
 vasprun = Vasprun("vasprun.xml", parse_projected_eigen=True)
 dos = vasprun.complete_dos # Total DOS + projection on atoms and orbitals
