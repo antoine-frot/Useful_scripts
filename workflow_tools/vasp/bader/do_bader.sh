@@ -17,21 +17,6 @@
 #==============================================================================
 set -e
 
-#choose_vasp_version() {
-#  while true; do 
-#    read -p "Please enter VASP version (5 or 6): " user_vasp_version
-#    if [ "$user_vasp_version" = "6" ]; then
-#      echo "Vasp6"
-#      return
-#    elif [ "$user_vasp_version" = "5" ]; then
-#      echo "Vasp5"
-#      return
-#    else
-#      echo "Error: Invalid VASP version entered. Please enter 5 or 6."
-#    fi
-#  done
-#}
-
 # Get script directory (resolve symlinks)
 SOURCE="${BASH_SOURCE[0]}"
 while [ -L "$SOURCE" ]; do
@@ -41,35 +26,8 @@ while [ -L "$SOURCE" ]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
-# Select AECCAR files depending on version
-if [ ! -f "VASP_version.txt" ]; then
-  echo "VASP_version.txt not found."
-elif grep -q "Vasp6" VASP_version.txt; then
-  VASP_VERSION="Vasp6"
-elif grep -q "Vasp5" VASP_version.txt; then
-  VASP_VERSION="Vasp5"
-else
-  VASP_VERSION_READ=$(cat VASP_version.txt)
-  echo "Warning: Unknown VASP version: '$VASP_VERSION_READ'. Expected 'Vasp5' or 'Vasp6' in VASP_version.txt."
-fi
-
-if [ -z "$VASP_VERSION" ]; then
-  if [ -f "AECCAR2" ]; then
-    echo "Detected AECCAR2 file, assuming VASP version 6."
-    VASP_VERSION="Vasp6"
-  else
-    echo "No AECCAR2 file, assuming VASP version 5."
-    VASP_VERSION="Vasp5"
-  fi
-fi
-
-if [ "$VASP_VERSION" = "Vasp6" ]; then
-    AECCAR_CORE="AECCAR0"
-    AECCAR_TOTAL="AECCAR2"
-elif [ "$VASP_VERSION" = "Vasp5" ]; then
-    AECCAR_CORE="AECCAR0"
-    AECCAR_TOTAL="AECCAR1"
-fi
+AECCAR_CORE="AECCAR0"
+AECCAR_TOTAL="AECCAR2"
 
 # Check required files exist
 for file in "$AECCAR_CORE" "$AECCAR_TOTAL" CHGCAR; do
@@ -77,13 +35,6 @@ for file in "$AECCAR_CORE" "$AECCAR_TOTAL" CHGCAR; do
     echo "Error: Required file ($file) not found in current directory."
     echo "Make sure AECCAR* and CHGCAR are present."
     exit 1
-  fi
-done
-
-# Make AECCAR files VESTA readable
-for AECCAR in AECCAR0 AECCAR1 AECCAR2; do
-  if [ -f "$AECCAR" ]; then
-    cp "$AECCAR" "${AECCAR}.vasp"
   fi
 done
 
@@ -151,11 +102,6 @@ echo "Additional files:"
 echo "BCF.dat topological properties of the Bader volumes"
 echo "AVF.dat volume files for each Bader volume"
 echo "Reminder:"
-if [ "$VASP_VERSION" = "Vasp6" ]; then
-  echo "- AECCAR0 core charge density."
-  echo "- AECCAR1 smooth pseudo valence charge density."
-  echo "- AECCAR2 valence all-electron density (pseudo valence + PAW augmentation)."
-elif [ "$VASP_VERSION" = "Vasp5" ]; then
-  echo "- AECCAR0 core charge density."
-  echo "- AECCAR1 valence all-electron density (pseudo valence + PAW augmentation)."
-fi
+echo "- AECCAR0 core charge density."
+echo "- AECCAR1 smooth pseudo valence charge density."
+echo "- AECCAR2 valence all-electron density (pseudo valence + PAW augmentation)."
