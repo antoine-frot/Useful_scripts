@@ -10,6 +10,23 @@ This script compares two molecular geometries from .xyz files using:
 5. Chemical bond analysis and geometric descriptors
 
 Usage: python compare_structures.py structure1.xyz structure2.xyz
+
+Options:
+    --tolerance TOLERANCE
+        Tolerance for distance comparisons (default: 0.01 Å)
+    --bond-tolerance BOND_TOLERANCE
+        Additional tolerance for bond identification beyond covalent radii (default: 0.4 Å)
+    --verbose, -v
+        Enable verbose output
+    --store, -s
+        Store the second structure aligned with the first in an output .xyz file
+
+Output:
+    Prints comparison results to the console, including RMSD values,
+    bond analysis, and enantiomer detection. Optionally saves the aligned
+    structure to a new .xyz file.
+    
+Author: Antoine Frot
 """
 
 import numpy as np
