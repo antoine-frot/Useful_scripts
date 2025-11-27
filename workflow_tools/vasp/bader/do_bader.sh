@@ -116,7 +116,7 @@ tmpfile="$(mktemp)"
 
 # Run Bader analysis on magnetic charge density
 "$SCRIPT_DIR/chgsplit" CHGCAR
-"$SCRIPT_DIR/bader" CHGCAR_mag.vasp
+"$SCRIPT_DIR/bader" CHGCAR_mag.vasp -ref CHGCAR_sum
 mv ACF.dat ACF_mag.dat
 tmpfile="$(mktemp)"
 {
