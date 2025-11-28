@@ -169,6 +169,8 @@ def main():
         # UPDATED: Using >12 for right alignment to fix formatting shift
         header = f"{'#':>4}     {'Ion':<4}  {'Bader (e)':^12}{'Charge':^12} {'Mag (muB)':^12}"
         
+        f.write("Individual Atom Data:\n")
+        f.write("-" * len(header) + "\n")
         f.write(header + "\n")
         f.write("-" * len(header) + "\n")
         
@@ -182,15 +184,19 @@ def main():
             total_mag += mag_vals[i]
             
         f.write("-" * len(header) + "\n")
-        f.write(f"TOTAL ELECTRONS:     {total_elec:.2f}\n")
-        f.write(f"TOTAL MAGNETIZATION: {total_mag:.2f}\n")
+        # Get the length of a floating point number for alignment
+        displayed_total_mag = f"{total_mag:.2f}"
+        f.write(f"TOTAL ELECTRONS: {total_elec:>{len(displayed_total_mag)+4}.2f}\n")
+        f.write(f"TOTAL MAGNETIZATION: {displayed_total_mag}\n")
         f.write("\n\n")
 
         # --- TABLE 2: Statistics per Element ---
         # UPDATED: Using right alignment here too
+        f.write("Element-wise Statistics:\n")
         stats_header = (f"{'Element':<8} "
                         f"{'Min(Bader)':^12} {'Max(Bader)':^12} {'RMSD(Bader)':^12} "
                         f"{'Min(Mag)':^12} {'Max(Mag)':^12} {'RMSD(Mag)':^12}")
+        f.write("-" * len(stats_header) + "\n")
         f.write(stats_header + "\n")
         f.write("-" * len(stats_header) + "\n")
 
@@ -206,6 +212,7 @@ def main():
             f.write(f"{elem:<8} "
                     f"{min_b:^12.2f} {max_b:^12.2f} {rms_b:^12.2f} "
                     f"{min_m:^12.2f} {max_m:^12.2f} {rms_m:^12.2f}\n")
+        f.write("-" * len(stats_header) + "\n")
 
     print(f"Analysis complete. Results saved to {OUTPUT_FILE}")
 
