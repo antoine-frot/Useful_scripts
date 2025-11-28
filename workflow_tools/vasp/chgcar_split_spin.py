@@ -9,7 +9,8 @@ def split_chgcar(input_file, mag=False):
         print(f"Error: File '{input_file}' not found.")
         sys.exit(1)
 
-    print(f"Processing {input_file}...")
+    if args.verbose:
+        print(f"Processing {input_file}...")
 
     try:
         with open(input_file, 'r') as f:
