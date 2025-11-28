@@ -82,7 +82,7 @@ def split_chgcar(input_file, mag=False):
 
             if not found_mag:
                 print("Error: Could not find Spin Magnetization block. Is this ISPIN=2?")
-                sys.exit(1)
+                return
 
             # --- 4. Read Magnetization (Spin Up - Spin Down) ---
             data_mag = []
@@ -105,6 +105,13 @@ def split_chgcar(input_file, mag=False):
 
             # --- 6. Write Outputs ---
             base_name = os.path.basename(input_file)
+            if '.vasp' in base_name:
+                print(F"Warning: {base_name} has .vasp extension.")
+                base_name = base_name.replace('.vasp', '')
+                print(f"Output name will be {base_name}_up.vasp and {base_name}_dw.vasp")
+                response = input("Do you want to continue? (y/n): ")
+                if response.lower() != 'y':
+                    return
             name_up = f"{base_name}_up.vasp"
             name_dw = f"{base_name}_dw.vasp"
 
