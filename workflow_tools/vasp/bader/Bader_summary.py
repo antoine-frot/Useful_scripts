@@ -30,7 +30,7 @@ O            6.85         6.88         0.01        -0.37        -0.35         0.
 
 # ================= CONFIGURATION =================
 OUTPUT_FILE = "Bader_summary.txt"
-TOLERANCE = 0.01  # Difference required to classify as a distinct ion
+TOLERANCE = 0.04  # Difference required to classify as a distinct ion
 # =================================================
 
 def get_geometry_info():
