@@ -36,7 +36,8 @@ def split_chgcar(input_file, mag=False):
                         continue
 
             grid_size = ng_x * ng_y * ng_z
-            print(f"Grid detected: {ng_x} x {ng_y} x {ng_z} ({grid_size} points)")
+            if args.verbose:
+                print(f"Grid detected: {ng_x} x {ng_y} x {ng_z} ({grid_size} points)")
 
             # --- 2. Read Total Charge (Spin Up + Spin Down) ---
             # We read the exact number of float values required for the grid
@@ -120,9 +121,10 @@ def split_chgcar(input_file, mag=False):
             if mag:
                 name_mag = f"{base_name}_mag.vasp"
                 write_vasp(name_mag, header_lines, np_mag)
-            print(f"Done! Created:\n  - {name_up}\n  - {name_dw}")
-            if mag:
-                print(f"  - {name_mag}") # type: ignore
+            if args.verbose:
+                print(f"Done! Created:\n  - {name_up}\n  - {name_dw}")
+                if mag:
+                    print(f"  - {name_mag}") # type: ignore
 
 
     except Exception as e:
@@ -153,6 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("files", nargs="+", help="List of CHGCAR-like files (CHGCAR, PARCHG, ...) to process")
     parser.add_argument("-m", "--mag", action="store_true",
                         help="Produce the magnetization file (UP - DW)")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable verbose output")
     args = parser.parse_args()
 
     for arg in args.files:
