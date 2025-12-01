@@ -66,8 +66,9 @@ back_to_main() {
 
 # Open VESTA in background, automatically switching to .vesta file if it exists and removing error messages 
 VEST(){
+    local args=()
     for arg in "$@"; do
-        if [[ "${args%.*}.vesta" != "$args" ]] && [ -f  "${arg%.*}.vesta" ]; then
+        if [[ "${arg%.*}.vesta" != "$arg" ]] && [ -f  "${arg%.*}.vesta" ]; then
             arg="${arg%.*}.vesta"
         fi
         args+=("$arg")
