@@ -1,3 +1,4 @@
+#! /home/afrot/virtual_env_python/bin/python3
 import os
 import math
 """
@@ -30,7 +31,7 @@ O            6.85         6.88         0.01        -0.37        -0.35         0.
 
 # ================= CONFIGURATION =================
 OUTPUT_FILE = "Bader_summary.txt"
-TOLERANCE = 0.04  # Difference required to classify as a distinct ion
+# TOLERANCE = 0.04  # Difference required to classify as a distinct ion
 # =================================================
 
 def get_geometry_info():
@@ -103,32 +104,84 @@ def read_acf(filename):
         print(f"Error reading {filename}: {e}")
     return values
 
-def generate_ion_labels(atoms, charges, mags):
-    """Generates labels like Fe1, Fe2 based on similarity."""
+def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
+    """Generates labels like Fe1, Fe2 based on similarity using clustering."""
+    from collections import defaultdict
+    
     labels = []
-    signatures = {} 
-
+    element_groups = defaultdict(list)
+    
+    # Group atoms by element
     for i, elem in enumerate(atoms):
-        q = charges[i]
-        m = mags[i]
+        element_groups[elem].append((i, charges[i], mags[i]))
+    
+    # Process each element separately
+    for elem in element_groups:
+        indices_charges_mags = element_groups[elem]
+        clusters = []
         
-        if elem not in signatures:
-            signatures[elem] = []
-        
-        found_id = -1
-        for sig in signatures[elem]:
-            if abs(sig['q'] - q) < TOLERANCE and abs(sig['m'] - m) < TOLERANCE:
-                found_id = sig['id']
-                break
-        
-        if found_id != -1:
-            labels.append(f"{elem}{found_id}")
-        else:
-            new_id = len(signatures[elem]) + 1
-            signatures[elem].append({'q': q, 'm': m, 'id': new_id})
-            labels.append(f"{elem}{new_id}")
+        # Cluster atoms of this element
+        for idx, q, m in indices_charges_mags:
+            # Try to find a matching cluster
+            matched_cluster = None
+            for cluster in clusters:
+                # Check if (q, m) is within tolerance of cluster centroid
+                avg_q = sum(c[1] for c in cluster) / len(cluster)
+                avg_m = sum(c[2] for c in cluster) / len(cluster)
+                
+                if abs(avg_q - q) < tolerance and abs(avg_m - m) < tolerance:
+                    matched_cluster = cluster
+                    break
             
+            # Add to existing cluster or create new one
+            if matched_cluster is not None:
+                matched_cluster.append((idx, q, m))
+            else:
+                clusters.append([(idx, q, m)])
+        
+        # Assign labels based on cluster membership
+        # Sort clusters by their centroid for consistency
+        clusters.sort(key=lambda c: (sum(x[1] for x in c)/len(c), 
+                                      sum(x[2] for x in c)/len(c)))
+        
+        for cluster_id, cluster in enumerate(clusters, 1):
+            for idx, _, _ in cluster:
+                labels.insert(idx, f"{elem}{cluster_id}")
+    
     return labels
+
+# With sklearn (more robust clustering)
+#def generate_ion_labels(atoms, charges, mags, tolerance=1e-3):
+#    """Generates labels using DBSCAN clustering."""
+#    from sklearn.cluster import DBSCAN
+#    from collections import defaultdict
+#    import numpy as np
+#    
+#    labels = [''] * len(atoms)
+#    element_groups = defaultdict(list)
+#    
+#    # Group by element
+#    for i, elem in enumerate(atoms):
+#        element_groups[elem].append(i)
+#    
+#    # Cluster each element separately
+#    for elem, indices in element_groups.items():
+#        features = np.array([[charges[i], mags[i]] for i in indices])
+#        
+#        # DBSCAN clustering
+#        clustering = DBSCAN(eps=tolerance, min_samples=1).fit(features)
+#        
+#        # Sort clusters by centroid for consistency
+#        unique_clusters = sorted(set(clustering.labels_))
+#        cluster_mapping = {}
+#        for new_id, old_id in enumerate(unique_clusters, 1):
+#            cluster_mapping[old_id] = new_id
+#        
+#        # Assign labels
+#        for i, cluster_id in enumerate(clustering.labels_):
+#            labels[indices[i]] = f"{elem}{cluster_mapping[cluster_id]}"
+#    
+#    return labels
 
 def calculate_stats(data_list):
     """Returns Min, Max, and RMSD."""
@@ -164,6 +217,35 @@ def main():
 
     ion_labels = generate_ion_labels(atoms, bader_vals, mag_vals)
 
+    # Create a list of tuples: (original_index, element, label, bader, charge, mag)
+    atom_data = []
+    total_elec = 0.0
+    total_mag = 0.0
+    for i in range(len(atoms)):
+        atom_data.append((i+1, atoms[i], ion_labels[i], bader_vals[i], net_charges[i], mag_vals[i]))
+        total_elec += bader_vals[i]
+        total_mag += mag_vals[i]
+
+    # Sort by: (1) first appearance of element, (2) cluster index, (3) Bader charge
+    unique_elements_order = []
+    for elem in atoms:
+        if elem not in unique_elements_order:
+            unique_elements_order.append(elem)
+
+    def sort_key(x):
+        elem = x[1]
+        label = x[2]
+        bader_charge = x[3]
+        elem_order = unique_elements_order.index(elem)
+        
+        # Extract cluster index from label (e.g., 'Fe1' -> 1)
+        cluster_index_str = ''.join(filter(str.isdigit, label))
+        cluster_index = int(cluster_index_str) if cluster_index_str else 0
+        
+        return (elem_order, cluster_index, bader_charge)
+
+    atom_data.sort(key=sort_key)
+
     with open(OUTPUT_FILE, 'w') as f:
         # --- TABLE 1: Individual Atoms ---
         # UPDATED: Using >12 for right alignment to fix formatting shift
@@ -174,14 +256,8 @@ def main():
         f.write(header + "\n")
         f.write("-" * len(header) + "\n")
         
-        total_elec = 0.0
-        total_mag = 0.0
-        
-        for i in range(len(atoms)):
-            # UPDATED: >12.2f aligns numbers to the right
-            f.write(f"{i+1:>4}     {ion_labels[i]:<4} {bader_vals[i]:^12.2f} {net_charges[i]:^12.2f} {mag_vals[i]:^12.2f}\n")
-            total_elec += bader_vals[i]
-            total_mag += mag_vals[i]
+        for orig_idx, elem, label, bader, charge, mag in atom_data:
+            f.write(f"{orig_idx:>4}     {label:<4} {bader:^12.2f} {charge:^12.2f} {mag:^12.2f}\n")
             
         f.write("-" * len(header) + "\n")
         # Get the length of a floating point number for alignment
