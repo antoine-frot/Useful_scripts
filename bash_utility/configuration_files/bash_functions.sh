@@ -64,6 +64,13 @@ back_to_main() {
     cd $main_dir
 }
 
+# Open VESTA in background, automatically switching to .vesta file if it exists and removing error messages 
 VEST(){
-    VESTA $@ >/dev/null 2>&1 &
+    for arg in "$@"; do
+        if [[ "${args%.*}.vesta" != "$args" ]] && [ -f  "${arg%.*}.vesta" ]; then
+            arg="${arg%.*}.vesta"
+        fi
+        args+=("$arg")
+    done
+    VESTA "${args[@]}" >/dev/null 2>&1 &
 }
