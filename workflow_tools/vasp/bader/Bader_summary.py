@@ -137,7 +137,7 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
     return labels
 
 def calculate_stats(data_list):
-    """Returns Min, Max, and RMSD."""
+    """Returns Min, Max, Moy and RMSD."""
     if not data_list:
         return 0.0, 0.0, 0.0
     
@@ -147,7 +147,7 @@ def calculate_stats(data_list):
     variance = sum([((x - mean) ** 2) for x in data_list]) / len(data_list)
     rmsd = math.sqrt(variance)
     
-    return mini, maxi, rmsd
+    return mini, maxi, mean, rmsd
 
 # ================= MAIN LOGIC =================
 
@@ -223,8 +223,8 @@ def main():
         # UPDATED: Using right alignment here too
         f.write("Element-wise Statistics:\n")
         stats_header = (f"{'Element':<8} "
-                        f"{'Min(Bader)':^12} {'Max(Bader)':^12} {'RMSD(Bader)':^12} "
-                        f"{'Min(Mag)':^12} {'Max(Mag)':^12} {'RMSD(Mag)':^12}")
+                        f"{'Min(Bader)':^12} {'Max(Bader)':^12} {'Mean(Bader)':^12} {'RMSD(Bader)':^12} "
+                        f"{'Min(Mag)':^12} {'Max(Mag)':^12} {'Mean(Mag)':^12} {'RMSD(Mag)':^12}")
         f.write("-" * len(stats_header) + "\n")
         f.write(stats_header + "\n")
         f.write("-" * len(stats_header) + "\n")
@@ -235,12 +235,12 @@ def main():
             e_bader = [bader_vals[i] for i, a in enumerate(atoms) if a == elem]
             e_mag   = [mag_vals[i]   for i, a in enumerate(atoms) if a == elem]
             
-            min_b, max_b, rms_b = calculate_stats(e_bader)
-            min_m, max_m, rms_m = calculate_stats(e_mag)
+            min_b, max_b, mean_b, rms_b = calculate_stats(e_bader)
+            min_m, max_m, mean_m, rms_m = calculate_stats(e_mag)
             
             f.write(f"{elem:<8} "
-                    f"{min_b:^12.2f} {max_b:^12.2f} {rms_b:^12.2f} "
-                    f"{min_m:^12.2f} {max_m:^12.2f} {rms_m:^12.2f}\n")
+                    f"{min_b:^12.2f} {max_b:^12.2f} {mean_b:^12.2f} {rms_b:^12.2f} "
+                    f"{min_m:^12.2f} {max_m:^12.2f} {mean_m:^12.2f} {rms_m:^12.2f}\n")
         f.write("-" * len(stats_header) + "\n")
 
     print(f"Analysis complete. Results saved to {OUTPUT_FILE}")
