@@ -41,6 +41,11 @@ get_main_dir () {
 	fi
 }
 
+back_to_main() {
+    local main_dir=$(get_main_dir) || exit 1
+    cd $main_dir
+}
+
 goto() {
     if [[ $# -ne 1 || "$1" != *"-"* ]]; then
         echo "Usage: goto molecule-method" >&2
@@ -52,16 +57,12 @@ goto() {
     local full_path="$main_dir/$target_dir"
     
     if [[ -d "$full_path" ]]; then
+        back_to_main
         cd "$full_path"
     else
         echo "Error: Directory '$full_path' does not exist" >&2
         return 1
     fi
-}
-
-back_to_main() {
-    local main_dir=$(get_main_dir) || exit 1
-    cd $main_dir
 }
 
 # Open VESTA in background, automatically switching to .vesta file if it exists and removing error messages 
