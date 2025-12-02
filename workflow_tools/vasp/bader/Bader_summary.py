@@ -105,83 +105,36 @@ def read_acf(filename):
     return values
 
 def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
-    """Generates labels like Fe1, Fe2 based on similarity using clustering."""
+    """Generates labels using DBSCAN clustering."""
+    from sklearn.cluster import DBSCAN
     from collections import defaultdict
+    import numpy as np
     
-    labels = []
+    labels = [''] * len(atoms)
     element_groups = defaultdict(list)
     
-    # Group atoms by element
+    # Group by element
     for i, elem in enumerate(atoms):
-        element_groups[elem].append((i, charges[i], mags[i]))
+        element_groups[elem].append(i)
     
-    # Process each element separately
-    for elem in element_groups:
-        indices_charges_mags = element_groups[elem]
-        clusters = []
+    # Cluster each element separately
+    for elem, indices in element_groups.items():
+        features = np.array([[charges[i], mags[i]] for i in indices])
         
-        # Cluster atoms of this element
-        for idx, q, m in indices_charges_mags:
-            # Try to find a matching cluster
-            matched_cluster = None
-            for cluster in clusters:
-                # Check if (q, m) is within tolerance of cluster centroid
-                avg_q = sum(c[1] for c in cluster) / len(cluster)
-                avg_m = sum(c[2] for c in cluster) / len(cluster)
-                
-                if abs(avg_q - q) < tolerance and abs(avg_m - m) < tolerance:
-                    matched_cluster = cluster
-                    break
-            
-            # Add to existing cluster or create new one
-            if matched_cluster is not None:
-                matched_cluster.append((idx, q, m))
-            else:
-                clusters.append([(idx, q, m)])
+        # DBSCAN clustering
+        clustering = DBSCAN(eps=tolerance, min_samples=1).fit(features)
         
-        # Assign labels based on cluster membership
-        # Sort clusters by their centroid for consistency
-        clusters.sort(key=lambda c: (sum(x[1] for x in c)/len(c), 
-                                      sum(x[2] for x in c)/len(c)))
+        # Sort clusters by centroid for consistency
+        unique_clusters = sorted(set(clustering.labels_))
+        cluster_mapping = {}
+        for new_id, old_id in enumerate(unique_clusters, 1):
+            cluster_mapping[old_id] = new_id
         
-        for cluster_id, cluster in enumerate(clusters, 1):
-            for idx, _, _ in cluster:
-                labels.insert(idx, f"{elem}{cluster_id}")
+        # Assign labels
+        for i, cluster_id in enumerate(clustering.labels_):
+            labels[indices[i]] = f"{elem}{cluster_mapping[cluster_id]}"
     
     return labels
-
-# With sklearn (more robust clustering)
-#def generate_ion_labels(atoms, charges, mags, tolerance=1e-3):
-#    """Generates labels using DBSCAN clustering."""
-#    from sklearn.cluster import DBSCAN
-#    from collections import defaultdict
-#    import numpy as np
-#    
-#    labels = [''] * len(atoms)
-#    element_groups = defaultdict(list)
-#    
-#    # Group by element
-#    for i, elem in enumerate(atoms):
-#        element_groups[elem].append(i)
-#    
-#    # Cluster each element separately
-#    for elem, indices in element_groups.items():
-#        features = np.array([[charges[i], mags[i]] for i in indices])
-#        
-#        # DBSCAN clustering
-#        clustering = DBSCAN(eps=tolerance, min_samples=1).fit(features)
-#        
-#        # Sort clusters by centroid for consistency
-#        unique_clusters = sorted(set(clustering.labels_))
-#        cluster_mapping = {}
-#        for new_id, old_id in enumerate(unique_clusters, 1):
-#            cluster_mapping[old_id] = new_id
-#        
-#        # Assign labels
-#        for i, cluster_id in enumerate(clustering.labels_):
-#            labels[indices[i]] = f"{elem}{cluster_mapping[cluster_id]}"
-#    
-#    return labels
 
 def calculate_stats(data_list):
     """Returns Min, Max, and RMSD."""
