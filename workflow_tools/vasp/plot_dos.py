@@ -6,6 +6,7 @@ warnings.filterwarnings("ignore", message="networkx backend defined more than on
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.plotter import DosPlotter
 from python_utility.vesta_colors import vesta_colors
+from python_utility.matplotlib.save_to_agr import save_to_agr
 
 vasprun = Vasprun("vasprun.xml", parse_projected_eigen=True)
 dos = vasprun.complete_dos # Total DOS + projection on atoms and orbitals
@@ -42,6 +43,7 @@ ax.autoscale_view()
 handles, labels = ax.get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 ax.legend(by_label.values(), by_label.keys(), fontsize='x-large')
+save_to_agr(ax, "dos_plot.agr")
 fig = plt.gcf()        # Get current figure
 from python_utility.matplotlib_helper_functions import enable_scroll_zoom, enable_keyboard_pan
 enable_scroll_zoom(fig)
