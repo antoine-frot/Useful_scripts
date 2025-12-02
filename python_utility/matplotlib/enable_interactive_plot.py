@@ -1,4 +1,3 @@
-print("Interactive plot enabled:")
 def enable_scroll_zoom(figure):
     """
     Adds advanced scroll-to-zoom functionality to a matplotlib figure.
@@ -6,9 +5,6 @@ def enable_scroll_zoom(figure):
     - Ctrl + Scroll: Zoom X-axis only
     - Alt + Scroll: Zoom Y-axis only
     """
-    print("  - Scroll: Zoom")
-    print("  - Ctrl+Scroll: Zoom X")
-    print("  - Alt+Scroll: Zoom Y")
     def zoom_fun(event):
         base_scale = 1.2  # Strength of the zoom
         
@@ -71,7 +67,6 @@ def enable_keyboard_pan(figure):
     Adds keyboard panning functionality to a matplotlib figure.
     - Arrow Keys
     """
-    print("  - Arrows: Pan")
     def on_key(event):
         # 1. Check if the mouse is over a plot
         ax = event.inaxes

@@ -45,7 +45,7 @@ by_label = dict(zip(labels, handles))
 ax.legend(by_label.values(), by_label.keys(), fontsize='x-large')
 save_to_agr(ax, "dos_plot.agr")
 fig = plt.gcf()        # Get current figure
-from python_utility.matplotlib_helper_functions import enable_scroll_zoom, enable_keyboard_pan
+from python_utility.matplotlib.enable_interactive_plot import enable_scroll_zoom, enable_keyboard_pan
 enable_scroll_zoom(fig)
 enable_keyboard_pan(fig)
 plt.show()               # Display

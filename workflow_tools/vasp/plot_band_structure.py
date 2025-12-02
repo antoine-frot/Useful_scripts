@@ -55,7 +55,7 @@ with open("band_structure_properties.txt", "w") as f:
 plotter = BSPlotter(bs)
 ax = plotter.get_plot(vbm_cbm_marker=True) # Plot with VBM and CBM markers
 fig_bs = plt.gcf()
-from python_utility.matplotlib_helper_functions import enable_scroll_zoom, enable_keyboard_pan
+from python_utility.matplotlib.enable_interactive_plot import enable_scroll_zoom, enable_keyboard_pan
 enable_scroll_zoom(fig_bs)
 enable_keyboard_pan(fig_bs)
 plt.show()
