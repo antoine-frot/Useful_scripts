@@ -57,7 +57,6 @@ goto() {
     local full_path="$main_dir/$target_dir"
     
     if [[ -d "$full_path" ]]; then
-        back_to_main
         cd "$full_path"
     else
         echo "Error: Directory '$full_path' does not exist" >&2
