@@ -43,8 +43,11 @@ ax.autoscale_view()
 handles, labels = ax.get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 ax.legend(by_label.values(), by_label.keys(), fontsize='x-large')
-save_to_agr(ax, "dos_plot.agr")
+save_to_agr(ax, "dos.agr")
 fig = plt.gcf()        # Get current figure
+plt.tight_layout()  # Adjust layout to prevent clipping
+plt.savefig("dos_full.png", dpi=600)  # Save figure
+plt.savefig("dos_full.pdf")  # Save figure
 from python_utility.matplotlib.enable_interactive_plot import enable_scroll_zoom, enable_keyboard_pan
 enable_scroll_zoom(fig)
 enable_keyboard_pan(fig)
