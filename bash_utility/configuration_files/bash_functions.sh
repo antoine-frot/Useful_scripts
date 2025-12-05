@@ -41,21 +41,13 @@ get_main_dir () {
 	fi
 }
 
-back_to_main() {
-    local main_dir=$(get_main_dir) || exit 1
-    cd $main_dir
-}
-
 goto() {
     if [[ $# -ne 1 || "$1" != *"-"* ]]; then
-        echo "Usage: goto molecule-method" >&2
+        echo "Usage: goto calculation-name" >&2
         return 1
     fi
-    
     local target_dir=$(echo "$1" | sed 's/-/\//g')
-    local main_dir=$(get_main_dir) || exit 1
-    local full_path="$main_dir/$target_dir"
-    
+    local full_path="$HOME/$target_dir"
     if [[ -d "$full_path" ]]; then
         cd "$full_path"
     else

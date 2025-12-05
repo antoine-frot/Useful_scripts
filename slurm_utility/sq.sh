@@ -49,11 +49,11 @@ if [ "$job_count" -gt 0 ]; then
     if [ "$mode" = "simple" ]; then
         # Simple mode: only name and time
         maximal_name_width=$((terminal_width - time_width - 1)) # -1 for space between columns
-        output_format="%.${name_width}j %.${time_width}M"
+        output_format="%${name_width}j %.${time_width}M"
     else
         # Full mode: ID, name, time, CPUs, memory, priority, reason
         maximal_name_width=$((terminal_width - time_width - 6 - 43)) # -6 for spaces, -43 for other info
-        output_format="%.8i %.${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
+        output_format="%.8i %${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
     fi
 
     # Check if terminal is wide enough
@@ -64,9 +64,9 @@ if [ "$job_count" -gt 0 ]; then
         name_width=$maximal_name_width
         # Update the format string with the adjusted name width
         if [ "$mode" = "simple" ]; then
-            output_format="%.${name_width}j %.${time_width}M"
+            output_format="%${name_width}j %.${time_width}M"
         else
-            output_format="%.8i %.${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
+            output_format="%.8i %${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
         fi
     fi
     
