@@ -27,6 +27,23 @@ echo "Vasp version: $vasp_version"
 echo "================================="
 echo ""
 
+# Function to handle job cancellation
+handle_cancel() {
+    # Write CANCELLED status and remove RUNNING status
+    echo "CANCELLED: $displayed_name" >> "$submitted_file"
+    sed -i "/RUNNING: ${displayed_name//\//\\/}/d" "$submitted_file"
+    
+    # Kill the VASP process if it's running
+    if kill -0 "$vasp_pid" 2>/dev/null; then
+        kill -9 "$vasp_pid"
+    fi
+    
+    exit 143 # Exit with a code indicating termination by signal
+}
+
+# Trap the termination signals
+trap 'handle_cancel' SIGTERM SIGINT
+
 # From icgm file
 ulimit -s unlimited
 source /usr/local/bin/envgf-impi.sh
@@ -79,14 +96,14 @@ echo "VASP exit code: $vasp_exit_code"
 # Check if the calculation terminated normally and write it in the ouput and Submited file
 hurray_pattern="General timing and accounting informations for this job:"
 if grep -iq "$hurray_pattern" OUTCAR; then
-    echo "HURRAY: $displayed_name" >> $submitted_file
+    echo "HURRAY: $displayed_name" >> "$submitted_file"
     echo "Calculation terminated normally."
 else
-    echo "ERROR: $displayed_name" >> $submitted_file
+    echo "ERROR: $displayed_name" >> "$submitted_file"
     echo "Calculation terminated ABnormally."
 fi
 # Delete RUNNING entry from Submitted file
-sed -i "/RUNNING: ${displayed_name//\//\\/}/d" $submitted_file
+sed -i "/RUNNING: ${displayed_name//\//\\/}/d" "$submitted_file"
 
 # Get time of the calculation
 end=$(date +%s)
