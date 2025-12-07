@@ -243,7 +243,5 @@ def main():
                     f"{min_m:^12.2f} {max_m:^12.2f} {mean_m:^12.2f} {rms_m:^12.2f}\n")
         f.write("-" * len(stats_header) + "\n")
 
-    print(f"Analysis complete. Results saved to {OUTPUT_FILE}")
-
 if __name__ == "__main__":
     main()
