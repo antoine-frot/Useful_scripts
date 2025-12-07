@@ -3,8 +3,13 @@ This repository contains all the scripts I write and use in my daily work as a c
 Its primary purpose is personal use, but I am doing my best to make it accessible and useful to a broader audience.
 
 # Getting Started
+## Installation
+```bash
+cd $HOME
+git clone https://github.com/antoine-frot/Useful_scripts.git
+``` 
 ## Set Up the Configuration Files (Essential)
-Back up your current .bashrc:
+Back up your current `.bashrc`:
 ```bash
 cp ~/.bashrc .bashrc_backup
 ```
