@@ -10,9 +10,9 @@ mode=${1:-simple}
 user=${2:-$USER}
 
 # Validate mode
-if [[ "$mode" != "simple" && "$mode" != "full" ]]; then
-    echo "Error: Mode must be 'simple' or 'full'"
-    echo "Usage: $0 [simple|full] [username]"
+if [[ "$mode" != "simple" && "$mode" != "full" && "$mode" != "name" ]]; then
+    echo "Error: Mode must be 'simple' 'full' or 'name'"
+    echo "Usage: $0 [simple|full|name] [username]"
     exit 1
 fi
 
@@ -46,15 +46,23 @@ if [ "$job_count" -gt 0 ]; then
     # Calculate terminal width constraints based on mode
     terminal_width=$(tput cols)
     
-    if [ "$mode" = "simple" ]; then
-        # Simple mode: only name and time
-        maximal_name_width=$((terminal_width - time_width - 1)) # -1 for space between columns
-        output_format="%${name_width}j %.${time_width}M"
-    else
-        # Full mode: ID, name, time, CPUs, memory, priority, reason
-        maximal_name_width=$((terminal_width - time_width - 6 - 43)) # -6 for spaces, -43 for other info
-        output_format="%.8i %${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
-    fi
+    case "$mode" in
+        simple)
+            # Simple mode: only name and time
+            maximal_name_width=$((terminal_width - time_width - 1)) # -1 for space between columns
+            output_format="%${name_width}j %.${time_width}M"
+            ;;
+        name)
+            # Name only mode
+            maximal_name_width=$((terminal_width))
+            output_format="%${name_width}j"
+            ;;
+        full)
+            # Full mode: ID, name, time, CPUs, memory, priority, reason
+            maximal_name_width=$((terminal_width - time_width - 6 - 43)) # -6 for spaces, -43 for other info
+            output_format="%.8i %${name_width}j %.${time_width}M %.4C %.7m %.8Q %R"
+            ;;
+    esac
 
     # Check if terminal is wide enough
     if [ $maximal_name_width -lt 4 ]; then
