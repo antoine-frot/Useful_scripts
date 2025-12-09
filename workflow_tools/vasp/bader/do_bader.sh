@@ -17,6 +17,28 @@
 #==============================================================================
 set -e
 
+VERBOSE=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -v|--verbose)
+      VERBOSE=1
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 [-v|--verbose]"
+      echo "  -v, --verbose    Enable verbose output"
+      echo "  -h, --help       Show this help message"
+      echo "Purpose: Perform Bader charge analysis using VASP charge density files."
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: $0 [-v|--verbose]"
+      exit 1
+      ;;
+  esac
+done
+
 # Get script directory (resolve symlinks)
 SOURCE="${BASH_SOURCE[0]}"
 while [ -L "$SOURCE" ]; do
@@ -86,24 +108,24 @@ mv CHGCAR_init CHGCAR
 mv CHGCAR_mag.vasp CHGCAR_mag
 rm CHGCAR_up* CHGCAR_down* CHGCAR_sum
 
-# Post-processing: summary
-echo "Bader analysis done!"
-if python3 "$SCRIPT_DIR/Bader_summary.py"; then
-    echo "Summary stored in Bader_summary.txt"
-else
-    echo "ERROR: Bader analysis failed during post-processing."
-    echo "Check the Bader_summary.txt file for error details."
-    echo "Raw Bader results are still available in ACF_chg.dat and ACF_mag.dat"
+# Post-processing: summary (quiet by default, verbose with -v/--verbose)
+if ! python3 "$SCRIPT_DIR/Bader_summary.py"; then
+  echo "ERROR: Bader analysis failed during post-processing."
+  echo "Check the Bader_summary.txt file for error details."
+  echo "Raw Bader results are still available in ACF_chg.dat and ACF_mag.dat"
 fi
-echo "Reminder:"
-echo "- AECCAR0: core charge density."
-echo "- AECCAR1: smooth pseudo valence charge density."
-echo "- AECCAR2: valence all-electron density (pseudo valence + PAW augmentation)."
-echo "Additional files:"
-echo "BCF.dat: topological properties of the Bader volumes"
-echo "AVF.dat: volume files for each Bader volume"
-echo "Files generated: " 
-echo "ACF_chg.dat: charge density Bader analysis"
-echo "ACF_mag.dat: magnetic charge density Bader analysis"
-echo "CHGCAR_mag: magnetic charge density file"
-echo "Bader_summary.txt: summary of Bader results"
+if [[ $VERBOSE -eq 1 ]]; then
+  echo "Bader analysis done!"
+  echo "Reminder:"
+  echo "- AECCAR0: core charge density."
+  echo "- AECCAR1: smooth pseudo valence charge density."
+  echo "- AECCAR2: valence all-electron density (pseudo valence + PAW augmentation)."
+  echo "Additional files:"
+  echo "BCF.dat: topological properties of the Bader volumes"
+  echo "AVF.dat: volume files for each Bader volume"
+  echo "Files generated: " 
+  echo "ACF_chg.dat: charge density Bader analysis"
+  echo "ACF_mag.dat: magnetic charge density Bader analysis"
+  echo "CHGCAR_mag: magnetic charge density file"
+  echo "Bader_summary.txt: summary of Bader results"
+fi
