@@ -128,4 +128,4 @@ else
     echo "Calculation terminated ABnormally."
 fi
 sed -i "/RUNNING: ${displayed_name//\//\\/}/d" "$submitted_file"
-diplay_calculation_duration
+display_calculation_duration
