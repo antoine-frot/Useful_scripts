@@ -52,10 +52,10 @@ mv A2 "$AECCAR_TOTAL"
 mv A3 CHGCAR
 
 # Combine AECCAR files (core + total/all-electron)
-perl "$SCRIPT_DIR/chgsum.pl" "$AECCAR_CORE" "$AECCAR_TOTAL" # create CHGCAR_sum
+perl "$SCRIPT_DIR/chgsum.pl" "$AECCAR_CORE" "$AECCAR_TOTAL" > /dev/null # create CHGCAR_sum
 
 # Run Bader analysis on total charge
-"$SCRIPT_DIR/bader" CHGCAR -ref CHGCAR_sum
+"$SCRIPT_DIR/bader" CHGCAR -ref CHGCAR_sum > /dev/null
 mv ACF.dat ACF_chg.dat
 tmpfile="$(mktemp)"
 {
@@ -66,8 +66,8 @@ tmpfile="$(mktemp)"
 } > "$tmpfile" && mv "$tmpfile" ACF_chg.dat
 
 # Run Bader analysis on magnetic charge density
-"$SCRIPT_DIR/chgsplit" CHGCAR
-"$SCRIPT_DIR/bader" CHGCAR_mag.vasp -ref CHGCAR_sum
+"$SCRIPT_DIR/chgsplit" CHGCAR > /dev/null
+"$SCRIPT_DIR/bader" CHGCAR_mag.vasp -ref CHGCAR_sum > /dev/null
 mv ACF.dat ACF_mag.dat
 tmpfile="$(mktemp)"
 {
@@ -87,10 +87,12 @@ mv CHGCAR_mag.vasp CHGCAR_mag
 rm CHGCAR_up* CHGCAR_down* CHGCAR_sum
 
 # Post-processing: summary
-echo ""
-if ! python3 "$SCRIPT_DIR/Bader_summary.py"; then
+echo "Bader analysis done!"
+if python3 "$SCRIPT_DIR/Bader_summary.py"; then
+    echo "Summary stored in Bader_summary.txt"
+else
     echo "ERROR: Bader analysis failed during post-processing."
-    echo "Check the Bader_analyse file for error details."
+    echo "Check the Bader_summary.txt file for error details."
     echo "Raw Bader results are still available in ACF_chg.dat and ACF_mag.dat"
 fi
 echo "Reminder:"
@@ -104,4 +106,4 @@ echo "Files generated: "
 echo "ACF_chg.dat: charge density Bader analysis"
 echo "ACF_mag.dat: magnetic charge density Bader analysis"
 echo "CHGCAR_mag: magnetic charge density file"
-echo "Bader_summary: summary of Bader results"
+echo "Bader_summary.txt: summary of Bader results"
