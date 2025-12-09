@@ -41,8 +41,33 @@ handle_cancel() {
     exit 143 # Exit with a code indicating termination by signal
 }
 
+display_calculation_duration() {
+    # Get time of the calculation
+    end=$(date +%s)
+    echo "END_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
+    echo " "
+    echo "### Calculate duration ..."
+    echo " "
+    diff=$((end-start))
+    if [ $diff -lt 60 ]; then
+        echo "Runtime (approx.): $diff secs"
+    elif [ $diff -lt 3600 ]; then
+        echo "Runtime (approx.): $(($diff / 60)) min(s) $(($diff % 60)) secs"
+    elif [ $diff -lt 86400 ]; then
+        hours=$(($diff / 3600))
+        minutes=$((($diff % 3600) / 60))
+        seconds=$(($diff % 60))
+        echo "Runtime (approx.): $hours hour(s) $minutes min(s) $seconds secs"
+    else
+        days=$(($diff / 86400))
+        hours=$((($diff % 86400) / 3600))
+        minutes=$((($diff % 3600) / 60))
+        seconds=$(($diff % 60))
+        echo "Runtime (approx.): $days day(s) $hours hour(s) $minutes min(s) $seconds secs"
+    fi
+}
 # Trap the termination signals
-trap 'handle_cancel' SIGTERM SIGINT
+trap 'display_calculation_duration; handle_cancel' SIGTERM SIGINT
 
 # From icgm file
 ulimit -s unlimited
@@ -102,29 +127,5 @@ else
     echo "ERROR: $displayed_name" >> "$submitted_file"
     echo "Calculation terminated ABnormally."
 fi
-# Delete RUNNING entry from Submitted file
 sed -i "/RUNNING: ${displayed_name//\//\\/}/d" "$submitted_file"
-
-# Get time of the calculation
-end=$(date +%s)
-echo "END_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
-echo " "
-echo "### Calculate duration ..."
-echo " "
-diff=$[end-start]
-if [ $diff -lt 60 ]; then
-    echo "Runtime (approx.): $diff secs"
-elif [ $diff -lt 3600 ]; then
-    echo "Runtime (approx.): $(($diff / 60)) min(s) $(($diff % 60)) secs"
-elif [ $diff -lt 86400 ]; then
-    hours=$(($diff / 3600))
-    minutes=$((($diff % 3600) / 60))
-    seconds=$(($diff % 60))
-    echo "Runtime (approx.): $hours hour(s) $minutes min(s) $seconds secs"
-else
-    days=$(($diff / 86400))
-    hours=$((($diff % 86400) / 3600))
-    minutes=$((($diff % 3600) / 60))
-    seconds=$(($diff % 60))
-    echo "Runtime (approx.): $days day(s) $hours hour(s) $minutes min(s) $seconds secs"
-fi
+diplay_calculation_duration
