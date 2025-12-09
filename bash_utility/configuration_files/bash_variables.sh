@@ -6,6 +6,9 @@ if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:$path_to_git/bin:" ]]
 then
     PATH="$HOME/.local/bin:$HOME/bin:$path_to_git/bin:$PATH"
 fi
+if [ -d "$HOME/enumlib" ]; then
+    PATH="$HOME/enumlib/src:$HOME/enumlib/aux_src:$PATH"
+fi
 export PATH
 
 export PYTHONPATH="$path_to_git:$PYTHONPATH"
