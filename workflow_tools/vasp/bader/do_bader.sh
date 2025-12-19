@@ -17,6 +17,15 @@
 #==============================================================================
 set -e
 
+# Get script directory (resolve symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+
 VERBOSE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -24,8 +33,19 @@ while [[ $# -gt 0 ]]; do
       VERBOSE=1
       shift
       ;;
+    -p|--only-python)
+      echo "Running only the Python post-processing step..."
+      if ! python3 "$SCRIPT_DIR/Bader_summary.py"; then
+        echo "ERROR: Bader analysis failed during post-processing."
+        echo "Check the Bader_summary.txt file for error details."
+        echo "Raw Bader results are still available in ACF_chg.dat and ACF_mag.dat"
+      fi
+      exit 0
+      ;;
     -h|--help)
       echo "Usage: $0 [-v|--verbose]"
+      echo "Options:"
+      echo "  -p, --only-python  Run only the Python post-processing step"
       echo "  -v, --verbose    Enable verbose output"
       echo "  -h, --help       Show this help message"
       echo "Purpose: Perform Bader charge analysis using VASP charge density files."
@@ -38,15 +58,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-# Get script directory (resolve symlinks)
-SOURCE="${BASH_SOURCE[0]}"
-while [ -L "$SOURCE" ]; do
-  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
 AECCAR_CORE="AECCAR0"
 AECCAR_TOTAL="AECCAR2"
