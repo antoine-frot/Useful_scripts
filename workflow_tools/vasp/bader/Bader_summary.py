@@ -136,6 +136,86 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
     
     return labels
 
+def write_poscar_ordered(atoms, ion_labels, unique_elements_order, poscar_path=None, output_file="POSCAR_ordered"):
+    """Rewrite POSCAR/CONTCAR with positions grouped by cluster within each element."""
+    if poscar_path is None:
+        poscar_path = "POSCAR"
+        if os.path.exists("CONTCAR") and os.path.getsize("CONTCAR") > 0:
+            poscar_path = "CONTCAR"
+
+    if not os.path.exists(poscar_path):
+        print("Error: Could not find POSCAR or CONTCAR for ordered output.")
+        return
+
+    try:
+        with open(poscar_path, 'r') as f:
+            lines = f.readlines()
+
+        if len(lines) < 8:
+            print("Error: POSCAR/CONTCAR too short to parse.")
+            return
+
+        coord_type_idx = 7
+        selective_present = False
+        if len(lines) > 7 and lines[7].strip().lower().startswith('s'):
+            selective_present = True
+            coord_type_idx = 8
+        coords_start = coord_type_idx + 1
+
+        n_atoms = len(atoms)
+        if len(lines) < coords_start + n_atoms:
+            print("Error: POSCAR/CONTCAR appears incomplete; cannot write ordered file.")
+            return
+
+        # Build mapping from original index to coordinate line
+        coord_lines = {i: lines[coords_start + i].rstrip() for i in range(n_atoms)}
+
+        # Group indices by ion_label (cluster), maintaining order of appearance
+        clusters_by_element = {}
+        for i, label in enumerate(ion_labels):
+            elem = ''.join(c for c in label if not c.isdigit())
+            if elem not in clusters_by_element:
+                clusters_by_element[elem] = {}
+            if label not in clusters_by_element[elem]:
+                clusters_by_element[elem][label] = []
+            clusters_by_element[elem][label].append(i)
+
+        ordered_indices = []
+        
+        for elem in unique_elements_order:
+            if elem in clusters_by_element:
+                for cluster_label in sorted(clusters_by_element[elem].keys()):
+                    indices = clusters_by_element[elem][cluster_label]
+                    ordered_indices.extend(indices)
+
+        # Calculate counts per element
+        counts_per_element = {elem: 0 for elem in unique_elements_order}
+        for atom in atoms:
+            if atom in counts_per_element:
+                counts_per_element[atom] += 1
+
+        out_lines = []
+        out_lines.extend(lines[0:5])
+        out_lines.append(" ".join(unique_elements_order) + "\n")
+        out_lines.append(" ".join(str(counts_per_element[elem]) for elem in unique_elements_order) + "\n")
+
+        if selective_present:
+            out_lines.append(lines[7])
+            out_lines.append(lines[coord_type_idx])
+        else:
+            out_lines.append(lines[coord_type_idx])
+
+        for idx in ordered_indices:
+            out_lines.append(coord_lines[idx] + "\n")
+
+        if len(lines) > coords_start + n_atoms:
+            out_lines.extend(lines[coords_start + n_atoms:])
+
+        with open(output_file, 'w') as f:
+            f.writelines(out_lines)
+    except Exception as e:
+        print(f"Error writing {output_file}: {e}")
+
 def calculate_stats(data_list):
     """Returns Min, Max, Moy and RMSD."""
     if not data_list:
@@ -198,6 +278,7 @@ def main():
         return (elem_order, cluster_index, bader_charge)
 
     atom_data.sort(key=sort_key)
+    write_poscar_ordered(atoms, ion_labels, unique_elements_order)
 
     with open(OUTPUT_FILE, 'w') as f:
         # --- TABLE 1: Individual Atoms ---
@@ -219,7 +300,33 @@ def main():
         f.write(f"TOTAL MAGNETIZATION: {displayed_total_mag}\n")
         f.write("\n\n")
 
-        # --- TABLE 2: Statistics per Element ---
+        # --- TABLE 2: Cluster Analysis ---
+        f.write("Cluster Analysis:\n")
+        cluster_header = (f"{'Element':<8} "
+                        f"{'Clusters':^12} {'Number of Elements':^18}")
+        f.write("-" * len(cluster_header) + "|\n")
+        f.write(cluster_header + "|\n")
+        f.write("-" * len(cluster_header) + "|\n")
+        seen_cluster_labels = set()
+        for elem in unique_elements_order:
+            display_elem = True
+            for cluster in ion_labels:
+                if cluster in seen_cluster_labels:
+                    continue
+                if not cluster.startswith(elem):
+                    break
+                seen_cluster_labels.add(cluster)
+
+                element_in_cluster = ion_labels.count(cluster)
+                if display_elem:
+                    f.write(f"  {elem:<6}      {cluster:<7} {element_in_cluster:^18}|\n")
+                    display_elem = False
+                else:
+                    f.write(f"  {'':<6}      {cluster:<7} {element_in_cluster:^18}|\n")
+            f.write("-" * len(cluster_header) + "|\n")   
+        f.write("\n\n")
+
+        # --- TABLE 3: Statistics per Element ---
         # UPDATED: Using right alignment here too
         f.write("Element-wise Statistics:\n")
         stats_header = (f"{'Element':<8} "
