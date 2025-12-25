@@ -113,10 +113,9 @@ if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
 then
     PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 fi
-export PATH=$PATH:$HOME/orca_6_0_1_linux_x86-64_shared_openmpi416.run
 
 # ORCA 6.0.1 secion
-export PATH=/home/titus/orca_6_0_1:$PATH
+export PATH=/home/titus/bin/orca_6_0_1:$PATH
 
 # Disable the terminal bell
 bind 'set bell-style none'
