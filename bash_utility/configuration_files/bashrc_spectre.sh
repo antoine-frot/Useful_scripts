@@ -135,3 +135,5 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+#
+windows="/mnt/c/Users/antoi/OneDrive/Documents"
