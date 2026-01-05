@@ -124,10 +124,18 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
         # DBSCAN clustering
         clustering = DBSCAN(eps=tolerance, min_samples=1).fit(features)
         
-        # Sort clusters by centroid for consistency
+        # Calculate centroid (mean Bader charge) for each cluster and sort by it
         unique_clusters = sorted(set(clustering.labels_))
+        cluster_centroids = {}
+        for cluster_id in unique_clusters:
+            cluster_indices = [indices[i] for i, cid in enumerate(clustering.labels_) if cid == cluster_id]
+            mean_bader = np.mean([charges[idx] for idx in cluster_indices])
+            cluster_centroids[cluster_id] = mean_bader
+        
+        # Sort clusters by mean Bader charge (ascending)
+        sorted_clusters = sorted(unique_clusters, key=lambda cid: cluster_centroids[cid])
         cluster_mapping = {}
-        for new_id, old_id in enumerate(unique_clusters, 1):
+        for new_id, old_id in enumerate(sorted_clusters, 1):
             cluster_mapping[old_id] = new_id
         
         # Assign labels
@@ -136,7 +144,7 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
     
     return labels
 
-def write_poscar_ordered(atoms, ion_labels, unique_elements_order, poscar_path=None, output_file="POSCAR_ordered"):
+def write_poscar_ordered(atoms, ion_labels, unique_elements_order, poscar_path=None, output_file="CONTCAR_ordered"):
     """Rewrite POSCAR/CONTCAR with positions grouped by cluster within each element."""
     if poscar_path is None:
         poscar_path = "POSCAR"
