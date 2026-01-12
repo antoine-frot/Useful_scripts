@@ -144,7 +144,7 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
     
     return labels
 
-def write_poscar_ordered(atoms, ion_labels, unique_elements_order, poscar_path=None, output_file="CONTCAR_ordered"):
+def write_poscar_ordered(atoms, ion_labels, unique_elements_order, bader_vals, poscar_path=None, output_file="CONTCAR_ordered"):
     """Rewrite POSCAR/CONTCAR with positions grouped by cluster within each element."""
     if poscar_path is None:
         poscar_path = "POSCAR"
@@ -189,11 +189,13 @@ def write_poscar_ordered(atoms, ion_labels, unique_elements_order, poscar_path=N
             clusters_by_element[elem][label].append(i)
 
         ordered_indices = []
-        
+    
         for elem in unique_elements_order:
             if elem in clusters_by_element:
                 for cluster_label in sorted(clusters_by_element[elem].keys()):
                     indices = clusters_by_element[elem][cluster_label]
+                    # Sort indices by Bader charge
+                    indices.sort(key=lambda idx: bader_vals[idx])
                     ordered_indices.extend(indices)
 
         # Calculate counts per element
@@ -286,7 +288,7 @@ def main():
         return (elem_order, cluster_index, bader_charge)
 
     atom_data.sort(key=sort_key)
-    write_poscar_ordered(atoms, ion_labels, unique_elements_order)
+    write_poscar_ordered(atoms, ion_labels, unique_elements_order, bader_vals)
 
     with open(OUTPUT_FILE, 'w') as f:
         # --- TABLE 1: Individual Atoms ---
