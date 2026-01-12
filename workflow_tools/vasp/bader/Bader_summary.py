@@ -315,16 +315,14 @@ def main():
         f.write("-" * len(cluster_header) + "|\n")
         f.write(cluster_header + "|\n")
         f.write("-" * len(cluster_header) + "|\n")
-        seen_cluster_labels = set()
+
         for elem in unique_elements_order:
             display_elem = True
-            for cluster in ion_labels:
-                if cluster in seen_cluster_labels:
-                    continue
-                if not cluster.startswith(elem):
-                    break
-                seen_cluster_labels.add(cluster)
-
+            # Get all unique cluster labels for this element and sort them
+            elem_clusters = sorted(set([label for label in ion_labels if label.startswith(elem) and label.replace(elem, '').isdigit()]),
+                                 key=lambda x: int(x.replace(elem, '')))
+            
+            for cluster in elem_clusters:
                 element_in_cluster = ion_labels.count(cluster)
                 if display_elem:
                     f.write(f"  {elem:<6}      {cluster:<7} {element_in_cluster:^18}|\n")
