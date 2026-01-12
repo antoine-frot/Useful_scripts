@@ -293,15 +293,15 @@ def main():
     with open(OUTPUT_FILE, 'w') as f:
         # --- TABLE 1: Individual Atoms ---
         # UPDATED: Using >12 for right alignment to fix formatting shift
-        header = f"{'#':>4}     {'Ion':<4}  {'Bader (e)':^12}{'Charge':^12} {'Mag (muB)':^12}"
+        header = f"{'#(old)':>6} {'#(new)':>6}   {'Ion':<4}  {'Bader (e)':^12}{'Charge':^12} {'Mag (muB)':^12}"
         
         f.write("Individual Atom Data:\n")
         f.write("-" * len(header) + "\n")
         f.write(header + "\n")
         f.write("-" * len(header) + "\n")
         
-        for orig_idx, elem, label, bader, charge, mag in atom_data:
-            f.write(f"{orig_idx:>4}     {label:<4} {bader:^12.2f} {charge:^12.2f} {mag:^12.2f}\n")
+        for new_idx, (orig_idx, elem, label, bader, charge, mag) in enumerate(atom_data, 1):
+            f.write(f"{orig_idx:^6} {new_idx:^6}   {label:<4} {bader:^12.2f} {charge:^12.2f} {mag:^12.2f}\n")
             
         f.write("-" * len(header) + "\n")
         # Get the length of a floating point number for alignment
