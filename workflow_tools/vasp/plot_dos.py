@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import warnings
 import argparse
 import os
+import shutil
+import sys
 
 def read_mn_oxidation_states():
     """Read Mn oxidation state assignments from Bader_summary.txt file.
@@ -84,6 +86,7 @@ def main():
     plotter = DosPlotter()
     plotter.add_dos('Total DOS', dos)
     
+    mn_config = None
     if args.mn_oxidation:
         mn_config = read_mn_oxidation_states()
     
@@ -119,10 +122,10 @@ def main():
     
     # Define colors for Mn oxidation states
     mn_colors = {
-        'Mn3+': '#8B4513',  # Saddle brown
-        'Mn4+': '#4B0082',  # Indigo
-        'Mn(III)': '#8B4513',
-        'Mn(IV)': '#4B0082'
+        'Mn3+': vesta_colors['Cr'],  # Vesta Cr
+        'Mn4+': vesta_colors['Mn'],  # Vesta Mn
+        'Mn(III)': vesta_colors['Cr'],
+        'Mn(IV)': vesta_colors['Mn']
     }
     
     # Customize colors and line widths
@@ -156,7 +159,12 @@ def main():
     # Remove duplicate labels in legend for spin polarized DOS
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys(), fontsize='x-large')
+    ax.legend(by_label.values(), by_label.keys(), fontsize=20)
+    xfontsize = ax.xaxis.get_label().get_fontsize()
+    yfontsize = ax.yaxis.get_label().get_fontsize()
+    ax.set_xlabel("Energy (eV)", fontsize=xfontsize)
+    ax.set_ylabel("Density of States (arb. unit)", fontsize=yfontsize)
+    # ax.set_xlim(-8, 4.5)
     save_to_agr(ax, "dos.agr")
     fig = plt.gcf()        # Get current figure
     plt.tight_layout()  # Adjust layout to prevent clipping
@@ -172,4 +180,15 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--total', action='store_true', help='Add total DOS to the plot')
     parser.add_argument('-m', '--mn-oxidation', action='store_true', help='Plot a line for each Mn oxidation states (only Mn(III) and Mn(IV) implemented)')
     args = parser.parse_args()
+    # Copy script to current directory as dos_plotter.py
+    if "dos_plotter.py" not in os.listdir("."):
+        shutil.copy(__file__, "dos_plotter.py")
+    else:
+        # check if the file is identical to the current script
+        with open(__file__, 'r') as f1, open("dos_plotter.py", 'r') as f2:
+            if not f1.read() == f2.read():
+                print("\ndos_plotter.py exists in this directory and is different. Run it instead!")
+                # Add the same arguments
+                os.system("python3 dos_plotter.py " + " ".join(sys.argv[1:]))
+                exit(0)
     main()
