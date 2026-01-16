@@ -144,7 +144,7 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
     
     return labels
 
-def write_poscar_ordered(atoms, ion_labels, unique_elements_order, bader_vals, poscar_path=None, output_file="CONTCAR_ordered"):
+def write_poscar_ordered(sorted_atom_data, unique_elements_order, poscar_path=None, output_file="CONTCAR_ordered"):
     """Rewrite POSCAR/CONTCAR with positions grouped by cluster within each element."""
     if poscar_path is None:
         poscar_path = "POSCAR"
@@ -170,7 +170,7 @@ def write_poscar_ordered(atoms, ion_labels, unique_elements_order, bader_vals, p
             coord_type_idx = 8
         coords_start = coord_type_idx + 1
 
-        n_atoms = len(atoms)
+        n_atoms = len(sorted_atom_data)
         if len(lines) < coords_start + n_atoms:
             print("Error: POSCAR/CONTCAR appears incomplete; cannot write ordered file.")
             return
@@ -178,31 +178,15 @@ def write_poscar_ordered(atoms, ion_labels, unique_elements_order, bader_vals, p
         # Build mapping from original index to coordinate line
         coord_lines = {i: lines[coords_start + i].rstrip() for i in range(n_atoms)}
 
-        # Group indices by ion_label (cluster), maintaining order of appearance
-        clusters_by_element = {}
-        for i, label in enumerate(ion_labels):
-            elem = ''.join(c for c in label if not c.isdigit())
-            if elem not in clusters_by_element:
-                clusters_by_element[elem] = {}
-            if label not in clusters_by_element[elem]:
-                clusters_by_element[elem][label] = []
-            clusters_by_element[elem][label].append(i)
-
-        ordered_indices = []
-    
-        for elem in unique_elements_order:
-            if elem in clusters_by_element:
-                for cluster_label in sorted(clusters_by_element[elem].keys()):
-                    indices = clusters_by_element[elem][cluster_label]
-                    # Sort indices by Bader charge
-                    indices.sort(key=lambda idx: bader_vals[idx])
-                    ordered_indices.extend(indices)
+        # Use the already-sorted atom data to get ordered indices
+        ordered_indices = [data[0] - 1 for data in sorted_atom_data]  # Convert from 1-based to 0-based
 
         # Calculate counts per element
         counts_per_element = {elem: 0 for elem in unique_elements_order}
-        for atom in atoms:
-            if atom in counts_per_element:
-                counts_per_element[atom] += 1
+        for data in sorted_atom_data:
+            elem = data[1]  # element is at index 1
+            if elem in counts_per_element:
+                counts_per_element[elem] += 1
 
         out_lines = []
         out_lines.extend(lines[0:5])
@@ -288,7 +272,7 @@ def main():
         return (elem_order, cluster_index, bader_charge)
 
     atom_data.sort(key=sort_key)
-    write_poscar_ordered(atoms, ion_labels, unique_elements_order, bader_vals)
+    write_poscar_ordered(atom_data, unique_elements_order)
 
     with open(OUTPUT_FILE, 'w') as f:
         # --- TABLE 1: Individual Atoms ---
