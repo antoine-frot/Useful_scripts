@@ -2,7 +2,7 @@
 """
 Visualize Bader clusters in VESTA by assigning colors based on cluster analysis.
 
-Reads Bader_summary.txt for cluster assignments and updates a vesta file
+Reads Bader_summary.txt (allowing for changes in cluster definitions) for cluster assignments and updates a vesta file
 with cluster-specific colors either manually or automatically using Oklab.
 """
 
@@ -15,7 +15,7 @@ from python_utility.oklab import generate_variants, hex_to_rgb
 
 def parse_vesta_cluster_colors(filepath="VESTA_cluster_colors"):
     """
-    Parse VESTA_element_colors to extract initial RGB colors per cluster.
+    Parse VESTA_element_colors to extract initial HEX colors per cluster.
 
     Returns:
         dict: {cluster: (R, G, B)}
@@ -42,6 +42,19 @@ def parse_vesta_cluster_colors(filepath="VESTA_cluster_colors"):
                 cluster_colors[cluster] = (int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
 
     return cluster_colors
+
+def write_vesta_cluster_colors(cluster_colors, filepath="VESTA_cluster_colors"):
+    """
+    Write cluster colors to VESTA_cluster_colors file.
+    
+    Inputs:
+        cluster_colors: {cluster: (R, G, B)}
+    """
+    with open(filepath, 'w') as f:
+        for cluster in sorted(cluster_colors.keys()):
+            r, g, b = cluster_colors[cluster]
+            hex_color = f"#{r:02x}{g:02x}{b:02x}"
+            f.write(f"{cluster}: {hex_color}\n")
 
 def parse_bader_summary(filepath="Bader_summary.txt"):
     """
@@ -173,13 +186,14 @@ def get_manual_colors(cluster_map):
     return cluster_colors
 
 
-def get_automatic_colors(cluster_map, cluster_counts, element_colors: dict):
+def get_automatic_colors(cluster_map, cluster_counts, element_colors: dict, target_elements=None):
     """
     Generate colors automatically using Oklab color generation.
     Inputs:
         cluster_map: {old_idx (0-based): cluster_label}
         cluster_counts: {element: num_clusters}
         element_colors: {element: (R, G, B)}
+        target_elements: list of elements to generate colors for (None = all)
     
     Returns:
         dict: {cluster_label: (R, G, B)}
@@ -194,6 +208,9 @@ def get_automatic_colors(cluster_map, cluster_counts, element_colors: dict):
     cluster_seen = set()
     for cluster in cluster_map.values():
         elem = re.sub(r'\d+', '', cluster)
+        # Skip if target_elements specified and this element not in it
+        if target_elements is not None and elem not in target_elements:
+            continue
         if elem not in elements_seen:
             elements_seen[elem] = 0
         if cluster not in cluster_seen:
@@ -285,6 +302,19 @@ def main():
     # Step 1: Parse Bader summary
         print("\n[1/4] Parsing Bader_summary.txt...")
     cluster_map, cluster_counts = parse_bader_summary()
+    
+    # Filter cluster_map based on target elements
+    if args.element:
+        target_elements = [e.capitalize() for e in args.element]
+        original_count = len(cluster_map)
+        cluster_map = {idx: cluster for idx, cluster in cluster_map.items() 
+                      if re.sub(r'\d+', '', cluster) in target_elements}
+        if args.verbose:
+            print(f"  Filtering for element(s): {', '.join(target_elements)}")
+            print(f"  Atoms to color: {len(cluster_map)} of {original_count}")
+    else:
+        target_elements = None
+        
     if args.verbose:
         number_of_elements = len(set([cluster.rstrip('0123456789') for cluster in cluster_map.values()]))
         print(f"  Found {len(cluster_map)} atoms in {len(cluster_counts)} clusters and {number_of_elements} elements")
@@ -313,13 +343,14 @@ def main():
         while True:
             mode = input("Choose color mode - (m)anual or (a)utomatic? [default: a]: ").strip().lower()
             if mode in ['', 'a', 'automatic']:
-                cluster_colors = get_automatic_colors(cluster_map, cluster_counts, element_colors)
+                cluster_colors = get_automatic_colors(cluster_map, cluster_counts, element_colors, target_elements)
                 break
             elif mode in ['m', 'manual']:
                 cluster_colors = get_manual_colors(cluster_map)
                 break
             else:
                 print("Invalid choice. Please enter 'm' or 'a'.")
+        write_vesta_cluster_colors(cluster_colors, VESTA_cluster_colors_path)
 
     if args.verbose:
         print(f"\nColor mapping created for {len(cluster_colors)} clusters")
@@ -345,5 +376,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VESTA Cluster Visualization Tool")
     parser.add_argument("--vesta", type=str, default="CONTCAR.vesta", help="Path to the output VESTA file")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to apply cluster colors to (e.g., Mn O). If not specified, all elements are colored.")
     args = parser.parse_args()
     main()
