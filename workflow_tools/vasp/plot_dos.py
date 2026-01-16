@@ -5,6 +5,7 @@ import argparse
 import os
 import shutil
 import sys
+from workflow_tools.vasp.visualize_cluster import parse_vesta_cluster_colors
 
 def read_oxidation_states(element_symbol):
     """Read oxidation state assignments from Bader_summary.txt file.
@@ -72,29 +73,10 @@ def main():
     clusters = {}
     for element in args.cluster_projected:
         clusters[element] = read_oxidation_states(element)
-        if element == 'Mn':
-            #Rename Mn1 and Mn2 to Mn(IV) and Mn(III) respectively
-            clusters['Mn']['Mn(IV)'] = clusters['Mn'].pop('Mn1')
-            clusters['Mn']['Mn(III)'] = clusters['Mn'].pop('Mn2')
-        if element == 'O':
-            if len(clusters['O']) == 2:
-                clusters['O']['O_eq'] = clusters['O'].pop('O1')
-                clusters['O']['O_JT'] = clusters['O'].pop('O2')
-            else:
-                print("Waiting for implementation for more than 2 clusters.")
-                sys.exit(1)
-    # Define colors for clusters
-    cluster_colors = {
-        'Mn3+': vesta_colors['Cr'],  # Vesta Cr
-        'Mn4+': vesta_colors['Mn'],  # Vesta Mn
-        'Mn(III)': vesta_colors['Cr'],
-        'Mn(IV)': vesta_colors['Mn'],
-        'O2-': "#1E90FF", # DodgerBlue for O linked to TWO Mn(IV)
-        'O_JT': '#FF64CB'  # Pink for O linked to two Mn(IV)
-    }
-
+    
     if clusters:
         # Get element DOS but exclude element clusters (will be handled separately)
+        cluster_colors = parse_vesta_cluster_colors()
         element_dos_dict = dos.get_element_dos()
         for element, element_dos in element_dos_dict.items():
             if element.symbol not in args.cluster_projected:
@@ -140,7 +122,17 @@ def main():
         if label in vesta_colors:
             line.set_color(vesta_colors[label])
         elif label in cluster_colors:
-            line.set_color(cluster_colors[label])
+            r, g, b = cluster_colors[label]
+            line.set_color((r/255, g/255, b/255))
+            if label == 'Mn1':
+                label = 'Mn(IV)'
+            if label == 'Mn2':
+                label = 'Mn(III)'
+            if label == 'O1':
+                label = 'O_eq'
+            if label == 'O2':
+                label = 'O_JT'
+            line.set_label(f"{label}")
         elif label == 'Total DOS':
             if args.total:
                 line.set_color('#000000')  # Black for total DOS
@@ -172,7 +164,7 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot DOS from VASP vasprun.xml")
     parser.add_argument('-t', '--total', action='store_true', help='Add total DOS to the plot')
-    parser.add_argument('-c', '--cluster-projected', action='append', help='Plot a line for each cluster for the elements given.')
+    parser.add_argument('-c', '--cluster-projected', action='append', default=[], help='Plot a line for each cluster for the elements given.')
     args = parser.parse_args()
     # Copy script to current directory as dos_plotter.py
     if "dos_plotter.py" not in os.listdir("."):
