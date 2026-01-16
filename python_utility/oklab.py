@@ -194,16 +194,17 @@ def visualize_palette(palette_dict):
 
 # --- Execution ---
 
-# 1. Define m Initial Colors (Hex)
-initial_colors = ["#A8089E", # Mn
-                  "#FE0300", # O
-                  "#86E074"] # Lithuium
+if __name__ == "__main__":
+    # 1. Define m Initial Colors (Hex)
+    initial_colors = ["#A8089E", # Mn
+                    "#FE0300", # O
+                    "#86E074"] # Lithuium
 
-# 2. Generate n variants per group
-# Can be a single integer or a list of integers
-n_variants = [2, 3, 1]  # Different number of variants for each color
-# n_variants = 5  # Or use a single integer for all colors
-palette = generate_variants(initial_colors, n_variants)
+    # 2. Generate n variants per group
+    # Can be a single integer or a list of integers
+    n_variants = [2, 3, 1]  # Different number of variants for each color
+    # n_variants = 5  # Or use a single integer for all colors
+    palette = generate_variants(initial_colors, n_variants)
 
-# 3. Visualize
-visualize_palette(palette)
+    # 3. Visualize
+    visualize_palette(palette)
