@@ -29,4 +29,34 @@ else
     echo $vasp_version > $VASP_version_file
 fi
 export vasp_version
-sbatch --job-name=$job_name $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh
+
+# Submit VASP job and capture job ID
+job_output=$(sbatch --job-name=$job_name $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh)
+vasp_job_id=$(echo $job_output | awk '{print $NF}')
+
+# Wait for VASP job to complete and run post-processing
+if [ ! -z "$vasp_job_id" ]; then
+    (
+        # Wait for job to finish
+        while squeue -j $vasp_job_id 2>/dev/null | grep -q $vasp_job_id; do
+            sleep 60
+        done
+
+        # Check if job completed successfully
+        displayed_name="$job_name ($vasp_job_id)"
+        submitted_file="$HOME/Submitted.txt"
+        if grep -q "HURRAY: $displayed_name" $submitted_file; then
+            # Run post-processing script
+            vasp_do_bader
+            if [[ $job_name == *"-fukui_plus" ]]; then
+                $path_to_git/workflow_tools/vasp/bader/chgdiff.pl ../CHGCAR CHGCAR >/dev/null 2>&1 # First is reference CHGCAR
+                mv CHGCAR_diff CHGCAR_fukui_plus
+            elif [[ $job_name == *"-fukui_moins" ]]; then
+                $path_to_git/workflow_tools/vasp/bader/chgdiff.pl CHGCAR ../CHGCAR >/dev/null 2>&1 # First is reference CHGCAR
+                mv CHGCAR_diff CHGCAR_fukui_moins
+            fi
+        fi
+    ) &
+else
+    echo "Failed to submit VASP job."
+fi
