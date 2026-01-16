@@ -6,17 +6,13 @@ import os
 import shutil
 import sys
 
-def read_mn_oxidation_states():
-    """Read Mn oxidation state assignments from Bader_summary.txt file.
-    
-    Reads the cluster information where:
-    - First Mn cluster (Mn1) = Mn(IV)
-    - Second Mn cluster (Mn2) = Mn(III)
+def read_oxidation_states(element_symbol):
+    """Read oxidation state assignments from Bader_summary.txt file.
     
     Returns dict with 0-indexed atom positions:
     {
-        "Mn(IV)": [0, 1, 2],
-        "Mn(III)": [3, 4, 5]
+        "ElementCluster1": [0, 1, 4],
+        "ElementCluster2": [2, 3, 5]
     }
     """
     bader_file = "Bader_summary.txt"
@@ -24,7 +20,7 @@ def read_mn_oxidation_states():
         return None
     
     try:
-        mn_clusters = {}
+        clusters = {}
         with open(bader_file, 'r') as f:
             in_atom_data = False
             for line in f:
@@ -46,27 +42,14 @@ def read_mn_oxidation_states():
                     old_idx = parts[0].strip()
                     ion_label = parts[2].strip()
                     
-                    # Check if this is a Mn atom
-                    if ion_label.startswith('Mn') and old_idx.isdigit():
-                        if ion_label not in mn_clusters:
-                            mn_clusters[ion_label] = []
+                    # Check if this is a specific element atom
+                    if ion_label.startswith(element_symbol) and old_idx.isdigit():
+                        if ion_label not in clusters:
+                            clusters[ion_label] = []
                         # Convert to 0-indexed
-                        mn_clusters[ion_label].append(int(old_idx) - 1)
-        
-        # Map cluster labels to oxidation states
-        # Sort cluster labels to ensure consistent ordering (Mn1, Mn2, etc.)
-        sorted_clusters = sorted(mn_clusters.keys(), key=lambda x: int(x.replace('Mn', '')))
-        
-        if len(sorted_clusters) == 0:
-            return None
-        
-        oxidation_states = {}
-        # First cluster = Mn(IV), second = Mn(III)
-        oxidation_states["Mn(IV)"] = mn_clusters[sorted_clusters[0]]
-        if len(sorted_clusters) >= 2:
-            oxidation_states["Mn(III)"] = mn_clusters[sorted_clusters[1]]
-        
-        return oxidation_states if oxidation_states else None
+                        clusters[ion_label].append(int(old_idx) - 1)
+
+        return clusters
         
     except Exception as e:
         print(f"Error reading Bader summary: {e}")
@@ -86,48 +69,59 @@ def main():
     plotter = DosPlotter()
     plotter.add_dos('Total DOS', dos)
     
-    mn_config = None
-    if args.mn_oxidation:
-        mn_config = read_mn_oxidation_states()
-    
-    if mn_config:
-        # Get element DOS but exclude Mn (we'll handle it separately)
+    clusters = {}
+    for element in args.cluster_projected:
+        clusters[element] = read_oxidation_states(element)
+        if element == 'Mn':
+            #Rename Mn1 and Mn2 to Mn(IV) and Mn(III) respectively
+            clusters['Mn']['Mn(IV)'] = clusters['Mn'].pop('Mn1')
+            clusters['Mn']['Mn(III)'] = clusters['Mn'].pop('Mn2')
+        if element == 'O':
+            if len(clusters['O']) == 2:
+                clusters['O']['O_eq'] = clusters['O'].pop('O1')
+                clusters['O']['O_JT'] = clusters['O'].pop('O2')
+            else:
+                print("Waiting for implementation for more than 2 clusters.")
+                sys.exit(1)
+    # Define colors for clusters
+    cluster_colors = {
+        'Mn3+': vesta_colors['Cr'],  # Vesta Cr
+        'Mn4+': vesta_colors['Mn'],  # Vesta Mn
+        'Mn(III)': vesta_colors['Cr'],
+        'Mn(IV)': vesta_colors['Mn'],
+        'O2-': "#1E90FF", # DodgerBlue for O linked to TWO Mn(IV)
+        'O_JT': '#FF64CB'  # Pink for O linked to two Mn(IV)
+    }
+
+    if clusters:
+        # Get element DOS but exclude element clusters (will be handled separately)
         element_dos_dict = dos.get_element_dos()
         for element, element_dos in element_dos_dict.items():
-            if element.symbol != 'Mn':
+            if element.symbol not in args.cluster_projected:
                 plotter.add_dos(str(element), element_dos)
         
-        # Add separate DOS for each Mn oxidation state
+        # Add separate DOS for each element cluster
         structure = vasprun.final_structure
-        for label, indices in mn_config.items():
-            # Sum DOS over all atoms in this oxidation state
-            mn_dos = None
-            for idx in indices:
-                site_dos = dos.get_site_dos(structure[idx])
-                if mn_dos is None:
-                    mn_dos = site_dos
-                else:
-                    # Sum the DOS
-                    for spin in site_dos.densities:
-                        mn_dos.densities[spin] += site_dos.densities[spin]
-            
-            if mn_dos:
-                plotter.add_dos(label, mn_dos)
+        for element in args.cluster_projected:
+            for label, indices in clusters[element].items():
+                dos_cluster = None
+                for idx in indices:
+                    site_dos = dos.get_site_dos(structure[idx])
+                    if dos_cluster is None:
+                        dos_cluster = site_dos
+                    else:
+                        # Sum the DOS
+                        for spin in site_dos.densities:
+                            dos_cluster.densities[spin] += site_dos.densities[spin]
+
+                if dos_cluster:
+                    plotter.add_dos(label, dos_cluster)
     else:
         # Original behavior: plot element DOS
         plotter.add_dos_dict(dos.get_element_dos())
     
-    ax = plotter.get_plot()  # Get Axis object
+    ax = plotter.get_plot()
     lines = ax.get_lines()
-    
-    # Define colors for Mn oxidation states
-    mn_colors = {
-        'Mn3+': vesta_colors['Cr'],  # Vesta Cr
-        'Mn4+': vesta_colors['Mn'],  # Vesta Mn
-        'Mn(III)': vesta_colors['Cr'],
-        'Mn(IV)': vesta_colors['Mn']
-    }
-    
     # Customize colors and line widths
     for line in lines:
         label = line.get_label()
@@ -145,8 +139,8 @@ def main():
             continue
         if label in vesta_colors:
             line.set_color(vesta_colors[label])
-        elif label in mn_colors:
-            line.set_color(mn_colors[label])
+        elif label in cluster_colors:
+            line.set_color(cluster_colors[label])
         elif label == 'Total DOS':
             if args.total:
                 line.set_color('#000000')  # Black for total DOS
@@ -178,7 +172,7 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot DOS from VASP vasprun.xml")
     parser.add_argument('-t', '--total', action='store_true', help='Add total DOS to the plot')
-    parser.add_argument('-m', '--mn-oxidation', action='store_true', help='Plot a line for each Mn oxidation states (only Mn(III) and Mn(IV) implemented)')
+    parser.add_argument('-c', '--cluster-projected', action='append', help='Plot a line for each cluster for the elements given.')
     args = parser.parse_args()
     # Copy script to current directory as dos_plotter.py
     if "dos_plotter.py" not in os.listdir("."):
@@ -187,8 +181,10 @@ if __name__ == "__main__":
         # check if the file is identical to the current script
         with open(__file__, 'r') as f1, open("dos_plotter.py", 'r') as f2:
             if not f1.read() == f2.read():
-                print("\ndos_plotter.py exists in this directory and is different. Run it instead!")
-                # Add the same arguments
-                os.system("python3 dos_plotter.py " + " ".join(sys.argv[1:]))
-                exit(0)
+                print("dos_plotter.py exists in this directory and is different.")
+                response = input("Do you want to run dos_plotter.py instead? (y/n): ")
+                if response.lower() == 'y':
+                    # Add the same arguments
+                    os.system("python3 dos_plotter.py " + " ".join(sys.argv[1:]))
+                    exit(0)
     main()
