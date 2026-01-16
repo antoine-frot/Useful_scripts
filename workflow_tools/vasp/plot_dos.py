@@ -71,20 +71,25 @@ def main():
     plotter.add_dos('Total DOS', dos)
     
     clusters = {}
-    for element in args.cluster_projected:
-        clusters[element] = read_oxidation_states(element)
+    if args.element:
+        # Normalize element names to capitalized format
+        target_elements = [e.capitalize() for e in args.element]
+        for element in target_elements:
+            clusters[element] = read_oxidation_states(element)
     
     if clusters:
         # Get element DOS but exclude element clusters (will be handled separately)
         cluster_colors = parse_vesta_cluster_colors()
         element_dos_dict = dos.get_element_dos()
         for element, element_dos in element_dos_dict.items():
-            if element.symbol not in args.cluster_projected:
+            if element.symbol not in target_elements:
                 plotter.add_dos(str(element), element_dos)
         
         # Add separate DOS for each element cluster
         structure = vasprun.final_structure
-        for element in args.cluster_projected:
+        for element in target_elements:
+            if element not in clusters or clusters[element] is None:
+                continue
             for label, indices in clusters[element].items():
                 dos_cluster = None
                 for idx in indices:
@@ -121,7 +126,7 @@ def main():
             continue
         if label in vesta_colors:
             line.set_color(vesta_colors[label])
-        elif label in cluster_colors:
+        elif clusters and label in cluster_colors:
             r, g, b = cluster_colors[label]
             line.set_color((r/255, g/255, b/255))
             if label == 'Mn1':
@@ -164,7 +169,7 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot DOS from VASP vasprun.xml")
     parser.add_argument('-t', '--total', action='store_true', help='Add total DOS to the plot')
-    parser.add_argument('-c', '--cluster-projected', action='append', default=[], help='Plot a line for each cluster for the elements given.')
+    parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to differentiate clusters for (e.g., Mn O). If not specified, element-projected DOS is shown without cluster differentiation.")
     args = parser.parse_args()
     # Copy script to current directory as dos_plotter.py
     if "dos_plotter.py" not in os.listdir("."):
