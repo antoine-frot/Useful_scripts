@@ -8,5 +8,6 @@ fi
 
 for calc_dir in "$@"; do
     mkdir -p $calc_dir
-    cp $INPUT_FILES $calc_dir
+    cp $INPUTS $calc_dir
     cp CONTCAR $calc_dir/POSCAR
+done
