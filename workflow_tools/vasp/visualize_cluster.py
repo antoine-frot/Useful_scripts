@@ -12,6 +12,7 @@ import re
 import argparse
 
 from python_utility.oklab import generate_variants, hex_to_rgb
+from python_utility.vesta_colors import vesta_colors
 
 def parse_vesta_cluster_colors(filepath="VESTA_cluster_colors"):
     """
@@ -102,14 +103,13 @@ def parse_bader_summary(filepath="Bader_summary.txt"):
 
 def parse_vesta_sitet(filepath="CONTCAR.vesta"):
     """
-    Parse a .vesta file to extract SITET block and initial RGB colors per element.
+    Parse a .vesta file to extract SITET block and get element colors from vesta_colors dictionary.
     
     Returns:
         tuple: (vesta_lines, sitet_start_idx, sitet_end_idx, element_colors)
             - vesta_lines: all lines of the file
             - sitet_start_idx: line index where SITET data starts
             - sitet_end_idx: line index where SITET ends
-            - element_colors: {element: (R, G, B)} from first occurrence
     """
     if not os.path.exists(filepath):
         print(f"Error: {filepath} not found.")
@@ -119,6 +119,7 @@ def parse_vesta_sitet(filepath="CONTCAR.vesta"):
         vesta_lines = f.readlines()
     
     element_colors = {}
+    elements_found = set()
     sitet_start_idx = None
     sitet_end_idx = None
     
@@ -129,30 +130,19 @@ def parse_vesta_sitet(filepath="CONTCAR.vesta"):
             if line.strip() == "0 0 0 0 0 0":
                 sitet_end_idx = i
                 break
-            # Parse SITET line
+            # Parse SITET line to find which elements are present
             parts = line.split()
             if len(parts) >= 6:
                 # Extract element name (remove numbers from label like "Li1" -> "Li")
                 label = parts[1]
                 element = re.sub(r'\d+', '', label)
-                
-                # Extract RGB (columns 4, 5, 6 in 1-based = indices 3, 4, 5 in 0-based)
-                try:
-                    r = int(parts[3])
-                    g = int(parts[4])
-                    b = int(parts[5])
-                    
-                    # Store first occurrence only
-                    if element not in element_colors:
-                        element_colors[element] = (r, g, b)
-                except (ValueError, IndexError):
-                    continue
+                elements_found.add(element)
     
     if sitet_start_idx is None or sitet_end_idx is None:
         print(f"Error: Could not find SITET block in {filepath}.")
         sys.exit(1)
     
-    return vesta_lines, sitet_start_idx, sitet_end_idx, element_colors
+    return vesta_lines, sitet_start_idx, sitet_end_idx
 
 
 def get_manual_colors(cluster_map):
@@ -186,13 +176,12 @@ def get_manual_colors(cluster_map):
     return cluster_colors
 
 
-def get_automatic_colors(cluster_map, cluster_counts, element_colors: dict, target_elements=None):
+def get_automatic_colors(cluster_map, target_elements=None):
     """
     Generate colors automatically using Oklab color generation.
     Inputs:
         cluster_map: {old_idx (0-based): cluster_label}
         cluster_counts: {element: num_clusters}
-        element_colors: {element: (R, G, B)}
         target_elements: list of elements to generate colors for (None = all)
     
     Returns:
@@ -218,16 +207,16 @@ def get_automatic_colors(cluster_map, cluster_counts, element_colors: dict, targ
             elements_seen[elem] += 1
     
     for elem in elements_seen:
-        r, g, b = element_colors[elem]
-        hex_color = f"#{r:02x}{g:02x}{b:02x}"
+        hex_color = vesta_colors[elem]
         initial_hex_colors.append(hex_color)
         n_variants_per_color.append(elements_seen[elem])
         element_order.append(elem)
 
-    print("\n=== Automatic Color Generation ===")
-    print(f"Using Oklab to generate {sum(n_variants_per_color)} colors from {len(initial_hex_colors)} base colors")
-    for elem, base, n_var in zip(element_order, initial_hex_colors, n_variants_per_color):
-        print(f"  {elem}: {base} → {n_var} variant(s)")
+    if args.verbose:
+        print("\n=== Automatic Color Generation ===")
+        print(f"Using Oklab to generate {sum(n_variants_per_color)} colors from {len(initial_hex_colors)} base colors")
+        for elem, base, n_var in zip(element_order, initial_hex_colors, n_variants_per_color):
+            print(f"  {elem}: {base} → {n_var} variant(s)")
     
     # Generate color palettes
     palette = generate_variants(initial_hex_colors, n_variants_per_color)
@@ -303,15 +292,24 @@ def main():
         print("\n[1/4] Parsing Bader_summary.txt...")
     cluster_map, cluster_counts = parse_bader_summary()
     
-    # Filter cluster_map based on target elements
+    # Filter cluster_map and cluster_counts based on target elements
     if args.element:
         target_elements = [e.capitalize() for e in args.element]
         original_count = len(cluster_map)
+        original_cluster_counts = len(cluster_counts)
+        
+        # Filter cluster_map
         cluster_map = {idx: cluster for idx, cluster in cluster_map.items() 
                       if re.sub(r'\d+', '', cluster) in target_elements}
+        
+        # Filter cluster_counts
+        cluster_counts = {cluster: count for cluster, count in cluster_counts.items()
+                         if re.sub(r'\d+', '', cluster) in target_elements}
+        
         if args.verbose:
             print(f"  Filtering for element(s): {', '.join(target_elements)}")
             print(f"  Atoms to color: {len(cluster_map)} of {original_count}")
+            print(f"  Clusters to color: {len(cluster_counts)} of {original_cluster_counts}")
     else:
         target_elements = None
         
@@ -320,17 +318,13 @@ def main():
         print(f"  Found {len(cluster_map)} atoms in {len(cluster_counts)} clusters and {number_of_elements} elements")
 
     # Step 2: Parse VESTA file
-        print(f"\n[2/4] Parsing {args.vesta}...")
-    vesta_lines, sitet_start, sitet_end, element_colors = parse_vesta_sitet(args.vesta)
+        print(f"\n[2/4] Parsing {args.input}...")
+    vesta_lines, sitet_start, sitet_end = parse_vesta_sitet(args.input)
     if args.verbose:
         print(f"  SITET block: lines {sitet_start+1} to {sitet_end}")
-        if number_of_elements == len(element_colors):
-            print(f"  Element base colors: {len(element_colors)} found")
-        else:
-            print(f"  Warning: {len(element_colors)} element colors found, but {number_of_elements} are expected")
     
     # Step 3: Get colors (manual or automatic)
-        print("\n[3/4] Color assignment...")
+    print("\n[3/4] Color assignment...")
     VESTA_cluster_colors_path = "VESTA_cluster_colors"
     if VESTA_cluster_colors_path in os.listdir('.'):
         print(f"Found {VESTA_cluster_colors_path} file. Using it for base colors.")
@@ -343,7 +337,7 @@ def main():
         while True:
             mode = input("Choose color mode - (m)anual or (a)utomatic? [default: a]: ").strip().lower()
             if mode in ['', 'a', 'automatic']:
-                cluster_colors = get_automatic_colors(cluster_map, cluster_counts, element_colors, target_elements)
+                cluster_colors = get_automatic_colors(cluster_map, target_elements)
                 break
             elif mode in ['m', 'manual']:
                 cluster_colors = get_manual_colors(cluster_map)
@@ -356,15 +350,15 @@ def main():
         print(f"\nColor mapping created for {len(cluster_colors)} clusters")
 
     # Step 4: Update VESTA file
-        print(f"\n[4/4] Updating {args.vesta}...")
+        print(f"\n[4/4] Updating {args.input}...")
     updated_lines = update_vesta_colors(vesta_lines, sitet_start, sitet_end, cluster_map, cluster_colors)
     
-    with open(f"{args.vesta}", 'w') as f:
+    with open(f"{args.input}", 'w') as f:
         f.writelines(updated_lines)
     
     if args.verbose:
         print("\n" + "=" * 60)
-        print(f"SUCCESS: {args.vesta} updated with cluster colors")
+        print(f"SUCCESS: {args.input} updated with cluster colors")
         print("=" * 60)
         print("\nCluster color summary:")
         for cluster in sorted(cluster_colors.keys()):
@@ -374,7 +368,7 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VESTA Cluster Visualization Tool")
-    parser.add_argument("--vesta", type=str, default="CONTCAR.vesta", help="Path to the output VESTA file")
+    parser.add_argument("-i", "--input", type=str, default="CONTCAR.vesta", help="Path to the input VESTA file (default: CONTCAR.vesta)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to apply cluster colors to (e.g., Mn O). If not specified, all elements are colored.")
     args = parser.parse_args()
