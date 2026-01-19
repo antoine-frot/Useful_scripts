@@ -118,7 +118,6 @@ def parse_vesta_sitet(filepath="CONTCAR.vesta"):
     with open(filepath, 'r') as f:
         vesta_lines = f.readlines()
     
-    element_colors = {}
     elements_found = set()
     sitet_start_idx = None
     sitet_end_idx = None
@@ -329,21 +328,9 @@ def main():
     if VESTA_cluster_colors_path in os.listdir('.'):
         print(f"Found {VESTA_cluster_colors_path} file. Using it for base colors.")
         cluster_colors = parse_vesta_cluster_colors(VESTA_cluster_colors_path)
-        if len(cluster_colors) != len(cluster_counts):
-            print(f"Warning: Number of clusters in {VESTA_cluster_colors_path} ({len(cluster_colors)}) "
-                  f"does not match number of clusters found ({len(cluster_counts)}).")
-            sys.exit(1)
     else:
-        while True:
-            mode = input("Choose color mode - (m)anual or (a)utomatic? [default: a]: ").strip().lower()
-            if mode in ['', 'a', 'automatic']:
-                cluster_colors = get_automatic_colors(cluster_map, target_elements)
-                break
-            elif mode in ['m', 'manual']:
-                cluster_colors = get_manual_colors(cluster_map)
-                break
-            else:
-                print("Invalid choice. Please enter 'm' or 'a'.")
+        print(f"No {VESTA_cluster_colors_path} file found. Generating colors automatically using Oklab.")
+        cluster_colors = get_automatic_colors(cluster_map, target_elements)
         write_vesta_cluster_colors(cluster_colors, VESTA_cluster_colors_path)
 
     if args.verbose:
@@ -367,7 +354,7 @@ def main():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VESTA Cluster Visualization Tool")
+    parser = argparse.ArgumentParser(description="VESTA Cluster Visualization Tool. Assign colors to atoms based on Bader cluster analysis. Colors are generated automatically using Oklab unless a VESTA_cluster_colors file is provided.")
     parser.add_argument("-i", "--input", type=str, default="CONTCAR.vesta", help="Path to the input VESTA file (default: CONTCAR.vesta)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to apply cluster colors to (e.g., Mn O). If not specified, all elements are colored.")
