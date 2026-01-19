@@ -100,81 +100,6 @@ def parse_bader_summary(filepath="Bader_summary.txt"):
 
     return cluster_map, cluster_counts
 
-
-def parse_vesta_sitet(filepath="CONTCAR.vesta"):
-    """
-    Parse a .vesta file to extract SITET block and get element colors from vesta_colors dictionary.
-    
-    Returns:
-        tuple: (vesta_lines, sitet_start_idx, sitet_end_idx, element_colors)
-            - vesta_lines: all lines of the file
-            - sitet_start_idx: line index where SITET data starts
-            - sitet_end_idx: line index where SITET ends
-    """
-    if not os.path.exists(filepath):
-        print(f"Error: {filepath} not found.")
-        sys.exit(1)
-    
-    with open(filepath, 'r') as f:
-        vesta_lines = f.readlines()
-    
-    elements_found = set()
-    sitet_start_idx = None
-    sitet_end_idx = None
-    
-    for i, line in enumerate(vesta_lines):
-        if line.strip() == "SITET":
-            sitet_start_idx = i + 1
-        elif sitet_start_idx is not None and sitet_end_idx is None:
-            if line.strip() == "0 0 0 0 0 0":
-                sitet_end_idx = i
-                break
-            # Parse SITET line to find which elements are present
-            parts = line.split()
-            if len(parts) >= 6:
-                # Extract element name (remove numbers from label like "Li1" -> "Li")
-                label = parts[1]
-                element = re.sub(r'\d+', '', label)
-                elements_found.add(element)
-    
-    if sitet_start_idx is None or sitet_end_idx is None:
-        print(f"Error: Could not find SITET block in {filepath}.")
-        sys.exit(1)
-    
-    return vesta_lines, sitet_start_idx, sitet_end_idx
-
-
-def get_manual_colors(cluster_map):
-    """
-    Prompt user to enter hex colors for each unique cluster.
-    
-    Returns:
-        dict: {cluster_label: (R, G, B)}
-    """
-    unique_clusters = sorted(set(cluster_map.values()))
-    cluster_colors = {}
-    
-    print("\n=== Manual Color Input ===")
-    print("Enter hex color codes (e.g., #A8089E) for each cluster:\n")
-    
-    for cluster in unique_clusters:
-        while True:
-            color_input = input(f"{cluster}: ").strip()
-            if not color_input.startswith('#'):
-                color_input = '#' + color_input
-            
-            # Validate hex format
-            if re.match(r'^#[0-9A-Fa-f]{6}$', color_input):
-                rgb = hex_to_rgb(color_input)
-                # Convert to 0-255 range
-                cluster_colors[cluster] = (int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
-                break
-            else:
-                print("Invalid hex color. Please use format #RRGGBB")
-    
-    return cluster_colors
-
-
 def get_automatic_colors(cluster_map, target_elements=None):
     """
     Generate colors automatically using Oklab color generation.
@@ -236,22 +161,40 @@ def get_automatic_colors(cluster_map, target_elements=None):
     
     return cluster_colors
 
-
-def update_vesta_colors(vesta_lines, sitet_start_idx, sitet_end_idx, cluster_map, cluster_colors):
+def update_vesta_colors(filepath, cluster_map, cluster_colors):
     """
-    Update SITET block RGB values based on cluster assignments.
+    Update SITET block RGB values in a VESTA file based on cluster assignments.
+    
     Inputs:
-        vesta_lines: list of all lines in the .vesta file
-        sitet_start_idx: line index where SITET data starts
-        sitet_end_idx: line index where SITET data ends
+        filepath: path to the VESTA file
         cluster_map: {old_idx (0-based): cluster_label}
         cluster_colors: {cluster_label: (R, G, B)}
-    
-    Returns:
-        list: Updated vesta_lines
     """
-    updated_lines = vesta_lines.copy()
+    if not os.path.exists(filepath):
+        print(f"Error: {filepath} not found.")
+        sys.exit(1)
     
+    # Read the file
+    with open(filepath, 'r') as f:
+        vesta_lines = f.readlines()
+    
+    # Find SITET block
+    sitet_start_idx = None
+    sitet_end_idx = None
+    
+    for i, line in enumerate(vesta_lines):
+        if line.strip() == "SITET":
+            sitet_start_idx = i + 1
+        elif sitet_start_idx is not None and sitet_end_idx is None:
+            if line.strip() == "0 0 0 0 0 0": # End of SITET block
+                sitet_end_idx = i
+                break
+    
+    if sitet_start_idx is None or sitet_end_idx is None:
+        print(f"Error: Could not find SITET block in {filepath}.")
+        sys.exit(1)
+    
+    # Update colors
     for sitet_idx in range(sitet_start_idx, sitet_end_idx):
         atom_idx = sitet_idx - sitet_start_idx  # 0-based atom index
         
@@ -261,7 +204,7 @@ def update_vesta_colors(vesta_lines, sitet_start_idx, sitet_end_idx, cluster_map
                 r, g, b = cluster_colors[cluster]
                 
                 # Parse and update the line
-                parts = updated_lines[sitet_idx].split()
+                parts = vesta_lines[sitet_idx].split()
                 if len(parts) >= 6:
                     parts[3] = str(r)
                     parts[4] = str(g)
@@ -272,12 +215,14 @@ def update_vesta_colors(vesta_lines, sitet_start_idx, sitet_end_idx, cluster_map
                     # Reconstruct line preserving formatting
                     # Use fixed-width formatting to match VESTA style
                     # First color is the atom color (columns 4,5,6) and the second color is polyhedra color (columns 7,8,9). They should be the same
-                    updated_lines[sitet_idx] = f"{parts[0]:>3} {parts[1]:>10} {parts[2]:>7} {parts[3]:>3} {parts[4]:>3} {parts[5]:>3} {parts[6]:>3} {parts[7]:>3} {parts[8]:>3}"
+                    vesta_lines[sitet_idx] = f"{parts[0]:>3} {parts[1]:>10} {parts[2]:>7} {parts[3]:>3} {parts[4]:>3} {parts[5]:>3} {parts[6]:>3} {parts[7]:>3} {parts[8]:>3}"
                     if len(parts) > 9:
-                        updated_lines[sitet_idx] += " " + " ".join(parts[9:])
-                    updated_lines[sitet_idx] += "\n"
+                        vesta_lines[sitet_idx] += " " + " ".join(parts[9:])
+                    vesta_lines[sitet_idx] += "\n"
     
-    return updated_lines
+    # Write the updated file
+    with open(filepath, 'w') as f:
+        f.writelines(vesta_lines)
 
 
 def main():
@@ -288,7 +233,7 @@ def main():
         print("=" * 60)
         
     # Step 1: Parse Bader summary
-        print("\n[1/4] Parsing Bader_summary.txt...")
+        print("\n[1/3] Parsing Bader_summary.txt...")
     cluster_map, cluster_counts = parse_bader_summary()
     
     # Filter cluster_map and cluster_counts based on target elements
@@ -316,14 +261,8 @@ def main():
         number_of_elements = len(set([cluster.rstrip('0123456789') for cluster in cluster_map.values()]))
         print(f"  Found {len(cluster_map)} atoms in {len(cluster_counts)} clusters and {number_of_elements} elements")
 
-    # Step 2: Parse VESTA file
-        print(f"\n[2/4] Parsing {args.input}...")
-    vesta_lines, sitet_start, sitet_end = parse_vesta_sitet(args.input)
-    if args.verbose:
-        print(f"  SITET block: lines {sitet_start+1} to {sitet_end}")
-    
-    # Step 3: Get colors (manual or automatic)
-    print("\n[3/4] Color assignment...")
+    # Step 2: Get colors (manual or automatic)
+    print("\n[2/3] Color assignment...")
     VESTA_cluster_colors_path = "VESTA_cluster_colors"
     if VESTA_cluster_colors_path in os.listdir('.'):
         print(f"Found {VESTA_cluster_colors_path} file. Using it for base colors.")
@@ -336,12 +275,9 @@ def main():
     if args.verbose:
         print(f"\nColor mapping created for {len(cluster_colors)} clusters")
 
-    # Step 4: Update VESTA file
-        print(f"\n[4/4] Updating {args.input}...")
-    updated_lines = update_vesta_colors(vesta_lines, sitet_start, sitet_end, cluster_map, cluster_colors)
-    
-    with open(f"{args.input}", 'w') as f:
-        f.writelines(updated_lines)
+    # Step 3: Update VESTA file
+    print(f"\n[3/3] Updating {args.input}...")
+    update_vesta_colors(args.input, cluster_map, cluster_colors)
     
     if args.verbose:
         print("\n" + "=" * 60)
