@@ -100,13 +100,12 @@ def parse_bader_summary(filepath="Bader_summary.txt"):
 
     return cluster_map, cluster_counts
 
-def get_automatic_colors(cluster_map, target_elements=None):
+def get_automatic_colors(cluster_map):
     """
     Generate colors automatically using Oklab color generation.
     Inputs:
         cluster_map: {old_idx (0-based): cluster_label}
         cluster_counts: {element: num_clusters}
-        target_elements: list of elements to generate colors for (None = all)
     
     Returns:
         dict: {cluster_label: (R, G, B)}
@@ -122,8 +121,6 @@ def get_automatic_colors(cluster_map, target_elements=None):
     for cluster in cluster_map.values():
         elem = re.sub(r'\d+', '', cluster)
         # Skip if target_elements specified and this element not in it
-        if target_elements is not None and elem not in target_elements:
-            continue
         if elem not in elements_seen:
             elements_seen[elem] = 0
         if cluster not in cluster_seen:
@@ -194,31 +191,39 @@ def update_vesta_colors(filepath, cluster_map, cluster_colors):
         print(f"Error: Could not find SITET block in {filepath}.")
         sys.exit(1)
     
-    # Update colors
+    # Update colors for ALL atoms
     for sitet_idx in range(sitet_start_idx, sitet_end_idx):
         atom_idx = sitet_idx - sitet_start_idx  # 0-based atom index
         
-        if atom_idx in cluster_map:
-            cluster = cluster_map[atom_idx]
-            if cluster in cluster_colors:
-                r, g, b = cluster_colors[cluster]
-                
-                # Parse and update the line
-                parts = vesta_lines[sitet_idx].split()
-                if len(parts) >= 6:
-                    parts[3] = str(r)
-                    parts[4] = str(g)
-                    parts[5] = str(b)
-                    parts[6] = str(r)
-                    parts[7] = str(g)
-                    parts[8] = str(b)
-                    # Reconstruct line preserving formatting
-                    # Use fixed-width formatting to match VESTA style
-                    # First color is the atom color (columns 4,5,6) and the second color is polyhedra color (columns 7,8,9). They should be the same
-                    vesta_lines[sitet_idx] = f"{parts[0]:>3} {parts[1]:>10} {parts[2]:>7} {parts[3]:>3} {parts[4]:>3} {parts[5]:>3} {parts[6]:>3} {parts[7]:>3} {parts[8]:>3}"
-                    if len(parts) > 9:
-                        vesta_lines[sitet_idx] += " " + " ".join(parts[9:])
-                    vesta_lines[sitet_idx] += "\n"
+        # Parse the line to get element
+        parts = vesta_lines[sitet_idx].split()
+        if len(parts) < 6:
+            continue
+            
+        label = parts[1]
+        element = re.sub(r'\d+', '', label)
+        
+        # Determine which color to use
+        if args.element is None or element in args.element:
+            r, g, b = cluster_colors[cluster_map[atom_idx]]
+        else:
+            hex_color = vesta_colors[element]
+            rgb = hex_to_rgb(hex_color)
+            r, g, b = int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255)
+
+        # Apply the color
+        parts[3] = str(r)
+        parts[4] = str(g)
+        parts[5] = str(b)
+        parts[6] = str(r)
+        parts[7] = str(g)
+        parts[8] = str(b)
+        
+        # Reconstruct line preserving formatting
+        vesta_lines[sitet_idx] = f"{parts[0]:>3} {parts[1]:>10} {parts[2]:>7} {parts[3]:>3} {parts[4]:>3} {parts[5]:>3} {parts[6]:>3} {parts[7]:>3} {parts[8]:>3}"
+        if len(parts) > 9:
+            vesta_lines[sitet_idx] += " " + " ".join(parts[9:])
+        vesta_lines[sitet_idx] += "\n"
     
     # Write the updated file
     with open(filepath, 'w') as f:
@@ -233,50 +238,32 @@ def main():
         print("=" * 60)
         
     # Step 1: Parse Bader summary
+    if args.verbose:
         print("\n[1/3] Parsing Bader_summary.txt...")
     cluster_map, cluster_counts = parse_bader_summary()
     
-    # Filter cluster_map and cluster_counts based on target elements
-    if args.element:
-        target_elements = [e.capitalize() for e in args.element]
-        original_count = len(cluster_map)
-        original_cluster_counts = len(cluster_counts)
-        
-        # Filter cluster_map
-        cluster_map = {idx: cluster for idx, cluster in cluster_map.items() 
-                      if re.sub(r'\d+', '', cluster) in target_elements}
-        
-        # Filter cluster_counts
-        cluster_counts = {cluster: count for cluster, count in cluster_counts.items()
-                         if re.sub(r'\d+', '', cluster) in target_elements}
-        
-        if args.verbose:
-            print(f"  Filtering for element(s): {', '.join(target_elements)}")
-            print(f"  Atoms to color: {len(cluster_map)} of {original_count}")
-            print(f"  Clusters to color: {len(cluster_counts)} of {original_cluster_counts}")
-    else:
-        target_elements = None
-        
     if args.verbose:
         number_of_elements = len(set([cluster.rstrip('0123456789') for cluster in cluster_map.values()]))
         print(f"  Found {len(cluster_map)} atoms in {len(cluster_counts)} clusters and {number_of_elements} elements")
-
-    # Step 2: Get colors (manual or automatic)
-    print("\n[2/3] Color assignment...")
+    
+    # Step 2: Get colors
+    if args.verbose:
+        print("\n[2/3] Color assignment...")
     VESTA_cluster_colors_path = "VESTA_cluster_colors"
     if VESTA_cluster_colors_path in os.listdir('.'):
         print(f"Found {VESTA_cluster_colors_path} file. Using it for base colors.")
         cluster_colors = parse_vesta_cluster_colors(VESTA_cluster_colors_path)
     else:
         print(f"No {VESTA_cluster_colors_path} file found. Generating colors automatically using Oklab.")
-        cluster_colors = get_automatic_colors(cluster_map, target_elements)
+        cluster_colors = get_automatic_colors(cluster_map)
         write_vesta_cluster_colors(cluster_colors, VESTA_cluster_colors_path)
 
     if args.verbose:
         print(f"\nColor mapping created for {len(cluster_colors)} clusters")
-
+    
     # Step 3: Update VESTA file
-    print(f"\n[3/3] Updating {args.input}...")
+    if args.verbose:
+        print(f"\n[3/3] Updating {args.input}...")
     update_vesta_colors(args.input, cluster_map, cluster_colors)
     
     if args.verbose:
