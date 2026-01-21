@@ -272,7 +272,7 @@ def main():
         return (elem_order, cluster_index, bader_charge)
 
     atom_data.sort(key=sort_key)
-    # write_poscar_ordered(atom_data, unique_elements_order)
+    write_poscar_ordered(atom_data, unique_elements_order)
 
     with open(OUTPUT_FILE, 'w') as f:
         # --- TABLE 1: Individual Atoms ---

@@ -57,9 +57,13 @@ def write_vesta_cluster_colors(cluster_colors, filepath="VESTA_cluster_colors"):
             hex_color = f"#{r:02x}{g:02x}{b:02x}"
             f.write(f"{cluster}: {hex_color}\n")
 
-def parse_bader_summary(filepath="Bader_summary.txt"):
+def parse_bader_summary(index='old', filepath="Bader_summary.txt"):
     """
     Parse Bader_summary.txt to extract cluster assignments.
+
+    Inputs:
+        index: 'old' or 'new' to specify which atom indexing to use. 'old' uses original atom indices from CONTCAR, 'new' uses reordered indices.
+        filepath: path to Bader_summary.txt file
     
     Returns:
         tuple: (cluster_map, cluster_counts)
@@ -72,7 +76,14 @@ def parse_bader_summary(filepath="Bader_summary.txt"):
     
     cluster_map = {}
     cluster_counts = {}
-    
+    if index not in ['old', 'new']:
+        print(f"Error: index must be 'old' or 'new'.")
+        sys.exit(1)
+    if index == 'new':
+        idx_col = 1  # New index column
+    else:
+        idx_col = 0  # Old index column
+
     with open(filepath, 'r') as f:
         in_data_section = False
         
@@ -89,7 +100,7 @@ def parse_bader_summary(filepath="Bader_summary.txt"):
                     continue
                 parts = line.split()
                 if len(parts) >= 3 and parts[0].strip().isdigit():
-                    old_idx = int(parts[0].strip()) - 1  # Convert to 0-based
+                    old_idx = int(parts[idx_col].strip()) - 1  # Convert to 0-based
                     cluster_label = parts[2].strip()
                     cluster_map[old_idx] = cluster_label
             
@@ -158,7 +169,7 @@ def get_automatic_colors(cluster_map):
     
     return cluster_colors
 
-def update_vesta_colors(filepath, cluster_map, cluster_colors):
+def update_vesta_colors(filepath, cluster_map, cluster_colors, VESTA_cluster_colors_path="VESTA_cluster_colors"):
     """
     Update SITET block RGB values in a VESTA file based on cluster assignments.
     
@@ -205,7 +216,11 @@ def update_vesta_colors(filepath, cluster_map, cluster_colors):
         
         # Determine which color to use
         if args.element is None or element in args.element:
-            r, g, b = cluster_colors[cluster_map[atom_idx]]
+            cluster = cluster_map[atom_idx]
+            if cluster not in cluster_colors:
+                print(f"Error: No color found for cluster {cluster}. Please check {VESTA_cluster_colors_path}.")
+                sys.exit(1)
+            r, g, b = cluster_colors[cluster]
         else:
             hex_color = vesta_colors[element]
             rgb = hex_to_rgb(hex_color)
@@ -240,8 +255,11 @@ def main():
     # Step 1: Parse Bader summary
     if args.verbose:
         print("\n[1/3] Parsing Bader_summary.txt...")
-    cluster_map, cluster_counts = parse_bader_summary()
-    
+    if args.input == "CONTCAR_ordered.vesta":
+        cluster_map, cluster_counts = parse_bader_summary(index='new')
+    else:
+        cluster_map, cluster_counts = parse_bader_summary(index='old')
+
     if args.verbose:
         number_of_elements = len(set([cluster.rstrip('0123456789') for cluster in cluster_map.values()]))
         print(f"  Found {len(cluster_map)} atoms in {len(cluster_counts)} clusters and {number_of_elements} elements")
@@ -264,7 +282,7 @@ def main():
     # Step 3: Update VESTA file
     if args.verbose:
         print(f"\n[3/3] Updating {args.input}...")
-    update_vesta_colors(args.input, cluster_map, cluster_colors)
+    update_vesta_colors(args.input, cluster_map, cluster_colors, VESTA_cluster_colors_path)
     
     if args.verbose:
         print("\n" + "=" * 60)
