@@ -118,7 +118,7 @@ def find_max_chroma(L, h, tolerance=0.001, max_iterations=50):
     
     return c_min
 
-def generate_variants(initial_hex_colors, n_variants_per_color, spread=0.1, luminescence_min=0.2, luminescence_max=0.95):
+def generate_variants(initial_hex_colors, n_variants_per_color, spread=0.2, luminescence_min=0.2, luminescence_max=0.95):
     """
     Generates variants for each initial color.
     
@@ -161,18 +161,19 @@ def generate_variants(initial_hex_colors, n_variants_per_color, spread=0.1, lumi
         generated_group = []
         
         # 3. Define lightness range
-        if spread > (luminescence_max - luminescence_min):
+        global_spread = spread * (n_variants - 1)
+        if global_spread > (luminescence_max - luminescence_min):
             l_min = luminescence_min
             l_max = luminescence_max
         else:
-            l_min = max(luminescence_min, L - spread/2)
-            l_max = min(luminescence_max, L + spread/2)
-            if l_max - l_min != spread:
+            l_min = max(luminescence_min, L - global_spread/2)
+            l_max = min(luminescence_max, L + global_spread/2)
+            if l_max - l_min != global_spread:
                 if l_min == luminescence_min:
-                    l_max = l_min + spread
+                    l_max = l_min + global_spread
                 else:
-                    l_min = l_max - spread
-        
+                    l_min = l_max - global_spread
+
         l_levels = np.linspace(l_min, l_max, n_variants)
         
         for new_L in l_levels:
