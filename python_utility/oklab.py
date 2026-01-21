@@ -145,6 +145,10 @@ def generate_variants(initial_hex_colors, n_variants_per_color, spread=0.1, lumi
     results = {}
     
     for hex_code, n_variants in zip(initial_hex_colors, n_variants_list):
+        if n_variants == 1:
+            results[hex_code] = [hex_code]
+            continue
+        
         # 1. Convert Base to Oklab
         base_rgb = hex_to_rgb(hex_code)
         base_oklab = rgb_to_oklab(base_rgb)
