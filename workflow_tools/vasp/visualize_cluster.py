@@ -151,7 +151,7 @@ def get_automatic_colors(cluster_map):
             print(f"  {elem}: {base} → {n_var} variant(s)")
     
     # Generate color palettes
-    palette = generate_variants(initial_hex_colors, n_variants_per_color, spread=0.4)
+    palette = generate_variants(initial_hex_colors, n_variants_per_color, spread=0.3)
     
     # Map cluster labels to colors
     cluster_colors = {}
@@ -300,4 +300,16 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to apply cluster colors to (e.g., Mn O). If not specified, all elements are colored.")
     args = parser.parse_args()
+    if args.verbose:
+        print(f"Input VESTA file: {args.input}")
+        if args.element:
+            print(f"Target elements for coloring: {', '.join(args.element)}")
+        else:
+            print("All elements will be colored based on clusters.")
+    if not args.input.endswith('.vesta'):
+        print("Error: Input file must be a .vesta file.")
+        sys.exit(1)
+    if args.input not in os.listdir('.'):
+        print(f"Error: {args.input} not found in the current directory.")
+        sys.exit(1)
     main()
