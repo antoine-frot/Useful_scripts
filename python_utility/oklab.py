@@ -73,7 +73,52 @@ def rgb_to_hex(rgb):
 
 # --- Generation Logic ---
 
-def generate_variants(initial_hex_colors, n_variants_per_color):
+def find_max_chroma(L, h, tolerance=0.001, max_iterations=50):
+    """
+    Find maximum chroma for given lightness L and hue h that stays within sRGB gamut.
+    Uses binary search.
+    
+    Args:
+        L: Lightness in Oklab (0-1)
+        h: Hue angle in radians
+        tolerance: Convergence tolerance for binary search
+        max_iterations: Maximum search iterations
+    
+    Returns:
+        float: Maximum chroma value
+    """
+    c_min = 0.0
+    c_max = 0.5  # Start with reasonable upper bound
+    
+    # First, find an upper bound that's definitely outside gamut
+    while c_max < 2.0:  # Safety limit
+        a = c_max * np.cos(h)
+        b = c_max * np.sin(h)
+        rgb = oklab_to_rgb(np.array([L, a, b]))
+        if np.any(rgb < 0) or np.any(rgb > 1):
+            break
+        c_max *= 2
+    
+    # Binary search for maximum in-gamut chroma
+    for _ in range(max_iterations):
+        c_mid = (c_min + c_max) / 2
+        a = c_mid * np.cos(h)
+        b = c_mid * np.sin(h)
+        rgb = oklab_to_rgb(np.array([L, a, b]))
+        
+        if np.all(rgb >= 0) and np.all(rgb <= 1):
+            # In gamut, try higher chroma
+            c_min = c_mid
+        else:
+            # Out of gamut, try lower chroma
+            c_max = c_mid
+        
+        if c_max - c_min < tolerance:
+            break
+    
+    return c_min
+
+def generate_variants(initial_hex_colors, n_variants_per_color, spread=0.1, luminescence_min=0.2, luminescence_max=0.95):
     """
     Generates variants for each initial color.
     
@@ -81,6 +126,9 @@ def generate_variants(initial_hex_colors, n_variants_per_color):
         initial_hex_colors: List of hex color codes
         n_variants_per_color: Either an integer (same for all colors) or 
                              a list of integers (one per color)
+        spread: Lightness spread around base color
+        luminescence_min: Minimum lightness value
+        luminescence_max: Maximum lightness value
     
     Returns:
         dict: { 'initial_hex': [list_of_generated_hex_codes] }
@@ -108,43 +156,33 @@ def generate_variants(initial_hex_colors, n_variants_per_color):
         
         generated_group = []
         
-        # 3. Generate steps
-        # We vary Lightness (L) significantly and Chroma (C) slightly.
-        # We avoid touching Hue (h) to keep the "link" to the initial color strong.
-        
-        # Determine lightness direction. If base is dark, go lighter. If light, go darker.
-        # However, to get 'n' colors, we usually want a spread around the base 
-        # or a gradient extending from it.
-        # Here we create a spread centered on the base, but clamped.
-        
-        # Create a range of Lightness values
-        # Spread determines how distinct the colors are. 
-        # Use logarithmic scaling: large initial spread, slower decrease
-        spread = 0.3 * np.sqrt(n_variants - 1)
-        
-        # Define bounds for Lightness to prevent washing out to pure white/black
-        # unsure to have the same spread in this case
-        if spread > 0.75:
-            l_min = 0.2
-            l_max = 0.95
+        # 3. Define lightness range
+        if spread > (luminescence_max - luminescence_min):
+            l_min = luminescence_min
+            l_max = luminescence_max
         else:
-            l_min = max(0.2, L - spread/2)
-            l_max = min(0.95, L + spread/2)
+            l_min = max(luminescence_min, L - spread/2)
+            l_max = min(luminescence_max, L + spread/2)
             if l_max - l_min != spread:
-                if l_min == 0.2:
+                if l_min == luminescence_min:
                     l_max = l_min + spread
                 else:
                     l_min = l_max - spread
         
-        
         l_levels = np.linspace(l_min, l_max, n_variants)
         
         for new_L in l_levels:
-            # Adjust Chroma based on Lightness to keep colors "natural"
-            # Very light or very dark colors naturally have lower chroma capacity.
-            # We scale chroma slightly to match the lightness intensity.
-            ratio = 1.0 - abs(new_L - L) # Reduce chroma as we move away from base L
-            new_C = C * (0.8 + 0.2 * ratio) 
+            # Find maximum chroma at this lightness and hue
+            max_C = find_max_chroma(new_L, h)
+            
+            # Scale the original chroma proportionally, but cap at max_C
+            # Preserve chroma ratio relative to the base color's maximum chroma
+            base_max_C = find_max_chroma(L, h)
+            if base_max_C > 0:
+                chroma_ratio = C / base_max_C
+                new_C = min(chroma_ratio * max_C, max_C * 0.95)  # Use 95% of max for safety
+            else:
+                new_C = 0
             
             # Convert back to Cartesian Oklab
             new_a = new_C * np.cos(h)

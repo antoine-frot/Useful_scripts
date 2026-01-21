@@ -140,7 +140,7 @@ def get_automatic_colors(cluster_map):
             print(f"  {elem}: {base} → {n_var} variant(s)")
     
     # Generate color palettes
-    palette = generate_variants(initial_hex_colors, n_variants_per_color)
+    palette = generate_variants(initial_hex_colors, n_variants_per_color, spread=0.4)
     
     # Map cluster labels to colors
     cluster_colors = {}
