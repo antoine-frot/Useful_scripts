@@ -8,4 +8,4 @@ local=afrot@coloquinte.d5.icgm.fr:/home/afrot
 potentiels="/home/sol/Vasp/potentiels/potpaw_PBE.64"
 alias activate="source $HOME/virtual_env_python/bin/activate"
 activate
-export PERL5LIB=$PERL5LIB:~/path/to/your/vtstscripts
+export PATH="/home/sol/Vasp/vtstscripts-1037:$PATH"
