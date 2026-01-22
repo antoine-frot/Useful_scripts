@@ -188,11 +188,19 @@ def main():
     ax.set_xlabel("Energy (eV)", fontsize=xfontsize)
     ax.set_ylabel("Density of States (arb. unit)", fontsize=yfontsize)
     # ax.set_xlim(-8, 4.5)
-    save_to_agr(ax, "dos.agr")
+    
+    # Build output filename suffix based on flags
+    suffix = ""
+    if args.element:
+        suffix += "_elem_" + "_".join(args.element)
+    if args.cluster:
+        suffix += "_clust_" + "_".join(args.cluster)
+    
+    save_to_agr(ax, f"dos{suffix}.agr")
     fig = plt.gcf()        # Get current figure
     plt.tight_layout()  # Adjust layout to prevent clipping
-    plt.savefig("dos_full.png", dpi=600)  # Save figure
-    plt.savefig("dos_full.pdf")  # Save figure
+    plt.savefig(f"dos_full{suffix}.png", dpi=600)  # Save figure
+    plt.savefig(f"dos_full{suffix}.pdf")  # Save figure
     from python_utility.matplotlib.enable_interactive_plot import enable_scroll_zoom, enable_keyboard_pan
     enable_scroll_zoom(fig)
     enable_keyboard_pan(fig)
