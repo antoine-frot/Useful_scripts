@@ -10,14 +10,14 @@ if [ -f $VASP_version_file ]; then
     echo "VASP version: $vasp_version"
 else
     echo "Which VASP version?"
-    available_versions=("6.5.0-impi" "6.4.3-gf-impi" "6.4.1" "6.3.2" "6.1.1_patched" "5.4.4-opt2")
+    available_versions=("6.5.1-impi-vtst" "6.5.0-impi" "6.4.3-gf-impi" "6.4.1" "6.3.2" "6.1.1_patched" "5.4.4-opt2")
     select version in "${available_versions[@]}"; do
         case $REPLY in
-            1|2|3|4|5)
+            1|2|3|4|5|6)
             vasp_version=Vasp6/vasp.$version
                 break
                 ;;
-            6)
+            7)
             vasp_version=Vasp5/vasp.$version
                 break
                 ;;
@@ -30,8 +30,34 @@ else
 fi
 export vasp_version
 
+### Partition
+Parition_file=Partition.txt
+if [ -f $Parition_file ]; then
+    partition=$(cat $Parition_file)
+    echo "Partition: $partition"
+else
+    echo "Which partition?"
+    available_partitions=("zen2" "zen4")
+    select part in "${available_partitions[@]}"; do
+        case $REPLY in
+            1)
+            partition="main"
+                break
+                ;;
+            2)
+            partition=$part
+                break
+                ;;
+            *)
+                echo "Invalid choice. Try again."
+                ;;
+        esac
+    done
+    echo $partition > $Parition_file
+fi
+
 # Submit VASP job and capture job ID
-job_output=$(sbatch --job-name=$job_name $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh)
+job_output=$(sbatch --job-name=$job_name --partition=$partition $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh)
 vasp_job_id=$(echo $job_output | awk '{print $NF}')
 
 # Wait for VASP job to complete and run post-processing
