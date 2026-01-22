@@ -70,11 +70,23 @@ def main():
     plotter = DosPlotter()
     plotter.add_dos('Total DOS', dos)
     
-    clusters = {}
+    # Determine which elements to show
+    target_elements = []
     if args.element:
-        # Normalize element names to capitalized format
         target_elements = [e.capitalize() for e in args.element]
-        for element in target_elements:
+    
+    # Ensure cluster elements are included in target_elements
+    cluster_elements = []
+    if args.cluster:
+        cluster_elements = [e.capitalize() for e in args.cluster]
+        for element in cluster_elements:
+            if element not in target_elements:
+                target_elements.append(element)
+    
+    clusters = {}
+    if args.cluster:
+        # Normalize element names to capitalized format
+        for element in cluster_elements:
             clusters[element] = read_oxidation_states(element)
     
     if clusters:
@@ -82,12 +94,16 @@ def main():
         cluster_colors = parse_vesta_cluster_colors()
         element_dos_dict = dos.get_element_dos()
         for element, element_dos in element_dos_dict.items():
-            if element.symbol not in target_elements:
+            # Skip if not in target_elements (when element filter is active)
+            if target_elements and element.symbol not in target_elements:
+                continue
+            # Skip cluster elements as they will be handled separately
+            if element.symbol not in cluster_elements:
                 plotter.add_dos(str(element), element_dos)
         
         # Add separate DOS for each element cluster
         structure = vasprun.final_structure
-        for element in target_elements:
+        for element in cluster_elements:
             if element not in clusters or clusters[element] is None:
                 continue
             for label, indices in clusters[element].items():
@@ -105,7 +121,15 @@ def main():
                     plotter.add_dos(label, dos_cluster)
     else:
         # Original behavior: plot element DOS
-        plotter.add_dos_dict(dos.get_element_dos())
+        element_dos_dict = dos.get_element_dos()
+        if target_elements:
+            # Filter by specified elements
+            filtered_dos = {element: element_dos for element, element_dos in element_dos_dict.items() 
+                          if element.symbol in target_elements}
+            plotter.add_dos_dict(filtered_dos)
+        else:
+            # Show all elements
+            plotter.add_dos_dict(element_dos_dict)
     
     ax = plotter.get_plot()
     lines = ax.get_lines()
@@ -150,6 +174,8 @@ def main():
             else:
                 line.remove()  # Remove total DOS line if not requested
         line.set_linewidth(1)
+    # Add horizontal line at y=0
+    ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5, alpha=0.8)
     # Remove extra white space
     ax.margins(0)
     ax.autoscale_view()
@@ -175,7 +201,8 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot DOS from VASP vasprun.xml")
     parser.add_argument('-t', '--total', action='store_true', help='Add total DOS to the plot')
-    parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to differentiate clusters for (e.g., Mn O). If not specified, element-projected DOS is shown without cluster differentiation.")
+    parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to show DOS for (e.g., Mn O). If not specified, all elements are shown. Elements in --cluster are automatically included.")
+    parser.add_argument("-c", "--cluster", type=str, nargs='+', help="Element(s) to differentiate clusters for (e.g., Mn O). If not specified, element-projected DOS is shown without cluster differentiation.")
     args = parser.parse_args()
     # Copy script to current directory as dos_plotter.py
     if "dos_plotter.py" not in os.listdir("."):
