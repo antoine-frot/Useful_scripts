@@ -129,17 +129,21 @@ def main():
         elif clusters and label in cluster_colors:
             r, g, b = cluster_colors[label]
             line.set_color((r/255, g/255, b/255))
-            # if label == 'Mn1':
-            #     label = 'Mn(IV)'
-            # if label == 'Mn2':
-            #     label = 'Mn(III)'
-            # if label == 'Mn3':
-            #     label = 'Mn(II)'
+            if label == 'Mn1':
+                label = 'Mn(IV)'
+            if label == 'Mn2':
+                label = 'Mn(III)'
+            if label == 'Mn3':
+                label = 'Mn(II)'
+                ydata = line.get_ydata()
+                line.set_ydata(ydata * 8)
             # if label == 'O1':
             #    label = 'O_eq'
             # if label == 'O2':
             #    label = 'O_JT'
             line.set_label(f"{label}")
+
+            
         elif label == 'Total DOS':
             if args.total:
                 line.set_color('#000000')  # Black for total DOS
