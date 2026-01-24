@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# First and unique positional argument is the number of node to use
+if [ "$#" -gt 1 ]; then
+    echo "Usage: $0 [number_of_nodes]"
+    exit 1
+fi
+if [ "$#" -eq 1 ]; then
+    NUMBER_OF_NODES=$1
+else
+    NUMBER_OF_NODES=1
+fi
+
 source ${path_to_git}/calculation_submission/get_job_name.sh
 job_name=$(get_job_name) || exit 1
 
@@ -57,7 +68,7 @@ else
 fi
 
 # Submit VASP job and capture job ID
-job_output=$(sbatch --job-name=$job_name --partition=$partition $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh)
+job_output=$(sbatch --job-name=$job_name --partition=$partition --nodes=$NUMBER_OF_NODES $path_to_git/calculation_submission/sbatch_files/vasp_slurm.sh)
 vasp_job_id=$(echo $job_output | awk '{print $NF}')
 
 # Wait for VASP job to complete and run post-processing
