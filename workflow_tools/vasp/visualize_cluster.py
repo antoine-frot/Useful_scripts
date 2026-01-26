@@ -255,7 +255,7 @@ def main():
     # Step 1: Parse Bader summary
     if args.verbose:
         print("\n[1/3] Parsing Bader_summary.txt...")
-    if args.input == "CONTCAR_ordered.vesta":
+    if args.ordered or args.input.endswith('_ordered.vesta'):
         cluster_map, cluster_counts = parse_bader_summary(index='new')
     else:
         cluster_map, cluster_counts = parse_bader_summary(index='old')
@@ -299,6 +299,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input", type=str, default="CONTCAR.vesta", help="Path to the input VESTA file (default: CONTCAR.vesta)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("-e", "--element", type=str, nargs='+', help="Element(s) to apply cluster colors to (e.g., Mn O). If not specified, all elements are colored.")
+    parser.add_argument("-o", "--ordered", action="store_true", help="Indicate that the input VESTA file is ordered such as CONTCAR_ordered (uses new atom indexing from Bader analysis).")
     args = parser.parse_args()
     if args.verbose:
         print(f"Input VESTA file: {args.input}")
