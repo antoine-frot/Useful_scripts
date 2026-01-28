@@ -7,6 +7,7 @@ with cluster-specific colors either manually or automatically using Oklab.
 """
 
 import os
+import shutil
 import sys
 import re
 import argparse
@@ -102,8 +103,13 @@ def parse_bader_summary(index='old', filepath="Bader_summary.txt"):
                 if len(parts) >= 3 and parts[0].strip().isdigit():
                     old_idx = int(parts[idx_col].strip()) - 1  # Convert to 0-based
                     cluster_label = parts[2].strip()
+                    # Verify if cluster_label is valid (e.g., starts with an element symbol)
+                    if not cluster_label or not any(cluster_label.startswith(elem) for elem in vesta_colors.keys()):
+                        print(f"Warning: Invalid cluster label '{cluster_label}'.")
+                        print("Please check Bader_summary.txt for correctness (Previous version lead to problems).")
+                        sys.exit(1)
                     cluster_map[old_idx] = cluster_label
-            
+
     for cluster_label in cluster_map.values():
         if cluster_label not in cluster_counts:
             cluster_counts[cluster_label] = 0
@@ -267,9 +273,16 @@ def main():
     # Step 2: Get colors
     if args.verbose:
         print("\n[2/3] Color assignment...")
-    VESTA_cluster_colors_path = "VESTA_cluster_colors"
-    if VESTA_cluster_colors_path in os.listdir('.'):
-        print(f"Found {VESTA_cluster_colors_path} file. Using it for base colors.")
+    VESTA_cluster_colors_name = "VESTA_cluster_colors"
+    home_dir = os.path.expanduser('~')
+    if VESTA_cluster_colors_name in os.listdir('.'):
+        VESTA_cluster_colors_path = VESTA_cluster_colors_name
+        print(f"Found {VESTA_cluster_colors_path} file locally. Using it for base colors.")
+        cluster_colors = parse_vesta_cluster_colors(VESTA_cluster_colors_path)
+    elif VESTA_cluster_colors_name in os.listdir(home_dir):
+        VESTA_cluster_colors_path = os.path.join(home_dir, VESTA_cluster_colors_name)
+        shutil.copy(VESTA_cluster_colors_path, VESTA_cluster_colors_name)
+        print(f"Found global {VESTA_cluster_colors_path} file in home directory. Using it for base colors.")
         cluster_colors = parse_vesta_cluster_colors(VESTA_cluster_colors_path)
     else:
         print(f"No {VESTA_cluster_colors_path} file found. Generating colors automatically using Oklab.")
