@@ -6,6 +6,14 @@
 #SBATCH -N 1
 #SBATCH --partition=main
 
+# Get vasp_version from first argument
+vasp_version="$1"
+
+if [ -z "$vasp_version" ]; then
+    echo "Error: VASP version not provided as argument"
+    exit 1
+fi
+
 start=$(date +%s)
 echo -e "START_TIME           = `date +'%y-%m-%d %H:%M:%S'`"
 

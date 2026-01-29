@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""
+Submit VASP calculations to SLURM scheduler.
+Handles version selection, partition selection, and post-processing.
+"""
+
+import os
+import sys
+import subprocess
+import time
+import re
+import argparse
+from pathlib import Path
+
+def get_job_name():
+    """
+    Generate a job name based on the path from home directory to current directory.
+    Replaces path separators with hyphens and validates that no hyphens exist
+    in directory names to avoid job name conflicts.
+    """
+    current_dir = Path.cwd()
+    home_dir = Path.home()
+    
+    try:
+        relative_path = current_dir.relative_to(home_dir)
+    except ValueError:
+        print(f"Error: Current directory is not under home directory", file=sys.stderr)
+        sys.exit(1)
+    
+    # Check if any directory name contains a hyphen
+    if '-' in current_dir.name:
+        print(f"Error: The directory '{current_dir.name}' contains a hyphen (-).", file=sys.stderr)
+        sys.exit(1)
+    
+    # Replace slashes with hyphens
+    job_name = str(relative_path).replace(os.sep, '-')
+    
+    return job_name
+
+def get_vasp_version():
+    """Get VASP version from file or user input."""
+    vasp_version_file = 'VASP_version.txt'
+    
+    if os.path.exists(vasp_version_file):
+        with open(vasp_version_file, 'r') as f:
+            vasp_version = f.read().strip()
+        print(f"VASP version: {vasp_version}")
+        return vasp_version
+    
+    print("Which VASP version?")
+    available_versions = [
+        ("6.5.1-impi-vtst", "Vasp6"),
+        ("6.5.0-impi", "Vasp6"),
+        ("6.4.3-gf-impi", "Vasp6"),
+        ("6.4.1", "Vasp6"),
+        ("6.3.2", "Vasp6"),
+        ("6.1.1_patched", "Vasp6"),
+        ("5.4.4-opt2", "Vasp5")
+    ]
+    
+    for i, (version, _) in enumerate(available_versions, 1):
+        print(f"{i}) {version}")
+    
+    while True:
+        try:
+            choice = int(input(f"Enter choice (1-{len(available_versions)}): "))
+            if 1 <= choice <= len(available_versions):
+                version, base = available_versions[choice - 1]
+                vasp_version = f"{base}/vasp.{version}"
+                break
+            else:
+                print("Invalid choice. Try again.")
+        except (ValueError, KeyboardInterrupt):
+            print("\nInvalid input. Try again.")
+    
+    with open(vasp_version_file, 'w') as f:
+        f.write(vasp_version)
+    
+    return vasp_version
+
+def get_slurm_availability():
+    """Get available nodes per partition and return partition list."""
+    try:
+        result = subprocess.run(['sinfo', '-h', '-o', '%P %C'], 
+                              capture_output=True, 
+                              text=True, 
+                              check=True)
+        
+        idle_cpus = {}
+        for line in result.stdout.strip().split('\n'):
+            parts = line.split()
+            if len(parts) >= 2:
+                partition = parts[0].rstrip('*')  # Remove * from default partition
+                cpu_counts = parts[1].split('/')
+                if len(cpu_counts) >= 4:
+                    # cpu_counts = [Allocated, Idle, Other, Total]
+                    idle = int(cpu_counts[1])
+                    idle_cpus[partition] = idle_cpus.get(partition, 0) + idle
+        
+        available_partitions = {}
+        for partition, idle in idle_cpus.items():
+            # Each node has 64 CPUs
+            nodes = idle // 64
+            available_partitions[partition] = nodes
+
+        if not available_partitions:
+            print("No available partitions found.")
+            sys.exit(1)
+
+        return available_partitions
+
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Could not get SLURM availability: {e}")
+        sys.exit(1)
+
+def get_partition():
+    """Get partition from user input."""
+    available_partitions = get_slurm_availability()
+
+    print("Which partition? [Index) partition_name (available_nodes)]")
+
+    partition_list = list(available_partitions.keys())
+    for i, partition in enumerate(partition_list, 1):
+        nodes = available_partitions[partition]
+        print(f"{i}) {partition} ({nodes})")
+
+    while True:
+        try:
+            choice = int(input(f"Enter choice (1-{len(available_partitions)}): "))
+            if 1 <= choice <= len(available_partitions):
+                return partition_list[choice - 1]
+            else:
+                print("Invalid choice. Try again.")
+        except (ValueError, KeyboardInterrupt):
+            print("\nInvalid input. Try again.")
+
+def submit_vasp_job(job_name, partition, number_of_nodes, vasp_version):
+    """Submit VASP job to SLURM."""
+    path_to_git = os.environ.get('path_to_git')
+    sbatch_script = Path(path_to_git) / 'calculation_submission' / 'sbatch_files' / 'vasp_slurm.sh'
+    
+    cmd = [
+        'sbatch',
+        f'--job-name={job_name}',
+        f'--partition={partition}',
+        f'--nodes={number_of_nodes}',
+        str(sbatch_script),
+        vasp_version  # Pass as argument to the script
+    ]
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # Extract job ID from output like "Submitted batch job 12345"
+        match = re.search(r'(\d+)$', result.stdout.strip())
+        if match:
+            return match.group(1)
+        else:
+            print(f"Could not parse job ID from: {result.stdout}")
+            return None
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to submit VASP job: {e}")
+        return None
+
+def wait_and_postprocess(job_name, vasp_job_id):
+    """Wait for job completion and run post-processing."""
+    slurm_output = f"slurm-{vasp_job_id}.out"
+    
+    # Wait for job to finish
+    while True:
+        try:
+            result = subprocess.run(['squeue', '-j', vasp_job_id], 
+                                  capture_output=True, 
+                                  text=True)
+            if vasp_job_id not in result.stdout:
+                break
+        except subprocess.CalledProcessError:
+            break
+        time.sleep(60)
+    
+    # Check if job completed successfully
+    displayed_name = f"{job_name} ({vasp_job_id})"
+    submitted_file = Path.home() / 'Submitted.txt'
+    
+    try:
+        with open(submitted_file, 'r') as f:
+            content = f.read()
+            if f"HURRAY: {displayed_name}" in content:
+                subprocess.run(['vasp_do_bader'], check=False)
+                
+                if '-fukui_plus' in job_name:
+                    path_to_git = os.environ.get('path_to_git')
+                    chgdiff_script = Path(path_to_git) / 'workflow_tools' / 'vasp' / 'bader' / 'chgdiff.pl'
+                    subprocess.run(['perl', str(chgdiff_script), '../CHGCAR', 'CHGCAR'],
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL,
+                                    check=False)
+                    if os.path.exists('CHGCAR_diff'):
+                        os.rename('CHGCAR_diff', 'CHGCAR_fukui_plus')
+                
+                elif '-fukui_moins' in job_name:
+                    path_to_git = os.environ.get('path_to_git')
+                    chgdiff_script = Path(path_to_git) / 'workflow_tools' / 'vasp' / 'bader' / 'chgdiff.pl'
+                    subprocess.run(['perl', str(chgdiff_script), 'CHGCAR', '../CHGCAR'],
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL,
+                                    check=False)
+                    if os.path.exists('CHGCAR_diff'):
+                        os.rename('CHGCAR_diff', 'CHGCAR_fukui_moins')
+    except FileNotFoundError:
+        with open(slurm_output, 'a') as f:
+            f.write(f"\n[Post-processing] Error: {submitted_file} file not found. Skipping post-processing.\n")
+    except Exception as e:
+        with open(slurm_output, 'a') as f:
+            f.write(f"\n[Post-processing] Error during post-processing: {e}\n")
+
+def main():
+    """Main function."""
+    # Get parameters
+    job_name = get_job_name()
+    partition = get_partition()
+    vasp_version = get_vasp_version()
+    print(f"Number of nodes: {args.nodes}")
+
+    # Submit job
+    vasp_job_id = submit_vasp_job(job_name, partition, args.nodes, vasp_version)
+    
+    if vasp_job_id:
+        # Start post-processing in background using subprocess with nohup
+        path_to_git = os.environ.get('path_to_git')
+        postprocess_script = Path(path_to_git) / 'calculation_submission' / 'vasp_postprocess.py'
+        
+        subprocess.Popen(
+            ['nohup', 'python3', str(postprocess_script), job_name, vasp_job_id],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
+        print(f"Job {vasp_job_id} submitted.")
+    else:
+        print("Failed to submit VASP job.")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Submit VASP job.")
+    parser.add_argument("-n", "--nodes", default=1, type=int, help="Number of nodes")
+
+    args = parser.parse_args()
+    main()
