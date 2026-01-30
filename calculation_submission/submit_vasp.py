@@ -217,8 +217,8 @@ def main():
     # Get parameters
     job_name = get_job_name()
     partition = get_partition()
-    vasp_version = get_vasp_version()
     number_of_nodes = int(input("Number of nodes to use: "))
+    vasp_version = get_vasp_version()
 
     # Submit job
     vasp_job_id = submit_vasp_job(job_name, partition, number_of_nodes, vasp_version)
