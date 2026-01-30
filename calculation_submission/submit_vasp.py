@@ -9,7 +9,6 @@ import sys
 import subprocess
 import time
 import re
-import argparse
 from pathlib import Path
 
 def get_job_name():
@@ -219,10 +218,10 @@ def main():
     job_name = get_job_name()
     partition = get_partition()
     vasp_version = get_vasp_version()
-    print(f"Number of nodes: {args.nodes}")
+    number_of_nodes = int(input("Number of nodes to use: "))
 
     # Submit job
-    vasp_job_id = submit_vasp_job(job_name, partition, args.nodes, vasp_version)
+    vasp_job_id = submit_vasp_job(job_name, partition, number_of_nodes, vasp_version)
     
     if vasp_job_id:
         # Start post-processing in background using subprocess with nohup
@@ -240,8 +239,4 @@ def main():
         print("Failed to submit VASP job.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Submit VASP job.")
-    parser.add_argument("-n", "--nodes", default=1, type=int, help="Number of nodes")
-
-    args = parser.parse_args()
     main()
