@@ -27,4 +27,4 @@ if [ -n "$latest_slurm_file" ]; then
 else
     echo "No slurm output files found. Skipping backup of files: ${files[@]}."
 fi
-submit_vasp
+vasp_submit
