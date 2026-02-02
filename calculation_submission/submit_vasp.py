@@ -9,6 +9,7 @@ import sys
 import subprocess
 import time
 import re
+import argparse
 from pathlib import Path
 
 def get_job_name():
@@ -239,4 +240,16 @@ def main():
         print("Failed to submit VASP job.")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Submit VASP job.")
+    parser.add_argument("-c", "--cluster_resources", action="store_true", help="Display available cluster resources and exit.")
+    args = parser.parse_args()
+
+    if args.cluster_resources:
+        available_partitions = get_slurm_availability()
+        partition_list = list(available_partitions.keys())
+        for i, partition in enumerate(partition_list, 1):
+            nodes = available_partitions[partition]
+            print(f"{i}) {partition} ({nodes})")
+        sys.exit(0)
+
     main()
