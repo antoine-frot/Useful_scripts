@@ -6,11 +6,16 @@
 #SBATCH -N 1
 #SBATCH --partition=main
 
-# Get vasp_version from first argument
-vasp_version="$1"
+# Get vasp_path from first argument
+vasp_path="$1"
 
-if [ -z "$vasp_version" ]; then
-    echo "Error: VASP version not provided as argument"
+if [ -z "$vasp_path" ]; then
+    echo "Error: VASP path not provided as argument"
+    exit 1
+fi
+vasp_bin=$vasp_path/bin/vasp_std
+if [ ! -x "$vasp_bin" ]; then
+    echo "Error: VASP executable not found or not executable at $vasp_bin"
     exit 1
 fi
 
@@ -30,7 +35,7 @@ echo "Number of Nodes: $SLURM_JOB_NUM_NODES"
 echo "Partition: $SLURM_JOB_PARTITION"
 echo "Submit Directory: $SLURM_SUBMIT_DIR"
 echo "Submit Host: $SLURM_SUBMIT_HOST"
-echo "Vasp version: $vasp_version"
+echo "Vasp path: $vasp_path"
 #echo "Allocated GPUs: $SLURM_GPUS"
 echo "================================="
 echo ""
@@ -78,16 +83,27 @@ display_calculation_duration() {
 trap 'display_calculation_duration; handle_cancel' SIGTERM SIGINT
 
 # From icgm file
-ulimit -s unlimited
-source /usr/local/bin/envgf-impi.sh
-export I_MPI_PIN=on
-export UCX_RC_MLX5_TX_NUM_GET_BYTES=256k
-export UCX_RC_MLX5_MAX_GET_ZCOPY=32k
+echo "Setting up environment for $SLURM_SUBMIT_HOST..."
+if [ $SLURM_SUBMIT_HOST == "taz" ]; then
+    ulimit -s unlimited
+    source /usr/local/bin/envgf-impi.sh
+    export I_MPI_PIN=on
+    export UCX_RC_MLX5_TX_NUM_GET_BYTES=256k
+    export UCX_RC_MLX5_MAX_GET_ZCOPY=32k
+elif [ $SLURM_SUBMIT_HOST == "tornado" ]; then
+    source /usr/local/bin/gnu11-mkl-impi.sh                                                                                                                                                                                                     
+    export I_MPI_PIN_RESPECT_HCA=1
+    export I_MPI_PIN=on
+    ulimit -s unlimited
+else
+    echo "Unknown submit host: $SLURM_SUBMIT_HOST. No specific environment setup applied."
+fi
+
 
 echo " "
 echo "### Calling VASP command ..."
 echo " "
-mpirun -bootstrap slurm /home/sol/Vasp/$vasp_version/bin/vasp_std &
+mpirun -bootstrap slurm $vasp_bin &
 vasp_pid=$!
 
 # Loop during the calculation

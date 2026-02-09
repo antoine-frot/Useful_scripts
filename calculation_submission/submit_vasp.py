@@ -44,39 +44,42 @@ def get_vasp_version():
     if os.path.exists(vasp_version_file):
         with open(vasp_version_file, 'r') as f:
             vasp_version = f.read().strip()
-        print(f"VASP version: {vasp_version}")
+        print(f"VASP path: {vasp_version}")
         return vasp_version
     
     print("Which VASP version?")
-    available_versions = [
-        ("6.5.1-impi-vtst", "Vasp6"),
-        ("6.5.0-impi", "Vasp6"),
-        ("6.4.3-gf-impi", "Vasp6"),
-        ("6.4.1", "Vasp6"),
-        ("6.3.2", "Vasp6"),
-        ("6.1.1_patched", "Vasp6"),
-        ("5.4.4-opt2", "Vasp5")
-    ]
-    
-    for i, (version, _) in enumerate(available_versions, 1):
+    path_to_vasp = '/home/sol/Vasp'
+    available_versions_Vasp6 = os.listdir(f'{path_to_vasp}/Vasp6')
+    available_versions_Vasp5 = os.listdir(f'{path_to_vasp}/Vasp5')
+
+    print("\nVASP 6 versions:")
+    for i, version in enumerate(available_versions_Vasp6, 1):
         print(f"{i}) {version}")
-    
+
+    print("\nVASP 5 versions:")
+    for i, version in enumerate(available_versions_Vasp5, len(available_versions_Vasp6) + 1):
+        print(f"{i}) {version}")
+    print()
+
     while True:
         try:
-            choice = int(input(f"Enter choice (1-{len(available_versions)}): "))
-            if 1 <= choice <= len(available_versions):
-                version, base = available_versions[choice - 1]
-                vasp_version = f"{base}/vasp.{version}"
+            choice = int(input(f"Enter choice (1-{len(available_versions_Vasp6) + len(available_versions_Vasp5)}): "))
+            if 1 <= choice <= len(available_versions_Vasp6):
+                vasp_version = f"Vasp6/{available_versions_Vasp6[choice - 1]}"
+                break
+            elif len(available_versions_Vasp6) < choice <= len(available_versions_Vasp6) + len(available_versions_Vasp5):
+                vasp_version = f"Vasp5/{available_versions_Vasp5[choice - len(available_versions_Vasp6) - 1]}"
                 break
             else:
                 print("Invalid choice. Try again.")
         except (ValueError, KeyboardInterrupt):
             print("\nInvalid input. Try again.")
     
+    vasp_version_path = f"{path_to_vasp}/{vasp_version}"
     with open(vasp_version_file, 'w') as f:
-        f.write(vasp_version)
-    
-    return vasp_version
+        f.write(vasp_version_path)
+
+    return vasp_version_path
 
 def get_slurm_availability():
     """Get available nodes per partition and return partition list."""
