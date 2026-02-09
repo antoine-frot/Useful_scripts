@@ -20,6 +20,11 @@ cat .bashrc_backup >> ~/.bashrc
 ```
 > WARNING: If you cloned this repository somewhere other than your home directory, update the path to this git accordingly in the new .bashrc file.
 
+The python script related to this environment can be installed with:
+```bash
+python3 -m pip install -r requirements_python.txt
+```
+
 You’re all set!
 
 ## Set Up Additional Configuration Files (Optional)
@@ -28,12 +33,8 @@ You can save your previous `.bashrc` under a machine-specific name:
 cp ~/.bashrc bash_utility/configuration_files/bashrc_name_of_the_machine
 ```
 
-Additional configuration files such as `.vimrc` and `.bash_profile` can also be installed:
-```bash
-for configuration_file in (bashrc bash_profile vimrc); do
-    cp bash_utility/configuration_files/$configuration_file ~/.$configuration_file
-done
-```
+Additional configuration files such as `.vimrc` and `.bash_profile` can also be installed: `cp bash_utility/configuration_files/{bashrc,bash_profile,vimrc} ~/`
+
 After installing them, update the path to this repository and the name of the machine-specific .bashrc inside the main .bashrc file.
 
 
@@ -45,3 +46,4 @@ ssh-add ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub
 git remote set-url origin git@github.com:antoine-frot/Useful_scripts
 ```
+Copy ~/.ssh/id_ed25519.pub to your github ssh keys.

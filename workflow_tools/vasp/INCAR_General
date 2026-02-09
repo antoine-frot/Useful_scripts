@@ -1,0 +1,94 @@
+SYSTEM = General        # name of the calculation
+
+# RESTART
+ISTART = 0              # Restart from WAVECAR (0: No, 1: Yes)
+ICHARG = 2              # Restart from CHGCAR (0: Yes, 2: No, 11: Yes do not modify it)
+
+# ELECTRONIC MINIMIZATION
+PREC  = Accurate        # Precision level (determines FFT grid density)
+ENCUT =                 # Plane-wave energy cutoff (in eV). Set up manually
+EDIFF = 1E-8            # Electronic self-consistency convergence criterion
+NELMDL = -12            # Number of non-SCF steps (negative mean only for the first ionic stec (recommended))
+NELMIN = 5              # Minimum number of electronic steps before convergence check
+NELM = 100              # Maximum number of electronic self-consistency steps
+LASPH = .TRUE.          # Include non-spherical contributions related to the gradient of the density in the PAW spheres. 
+LHFCALC = .FALSE.       # Hybrid functional on/off
+# HFSCREEN = 0.2        ! Specifies the range separation parameter in range-separated hybrid functionnals 0.2/0.3 HSE06/HSE03
+ALGO = Fast             # Electronic minimization algorithm (new version of IALGO) (D/A/N for hybrid, Normal recommended)
+LREAL = Auto            # Real-space projection (Auto lets VASP decide based on system size/.FALSE. is more accurate but slower especially for large system.)
+LMAXMIX =               # Max l for charge density mixing (important for d(4) and f(6) elements)
+GGA_COMPACT = .FALSE.   # Restores the full lattice symmetry for gradient-corrected functionals. 
+
+# ELECTRONIC OCCUPANCY / DOS related value
+ISMEAR =                # Smearing of the fermi level (Gaussian)
+SIGMA = 0.1             # Good with gaussian for unknown system
+NEDOS = 301             # Grid point for DOS (Default = 301)
+# NBANDS =              # number of orbitals (1 for one UP one DOWN)
+# NELECT =              # number of electrons
+
+# IONIC OPTIMIZATION
+IBRION = 2              # Crystal change (1:RMM-DIIS, 2: conjugate gradient, 3: damped molecular dynamic)
+IWAVPR = 11             # How orbitals are extrapoled between two steps (11 for ionic optimization)
+ISIF = 3                # Parameters relaxation (2: Relax ions, 3:Relax ions + cell shape + cell volume)
+NSW = 200               # Maximum number of ionic relaxation steps
+EDIFFG = -5E-3          # Convergence criterion (forces if negative (recommended), energy if positive)
+POTIM = 0.1             # Time step MD/step width in ionic relaxation
+
+# SYMMETRY AND REAL-SPACE PROJECTION
+ISYM = 2                # Use of the symmetry
+SYMPREC = 1E-8          # Numerical precision for symmetry detection
+
+# SPIN AND MAGNETISM
+ISPIN =                 # Spin-polarized calculation
+MAGMOM = 4*0 8*5 24*0   # Initial magnetic moments per atomic species
+
+# OUTPUT AND ANALYSIS CONTROLS / WRITE FLAGS
+NWRITE = 2              # Verbosity tag (Default=2) 
+LORBIT = 11             # Projection method onto local quantum numbers
+LELF = .TRUE.           # Write Electron Localization Function (ELF) (Needs NPAR=1)
+LAECHG = .TRUE.         # Write all-electron charge density (useful for Bader or charge analysis)
+LCHARG = .TRUE.         # Write CHGCAR
+LWAVE = .TRUE.          # Write WAVECAR
+
+# DFT+U CORRECTION (HUBBARD U)
+LDAU =                  # Activate DFT+U correction
+LDAUTYPE = 2            # Type of DFT+U
+LDAUL = -1 2 -1         # Orbitals for U correction (-1 = none, 2 = d orbitals)
+LDAUU = 0.00 3.90 0.00  # On-site Coulomb U (in eV)
+LDAUJ = 0.00 0.00 0.00  # On-site exchange J (in eV)
+
+# Parallelization
+NPAR = 4                # Parallelization over bands
+
+# From a Accurate_Wavef, use same POSCAR, POTCAR, KPOINTS and accurate CHGCAR and WAVECAR. 
+# Use an accurate CHGCAR from a previous calculation, with same POSCAR, POTCAR and KPOINTS.
+# ICHARG = 0              ! Restart from CHGCAR (0: Yes, 2: No)
+# LPARD = .TRUE.          ! Enable partial charge density
+# IBAND = 86              ! Selection band manually 
+# NBMOD =                 ! How to choose the bands
+# EINT =                  ! Energy range for the bands
+# KPUSE = 1               ! List of k-points (starting at 1) (need ISYM=-1)
+# LSEPB = .TRUE.          ! .TRUE. do not sum the bands
+# LSEPK = .TRUE.          ! .TRUE. do not sum the k-points
+ 
+# NEB
+# NEB is initialized with 'nebmake.pl POSCAR_initial POSCAR_final 5'
+# INCAR, KPOINTS and POTCAR are defined in the root directory but can be overwrite in the subdirectories
+# IMAGES = 4              ! Set to the number of images (initial and final excluded). WARNING: IMAGES should divide the number of CPUs
+# SPRING = -5             ! Maintain the distance between the images (default -5 is good)
+# LCLIMB = .TRUE.         ! turn on the climbing image algorithm (default .TRUE.)
+# IOPT = 7                ! select an optimizer (IBRION = 3 and POTIM = 0 should be set)
+# MAXMOVE = 0.2           ! Maximum allowed step size for translation
+
+# Band Structure
+# Use an accurate WAVECAR and CHGCAR from a previous calculation, with same POSCAR and POTCAR.
+# WARNING: KPOINTS should be the high symmetry path defined by vaspkit (KPATH.in)
+# Can be taken from the experimetnal geometry to have the good symmetry group.
+# ISTART = 1              ! Restart from WAVECAR (0: No, 1: Yes)
+# ICHARG = 11             ! Restart from CHGCAR (0: Yes, 2: No)
+# IBRION = -1
+# NSW = 0
+# LORBIT = 11             ! Projection method onto local quantum numbers (
+# LCHARG = .FALSE.        ! Write CHGCAR
+# LWAVE = .FALSE.         ! Write WAVECAR
+# Then do the band structure thanks to vaspkit
