@@ -84,27 +84,32 @@ def get_vasp_version():
 def get_slurm_availability():
     """Get available nodes per partition and return partition list."""
     try:
-        result = subprocess.run(['sinfo', '-h', '-o', '%P %C'], 
+        # %P = partition, %a = availability, %F = nodes (allocated/idle/other/total)
+        result = subprocess.run(['sinfo', '-h', '-o', '%P %a %F'], 
                               capture_output=True, 
                               text=True, 
                               check=True)
         
-        idle_cpus = {}
+        available_partitions = {}
         for line in result.stdout.strip().split('\n'):
             parts = line.split()
-            if len(parts) >= 2:
+            if len(parts) >= 3:
                 partition = parts[0].rstrip('*')  # Remove * from default partition
-                cpu_counts = parts[1].split('/')
-                if len(cpu_counts) >= 4:
-                    # cpu_counts = [Allocated, Idle, Other, Total]
-                    idle = int(cpu_counts[1])
-                    idle_cpus[partition] = idle_cpus.get(partition, 0) + idle
-        
-        available_partitions = {}
-        for partition, idle in idle_cpus.items():
-            # Each node has 64 CPUs
-            nodes = idle // 64
-            available_partitions[partition] = nodes
+                availability = parts[1]
+                node_counts = parts[2].split('/')
+                
+                # Skip unavailable partitions
+                if availability != 'up':
+                    continue
+                
+                if len(node_counts) >= 4:
+                    # node_counts = [Allocated, Idle, Other, Total]
+                    idle_nodes = int(node_counts[1])
+                    # Aggregate if partition appears multiple times
+                    if partition in available_partitions:
+                        available_partitions[partition] += idle_nodes
+                    else:
+                        available_partitions[partition] = idle_nodes
 
         if not available_partitions:
             print("No available partitions found.")
