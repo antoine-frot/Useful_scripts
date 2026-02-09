@@ -20,9 +20,12 @@ cat .bashrc_backup >> ~/.bashrc
 ```
 > WARNING: If you cloned this repository somewhere other than your home directory, update the path to this git accordingly in the new .bashrc file.
 
-The python script related to this environment can be installed with:
+The python script related to this environment can be installed with (change the python command by your latest python interpreter):
 ```bash
-python3 -m pip install -r requirements_python.txt
+cd ~/Useful_scripts
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements_python.txt
 ```
 
 You’re all set!
