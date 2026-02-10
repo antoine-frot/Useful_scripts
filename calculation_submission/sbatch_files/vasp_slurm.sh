@@ -84,7 +84,7 @@ trap 'display_calculation_duration; handle_cancel' SIGTERM SIGINT
 
 # From icgm file
 echo "Setting up environment for $SLURM_SUBMIT_HOST..."
-if [ $SLURM_SUBMIT_HOST == "taz" ]; then
+if [ $SLURM_SUBMIT_HOST == "taz.d5.icgm.fr" ]; then
     ulimit -s unlimited
     source /usr/local/bin/envgf-impi.sh
     export I_MPI_PIN=on
