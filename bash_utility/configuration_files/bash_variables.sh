@@ -11,6 +11,7 @@ if [ -d "$HOME/enumlib" ]; then
 fi
 export PATH
 
+export VIRTUAL_ENV_DISABLE_PROMPT=1 # Python virtual environment does not overwrite PS1
 export PYTHONPATH="$path_to_git:$PYTHONPATH"
 export EDITOR=vim # the default EDITOR is set to vim
 Submitted="$HOME/Submitted.txt"
