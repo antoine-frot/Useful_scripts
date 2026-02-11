@@ -42,7 +42,7 @@ get_main_dir () {
 }
 
 goto() {
-    if [[ $# -ne 1 || "$1" != *"-"* ]]; then
+    if [[ $# -ne 1 ]]; then
         echo "Usage: goto calculation-name" >&2
         return 1
     fi
