@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/afrot/Useful_scripts/.venv/bin/python3
 """
 Post-processing script for VASP calculations.
 Runs independently after job submission.

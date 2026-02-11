@@ -1,4 +1,4 @@
-#! /home/afrot/virtual_env_python/bin/python3
+#!/usr/bin/env python3
 import matplotlib.pyplot as plt
 import os
 import sys
