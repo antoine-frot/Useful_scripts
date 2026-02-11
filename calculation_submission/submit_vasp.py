@@ -50,7 +50,17 @@ def get_vasp_version():
     print("Which VASP version?")
     path_to_vasp = '/home/sol/Vasp'
     available_versions_Vasp6 = os.listdir(f'{path_to_vasp}/Vasp6')
+    available_versions_Vasp6 = [v for v in available_versions_Vasp6 
+                                if not v.endswith('.gz') and 
+                                not v.endswith('.zip') and 
+                                not v.endswith('.tgz') and 
+                                not v.endswith('.tar')]
     available_versions_Vasp5 = os.listdir(f'{path_to_vasp}/Vasp5')
+    available_versions_Vasp5 = [v for v in available_versions_Vasp5 
+                                if not v.endswith('.gz') and 
+                                not v.endswith('.zip') and 
+                                not v.endswith('.tgz') and 
+                                not v.endswith('.tar')]
 
     print("\nVASP 6 versions:")
     for i, version in enumerate(available_versions_Vasp6, 1):
