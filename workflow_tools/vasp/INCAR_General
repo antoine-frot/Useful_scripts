@@ -2,12 +2,12 @@ SYSTEM = General        # name of the calculation
 
 # RESTART
 ISTART = 0              # Restart from WAVECAR (0: No, 1: Yes)
-ICHARG = 2              # Restart from CHGCAR (0: Yes, 2: No, 11: Yes do not modify it)
+ICHARG = 2              # Restart from CHGCAR (0: Yes from WAVECAR, 1: yes from CHGCAR, 2: No, 11: Yes do not modify it)
 
 # ELECTRONIC MINIMIZATION
 PREC  = Accurate        # Precision level (determines FFT grid density)
 ENCUT =                 # Plane-wave energy cutoff (in eV). Set up manually
-EDIFF = 1E-8            # Electronic self-consistency convergence criterion
+EDIFF = 1E-6            # Electronic self-consistency convergence criterion
 NELMDL = -12            # Number of non-SCF steps (negative mean only for the first ionic stec (recommended))
 NELMIN = 5              # Minimum number of electronic steps before convergence check
 NELM = 100              # Maximum number of electronic self-consistency steps
@@ -20,11 +20,21 @@ LMAXMIX =               # Max l for charge density mixing (important for d(4) an
 GGA_COMPACT = .FALSE.   # Restores the full lattice symmetry for gradient-corrected functionals. 
 
 # ELECTRONIC OCCUPANCY / DOS related value
-ISMEAR =                # Smearing of the fermi level (Gaussian)
+ISMEAR = 0              # Smearing of the fermi level (Gaussian)
 SIGMA = 0.1             # Good with gaussian for unknown system
 NEDOS = 301             # Grid point for DOS (Default = 301)
-# NBANDS =              # number of orbitals (1 for one UP one DOWN)
-# NELECT =              # number of electrons
+# NELECT =
+
+# Delta SCF
+# ISTART = 1
+# ISMEAR= -2
+# NBANDS = 3
+# FERWE = 55*1 5*0 1 15*0 \
+# 56*1 20*0 \
+# 56*1 20*0 
+# FERDO = 48*1 28*0 \
+# 48*1 28*0 \
+# 48*1 28*0 
 
 # IONIC OPTIMIZATION
 IBRION = 2              # Crystal change (1:RMM-DIIS, 2: conjugate gradient, 3: damped molecular dynamic)
@@ -35,11 +45,11 @@ EDIFFG = -5E-3          # Convergence criterion (forces if negative (recommended
 POTIM = 0.1             # Time step MD/step width in ionic relaxation
 
 # SYMMETRY AND REAL-SPACE PROJECTION
-ISYM = 2                # Use of the symmetry
+ISYM = 2                # Use of the symmetry (0: No use 2: Use)
 SYMPREC = 1E-8          # Numerical precision for symmetry detection
 
 # SPIN AND MAGNETISM
-ISPIN =                 # Spin-polarized calculation
+ISPIN = 2               # Spin-polarized calculation
 MAGMOM = 4*0 8*5 24*0   # Initial magnetic moments per atomic species
 
 # OUTPUT AND ANALYSIS CONTROLS / WRITE FLAGS
