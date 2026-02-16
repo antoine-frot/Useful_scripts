@@ -225,7 +225,16 @@ def update_vesta_colors(filepath, cluster_map, cluster_colors, VESTA_cluster_col
             cluster = cluster_map[atom_idx]
             if cluster not in cluster_colors:
                 print(f"Error: No color found for cluster {cluster}. Please check {VESTA_cluster_colors_path}.")
-                sys.exit(1)
+                while True:
+                    user_input = input(f"Do you want to automatically assign new colors? (y/n): ").strip().lower()
+                    if user_input == 'y':
+                        cluster_colors = get_automatic_colors(cluster_map)
+                        write_vesta_cluster_colors(cluster_colors, VESTA_cluster_colors_path)
+                        update_vesta_colors(filepath, cluster_map, cluster_colors, VESTA_cluster_colors_path)
+                        return
+                    else:
+                        print("Exiting.")
+                        sys.exit(1)
             r, g, b = cluster_colors[cluster]
         else:
             hex_color = vesta_colors[element]
