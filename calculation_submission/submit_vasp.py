@@ -132,7 +132,7 @@ def get_slurm_availability():
         sys.exit(1)
 
 def get_partition():
-    """Get partition from user input."""
+    """Get partition with available node count from user input."""
     available_partitions = get_slurm_availability()
 
     print("Which partition? [Index) partition_name (available_nodes)]")
@@ -146,7 +146,7 @@ def get_partition():
         try:
             choice = int(input(f"Enter choice (1-{len(available_partitions)}): "))
             if 1 <= choice <= len(available_partitions):
-                return partition_list[choice - 1]
+                return partition_list[choice - 1], available_partitions[partition_list[choice - 1]]
             else:
                 print("Invalid choice. Try again.")
         except (ValueError, KeyboardInterrupt):
@@ -235,8 +235,16 @@ def main():
     """Main function."""
     # Get parameters
     job_name = get_job_name()
-    partition = get_partition()
-    number_of_nodes = int(input("Number of nodes to use: "))
+    partition, available_nodes = get_partition()
+    while True:
+        try:
+            number_of_nodes = int(input(f"Number of nodes to use (available: {available_nodes}): "))
+            if number_of_nodes < 1 or number_of_nodes > available_nodes:
+                print(f"Invalid choice. Must be between 1 and {available_nodes}.")
+                continue
+            break
+        except (ValueError, KeyboardInterrupt):
+            print("\nInvalid input. Try again.")
     vasp_version = get_vasp_version()
 
     # Submit job
