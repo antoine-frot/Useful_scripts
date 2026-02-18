@@ -104,8 +104,8 @@ def read_acf(filename):
         print(f"Error reading {filename}: {e}")
     return values
 
-def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
-    """Generates labels using DBSCAN clustering."""
+def generate_ion_labels(atoms, charges, mags, tolerance=1e-1):
+    """Generates labels using DBSCAN clustering focused on magnetization."""
     from sklearn.cluster import DBSCAN
     from collections import defaultdict
     import numpy as np
@@ -119,20 +119,21 @@ def generate_ion_labels(atoms, charges, mags, tolerance=6e-2):
     
     # Cluster each element separately
     for elem, indices in element_groups.items():
-        features = np.array([[charges[i], mags[i]] for i in indices])
+        # Weight magnetization more heavily in clustering
+        features = np.array([[mags[i] * 3, charges[i]] for i in indices])
         
         # DBSCAN clustering
         clustering = DBSCAN(eps=tolerance, min_samples=1).fit(features)
         
-        # Calculate centroid (mean Bader charge) for each cluster and sort by it
+        # Calculate centroid (mean magnetization) for each cluster and sort by it
         unique_clusters = sorted(set(clustering.labels_))
         cluster_centroids = {}
         for cluster_id in unique_clusters:
             cluster_indices = [indices[i] for i, cid in enumerate(clustering.labels_) if cid == cluster_id]
-            mean_bader = np.mean([charges[idx] for idx in cluster_indices])
-            cluster_centroids[cluster_id] = mean_bader
-        
-        # Sort clusters by mean Bader charge (ascending)
+            mean_mag = np.mean([mags[idx] for idx in cluster_indices])
+            cluster_centroids[cluster_id] = mean_mag
+
+        # Sort clusters by mean magnetization (ascending)
         sorted_clusters = sorted(unique_clusters, key=lambda cid: cluster_centroids[cid])
         cluster_mapping = {}
         for new_id, old_id in enumerate(sorted_clusters, 1):
@@ -262,14 +263,15 @@ def main():
     def sort_key(x):
         elem = x[1]
         label = x[2]
-        bader_charge = x[3]
+        mag = x[5]  # magnetization value
         elem_order = unique_elements_order.index(elem)
         
         # Extract cluster index from label (e.g., 'Fe1' -> 1)
         cluster_index_str = ''.join(filter(str.isdigit, label))
         cluster_index = int(cluster_index_str) if cluster_index_str else 0
         
-        return (elem_order, cluster_index, bader_charge)
+        # Sort by: element order, cluster index, then magnetization (ascending)
+        return (elem_order, cluster_index, mag)
 
     atom_data.sort(key=sort_key)
     write_poscar_ordered(atom_data, unique_elements_order)
