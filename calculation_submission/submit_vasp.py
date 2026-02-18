@@ -156,12 +156,17 @@ def submit_vasp_job(job_name, partition, number_of_nodes, vasp_version):
     """Submit VASP job to SLURM."""
     path_to_git = os.environ.get('path_to_git')
     sbatch_script = Path(path_to_git) / 'calculation_submission' / 'sbatch_files' / 'vasp_slurm.sh'
+    if args.bg:
+        qos = 'bg'
+    else:
+        qos = 'fgsol'  # Adjust QoS as needed for the cluster
     
     cmd = [
         'sbatch',
         f'--job-name={job_name}',
         f'--partition={partition}',
         f'--nodes={number_of_nodes}',
+        f'--qos={qos}',
         str(sbatch_script),
         vasp_version  # Pass as argument to the script
     ]
@@ -268,6 +273,7 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Submit VASP job.")
     parser.add_argument("-c", "--cluster_resources", action="store_true", help="Display available cluster resources and exit.")
+    parser.add_argument("--bg", default=False, action="store_true", help="Run post-processing in background (default: False).")
     args = parser.parse_args()
 
     if args.cluster_resources:
