@@ -140,24 +140,11 @@ def main():
     orbital_files = []
     for kpoint, kpoint_name in zip(args.kpoints, kpoint_names):
         for band in args.bands:
-            current += 1
             # Progress bar
             progress = int(50 * current / total_combinations)
             bar = '█' * progress + '░' * (50 - progress)
             percent = 100 * current / total_combinations
-            if current == 1:
-                # first print: emit two lines
-                print(f"kpoint {kpoint_name}, band {band}")
-                print(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})")
-            else:
-                # update the same two lines in-place using ANSI escapes
-                # move cursor up 2 lines, clear line, then print updated lines
-                sys.stdout.write("\033[2A")   # move cursor up 2 lines
-                sys.stdout.write("\033[2K")   # clear entire line
-                sys.stdout.write(f"kpoint {kpoint_name}, band {band}\n")
-                sys.stdout.write("\033[2K")   # clear entire line
-                sys.stdout.write(f"[{bar}] {percent:.1f}% ({current}/{total_combinations})\n")
-                sys.stdout.flush()
+            print(f"kpoint {kpoint_name}, band {band}: [{bar}] {percent:.1f}% ({current}/{total_combinations})", end='\r')
 
             new_names = None
             if args.squared:
@@ -195,11 +182,14 @@ def main():
                                            for part in ['REAL', 'IMAG']]
             run_vaspkit_command(kpoint, band, input_data)
 
+            current += 1
+
             if not new_names:
                 new_names = [generated_file.replace(f"K{kpoint:04d}", kpoint_name) for generated_file in generated_files]
 
             for generated_file, new_name in zip(generated_files, new_names):
-                if args.spin is None or not args.spin in generated_file:
+                if args.spin is not None and args.spin not in generated_file:
+                    print(f"Warning: Generated file {generated_file} does not match specified spin channel, skipping.")
                     os.remove(generated_file)
                     continue
                 if not args.imag and 'IMAG' in generated_file:
@@ -211,6 +201,10 @@ def main():
                     except FileNotFoundError:
                         print(f"Warning: Generated file {generated_file} not found, cannot rename to {new_name}")
                 orbital_files.append(new_name)
+    progress = 50
+    bar = '█' * progress + '░' * (50 - progress)
+    percent = 100
+    print(f"kpoint {kpoint_name}, band {band}: [{bar}] {percent:.1f}% ({current}/{total_combinations})")
 
     print("\nRun the following command to visualize the generated orbitals in VESTA:")
     print("VEST " + " ".join(orbital_files)) # With my own alias VEST -> VESTA 2>/dev/null &
